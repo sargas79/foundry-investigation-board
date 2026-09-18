@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Investigation Board — card templates</title>
+  <link rel="stylesheet" href="/styles/fonts.css">
+  <link rel="stylesheet" href="/styles/investigation-board.css">
+  <link rel="stylesheet" href="/styles/clue-cards.css">
+  <style>
+    html, body { margin: 0; background: #0b0f13; }
+    .stage {
+      box-sizing: border-box; padding: 40px 30px 60px;
+      background-color: #c08f52; background-image: url("/assets/textures/cork.svg");
+      background-size: 320px; box-shadow: inset 0 0 60px rgb(80 45 10 / 40%);
+    }
+    /* The module positions .ib-clue-layer absolutely, so the stage needs its own height. */
+    .stage { min-height: 1280px; }
+    .investigation-board-app .ib-clue-layer { position: relative; height: 1180px; }
+    .caption {
+      position: absolute; font: 600 10px/1 ui-monospace, monospace; letter-spacing: .1em;
+      text-transform: uppercase; color: rgb(60 32 8 / 75%);
+    }
+  </style>
+</head>
+<body>
+  <div class="investigation-board-app investigation-board">
+    <div class="stage">
+      <div class="ib-clue-layer" id="layer"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import {createClueElement} from "/scripts/board/clue-element.mjs";
+
+    // --- Stubs for the bits of Foundry the element factory touches -----------
+    const STRINGS = {
+      "INVESTIGATION_BOARD.CATEGORY.Physical": "Physical Evidence",
+      "INVESTIGATION_BOARD.CATEGORY.Testimony": "Testimony",
+      "INVESTIGATION_BOARD.CATEGORY.Document": "Document",
+      "INVESTIGATION_BOARD.CATEGORY.Person": "Person of Interest",
+      "INVESTIGATION_BOARD.CATEGORY.Location": "Location",
+      "INVESTIGATION_BOARD.CATEGORY.Lead": "Lead",
+      "INVESTIGATION_BOARD.CATEGORY.Other": "Other",
+      "INVESTIGATION_BOARD.RELIABILITY.Unverified": "Unverified",
+      "INVESTIGATION_BOARD.RELIABILITY.Questionable": "Questionable",
+      "INVESTIGATION_BOARD.RELIABILITY.Corroborated": "Corroborated",
+      "INVESTIGATION_BOARD.RELIABILITY.Verified": "Verified",
+      "INVESTIGATION_BOARD.RELIABILITY.Debunked": "Debunked"
+    };
+    window.game = {i18n: {localize: k => STRINGS[k] ?? k}};
+
+    const TEMPLATES = {
+      polaroid: {hasImage: true, hasBody: false},
+      mugshot: {hasImage: true, hasBody: true},
+      profile: {hasImage: true, hasBody: true},
+      document: {hasImage: false, hasBody: true},
+      letter: {hasImage: false, hasBody: true},
+      sticky: {hasImage: false, hasBody: true},
+      map: {hasImage: true, hasBody: false}
+    };
+
+    // Placeholder imagery, inline so the preview needs no binary assets.
+    const portrait = `data:image/svg+xml,${encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="240" height="320">
+        <rect width="240" height="320" fill="#6e6e6e"/>
+        <circle cx="120" cy="118" r="54" fill="#9a9a9a"/>
+        <path d="M30 320c0-62 40-104 90-104s90 42 90 104z" fill="#9a9a9a"/>
+      </svg>`)}`;
+    const mapImg = `data:image/svg+xml,${encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="320" height="240">
+        <rect width="320" height="240" fill="#e8e2d2"/>
+        <path d="M0 150h320M0 80h320M90 0v240M210 0v240" stroke="#c9c0a8" stroke-width="7"/>
+        <path d="M0 200 Q90 175 160 205 T320 190" stroke="#8fb8cf" stroke-width="12" fill="none"/>
+        <circle cx="165" cy="120" r="9" fill="#c8322f"/>
+      </svg>`)}`;
+
+    /** Build a stand-in for a clue JournalEntryPage. */
+    const page = (id, name, system) => ({
+      id, name,
+      system: {
+        template: "polaroid", image: null, body: "", pinColor: "red", redacted: false,
+        category: "other", reliability: "unverified",
+        x: 0, y: 0, rotation: 0, width: 200, z: 0, linkedUuid: null,
+        ...system,
+        get templateConfig() { return TEMPLATES[this.template]; }
+      }
+    });
+
+    const CARDS = [
+      ["Polaroid", page("c1", "Mara Vale", {
+        template: "polaroid", image: portrait, pinColor: "red", category: "person",
+        reliability: "verified", x: 40, y: 40, rotation: -2.5, width: 200, linkedUuid: "Actor.x"
+      })],
+      ["Mugshot", page("c2", "Vale, M. — 4471", {
+        template: "mugshot", image: portrait, pinColor: "yellow", category: "person",
+        reliability: "corroborated", x: 300, y: 40, rotation: 1.5, width: 190,
+        body: "<p>Booked 14 Mar. Released without charge.</p>"
+      })],
+      ["Profile", page("c3", "Victim Profile", {
+        template: "profile", image: portrait, pinColor: "blue", category: "person",
+        reliability: "verified", x: 550, y: 40, rotation: -1, width: 250,
+        body: "<p>Age 34. Last seen 11:40pm, Ashwood Lane. Works nights at the cannery.</p>"
+      })],
+      ["Document", page("c4", "Forensic Report", {
+        template: "document", pinColor: "white", category: "document",
+        reliability: "verified", x: 860, y: 40, rotation: 2, width: 230,
+        body: "<p>Case 4471-B. Latent print recovered from the clasp: partial, left thumb.</p><p>Match probability 0.82. Recommend re-analysis.</p>"
+      })],
+      ["Letter", page("c5", "Dear Tera,", {
+        template: "letter", pinColor: "green", category: "testimony",
+        reliability: "questionable", x: 40, y: 430, rotation: -1.5, width: 235,
+        body: "<p>I knew what I'm not in danger. If you would like to know the truth, meet me where the river bends. Come alone.</p><p>— R.</p>"
+      })],
+      ["Sticky (lead)", page("c6", "Follow the money", {
+        template: "sticky", pinColor: "blue", category: "lead",
+        reliability: "unverified", x: 330, y: 430, rotation: 3, width: 175,
+        body: "<p>Check the pawn shop receipts from the week of the 12th</p>"
+      })],
+      ["Map", page("c7", "Ashwood District", {
+        template: "map", image: mapImg, pinColor: "black", category: "location",
+        reliability: "corroborated", x: 560, y: 430, rotation: -2, width: 250
+      })],
+      ["Document — redacted", page("c8", "Internal Memo", {
+        template: "document", pinColor: "black", category: "document",
+        reliability: "debunked", redacted: true, x: 860, y: 430, rotation: 1, width: 230,
+        body: "<p>Redacted under section 14. Contents withheld pending review of the ongoing matter.</p>"
+      })],
+      ["Sticky — long", page("c9", "Timeline gaps", {
+        template: "sticky", pinColor: "yellow", category: "lead", reliability: "questionable",
+        x: 40, y: 760, rotation: -2, width: 200,
+        body: "<p>11:40 last seen. 02:14 watch stops. Who has the missing two and a half hours?</p>"
+      })],
+      ["Polaroid — narrow", page("c10", "The watch", {
+        template: "polaroid", image: portrait, pinColor: "white", category: "physical",
+        reliability: "verified", x: 300, y: 760, rotation: 2, width: 140
+      })],
+      ["Profile — wide", page("c11", "Witness Statement", {
+        template: "profile", image: portrait, pinColor: "green", category: "testimony",
+        reliability: "corroborated", x: 500, y: 760, rotation: 0.5, width: 330,
+        body: "<p>Saw a man in a grey coat near the bridge shortly before midnight. Could not describe his face. Heard an argument, then nothing.</p>"
+      })]
+    ];
+
+    const layer = document.getElementById("layer");
+    for ( const [label, p] of CARDS ) {
+      const el = createClueElement(p, p.system.body);
+      layer.append(el);
+      const cap = document.createElement("div");
+      cap.className = "caption";
+      cap.textContent = label;
+      cap.style.left = `${p.system.x}px`;
+      cap.style.top = `${p.system.y - 26}px`;
+      layer.append(cap);
+    }
+    window.__cardCount = CARDS.length;
+  </script>
+</body>
+</html>

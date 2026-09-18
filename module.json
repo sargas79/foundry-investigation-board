@@ -18,7 +18,8 @@
   ],
   "styles": [
     "styles/fonts.css",
-    "styles/investigation-board.css"
+    "styles/investigation-board.css",
+    "styles/clue-cards.css"
   ],
   "languages": [
     {
