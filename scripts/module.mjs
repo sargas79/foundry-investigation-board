@@ -46,6 +46,7 @@ Hooks.once("init", () => {
     label: "INVESTIGATION_BOARD.ConnectionPageSheet"
   });
 
+  registerFonts();
   registerSettings();
   registerKeybindings();
 
@@ -70,6 +71,37 @@ Hooks.once("init", () => {
 Hooks.once("ready", () => {
   console.log(`${MODULE_ID} | Investigation Board ready`);
 });
+
+/* -------------------------------------------- */
+/*  Fonts                                       */
+/* -------------------------------------------- */
+
+/**
+ * Expose the bundled fonts to Foundry's font picker.
+ *
+ * The board's own CSS loads them via `styles/fonts.css` regardless; registering them here just
+ * means players can also pick them in a journal or drawing text editor.
+ */
+function registerFonts() {
+  const fontPath = name => modulePath(`assets/fonts/${name}`);
+  Object.assign(CONFIG.fontDefinitions, {
+    Caveat: {
+      editor: true,
+      fonts: [
+        {urls: [fontPath("caveat-latin.woff2")]},
+        {urls: [fontPath("caveat-latin.woff2")], weight: "700"}
+      ]
+    },
+    "Courier Prime": {
+      editor: true,
+      fonts: [
+        {urls: [fontPath("courier-prime-400-latin.woff2")]},
+        {urls: [fontPath("courier-prime-700-latin.woff2")], weight: "700"},
+        {urls: [fontPath("courier-prime-400-italic-latin.woff2")], style: "italic"}
+      ]
+    }
+  });
+}
 
 /* -------------------------------------------- */
 /*  Scene Controls                              */

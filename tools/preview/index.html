@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Investigation Board — asset check</title>
+  <link rel="stylesheet" href="/styles/fonts.css">
+  <style>
+    body { background: #12171c; color: #e6eaee; font-family: system-ui, sans-serif; padding: 16px; margin: 0; }
+    h1 { font-size: 15px; letter-spacing: .06em; text-transform: uppercase; }
+    h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #8c98a4; margin: 20px 0 8px; }
+    .row { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start; }
+    .swatch { width: 230px; height: 140px; border-radius: 6px; border: 1px solid #39424c; }
+    .label { font-size: 11px; color: #8c98a4; margin-top: 4px; }
+    .cork { background-image: url("/assets/textures/cork.svg"); background-size: 256px; }
+    .paper { background-image: url("/assets/textures/paper.svg"); background-size: 256px; }
+    .wood { background-image: url("/assets/textures/wood.svg"); background-size: 256px; }
+    .tile { background-size: 64px; }
+    .card { width: 230px; padding: 14px; border-radius: 2px; color: #2b2b2b;
+            background-image: url("/assets/textures/paper.svg"); background-size: 256px;
+            box-shadow: 0 6px 16px rgb(0 0 0 / 55%); }
+    .caveat { font-family: "Caveat", cursive; font-size: 27px; line-height: 1.15; }
+    .caveat-bold { font-family: "Caveat", cursive; font-weight: 700; font-size: 27px; }
+    .courier { font-family: "Courier Prime", monospace; font-size: 14px; line-height: 1.45; }
+    .fallback { font-family: "Definitely Not Installed", cursive; font-size: 27px; }
+  </style>
+</head>
+<body>
+  <h1>Asset check</h1>
+
+  <h2>Textures — 256px tile</h2>
+  <div class="row">
+    <div><div class="swatch cork"></div><div class="label">cork.svg</div></div>
+    <div><div class="swatch paper"></div><div class="label">paper.svg</div></div>
+    <div><div class="swatch wood"></div><div class="label">wood.svg</div></div>
+  </div>
+
+  <h2>Tiling seams — same tiles at 64px, repeated</h2>
+  <div class="row">
+    <div><div class="swatch cork tile"></div><div class="label">cork, repeated</div></div>
+    <div><div class="swatch wood tile"></div><div class="label">wood, repeated</div></div>
+    <div><div class="swatch paper tile"></div><div class="label">paper, repeated</div></div>
+  </div>
+
+  <h2>Fonts on paper</h2>
+  <div class="row">
+    <div class="card">
+      <div class="caveat">Met the witness at dawn.<br>She lied about the watch.</div>
+      <div class="caveat-bold" style="margin-top:8px">Follow the money.</div>
+    </div>
+    <div class="card">
+      <div class="courier"><b>FORENSIC REPORT</b><br>Case 4471-B<br>Latent print: partial, left thumb.<br>Match probability 0.82.<br><i>Analyst note: recheck.</i></div>
+    </div>
+    <div class="card">
+      <div class="fallback">Fallback (font not loaded)</div>
+      <div class="label" style="color:#555">Should look clearly different from Caveat above.</div>
+    </div>
+  </div>
+</body>
+</html>

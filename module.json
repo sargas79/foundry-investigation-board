@@ -17,6 +17,7 @@
     "scripts/module.mjs"
   ],
   "styles": [
+    "styles/fonts.css",
     "styles/investigation-board.css"
   ],
   "languages": [

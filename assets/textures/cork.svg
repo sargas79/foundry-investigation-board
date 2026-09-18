@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>Cork board texture</title>
+  <defs>
+    <!-- Coarse granules: the visible chips of pressed cork. -->
+    <filter id="granules" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="4" seed="7"
+                    stitchTiles="stitch" result="noise"/>
+      <feColorMatrix in="noise" type="matrix" result="mono"
+                     values="0 0 0 0 0.62
+                             0 0 0 0 0.44
+                             0 0 0 0 0.22
+                             0.9 0.2 0 0 0"/>
+      <feComposite in="mono" in2="SourceGraphic" operator="over"/>
+    </filter>
+
+    <!-- Fine speckle layered on top to break up the granule pattern. -->
+    <filter id="speckle" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="turbulence" baseFrequency="1.8" numOctaves="2" seed="19"
+                    stitchTiles="stitch" result="fine"/>
+      <feColorMatrix in="fine" type="matrix"
+                     values="0 0 0 0 0.35
+                             0 0 0 0 0.24
+                             0 0 0 0 0.10
+                             0.35 0 0 0 0"/>
+    </filter>
+  </defs>
+
+  <rect width="256" height="256" fill="#c08f52"/>
+  <rect width="256" height="256" filter="url(#granules)" opacity="0.85"/>
+  <rect width="256" height="256" filter="url(#speckle)" opacity="0.5"/>
+</svg>
