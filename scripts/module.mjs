@@ -2,7 +2,7 @@ import {MODULE_ID, PAGE_TYPES, modulePath} from "./constants.mjs";
 import {canDeleteCase, canDeletePage} from "./data/case.mjs";
 import {CREATE_CASE_QUERY, handleCreateCaseQuery} from "./data/case-create.mjs";
 import {SHARE_QUERY, handleShareQuery} from "./data/sharing.mjs";
-import {PRESENCE_EVENT, receivePresence} from "./presence.mjs";
+import {receivePresence} from "./presence.mjs";
 import ClueData from "./data/clue-data.mjs";
 import ConnectionData from "./data/connection-data.mjs";
 import InvestigationBoard from "./apps/investigation-board.mjs";
@@ -125,13 +125,24 @@ Hooks.on("preDeleteJournalEntry", journal => {
   return false;
 });
 
-Hooks.on("createJournalEntryPage", page => board?.onPageChange(page, "upsert"));
-Hooks.on("updateJournalEntryPage", page => board?.onPageChange(page, "upsert"));
-Hooks.on("deleteJournalEntryPage", page => board?.onPageChange(page, "delete"));
+/**
+ * Report rather than swallow a failure inside a hook.
+ *
+ * These handlers are async but hooks do not await them, so without this a rejection surfaces only
+ * as an unhandled promise and the board is left half-updated with no clue why.
+ * @param {Promise<unknown>|undefined} promise
+ */
+function guard(promise) {
+  promise?.catch(error => console.error(`${MODULE_ID} | board update failed`, error));
+}
 
-Hooks.on("updateJournalEntry", journal => board?.onCaseChange(journal, "update"));
-Hooks.on("deleteJournalEntry", journal => board?.onCaseChange(journal, "delete"));
-Hooks.on("createJournalEntry", journal => board?.onCaseChange(journal, "update"));
+Hooks.on("createJournalEntryPage", page => guard(board?.onPageChange(page, "upsert")));
+Hooks.on("updateJournalEntryPage", page => guard(board?.onPageChange(page, "upsert")));
+Hooks.on("deleteJournalEntryPage", page => guard(board?.onPageChange(page, "delete")));
+
+Hooks.on("updateJournalEntry", journal => guard(board?.onCaseChange(journal, "update")));
+Hooks.on("deleteJournalEntry", journal => guard(board?.onCaseChange(journal, "delete")));
+Hooks.on("createJournalEntry", journal => guard(board?.onCaseChange(journal, "update")));
 
 /* -------------------------------------------- */
 /*  Fonts                                       */

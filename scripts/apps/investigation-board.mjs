@@ -9,7 +9,7 @@ import ShareDialog from "./share-dialog.mjs";
 import {canCreateDirectly, createCase} from "../data/case-create.mjs";
 import {canManageSharing} from "../data/sharing.mjs";
 import {buildImport, exportCase, exportFilename, validateExport} from "../data/transfer.mjs";
-import {announce, holderOf, watchPresence} from "../presence.mjs";
+import {announce, clearPresence, holderOf, watchPresence} from "../presence.mjs";
 import {CATEGORIES, RELIABILITY} from "../constants.mjs";
 import {EMPTY_FILTER, applyFilter, isActive} from "../board/filter.mjs";
 import {
@@ -668,6 +668,10 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
   /** @inheritDoc */
   _onClose(options) {
     this.#saveViewState();
+    // Let go of any card this user was holding, and stop the expiry sweeper: otherwise the
+    // claims and their interval outlive the board across every open and close.
+    announce(null, this.#caseId);
+    clearPresence();
     // Destroying the interaction layer saves any text still being typed on a card.
     this.#interactions?.destroy();
     this.#drops?.destroy();

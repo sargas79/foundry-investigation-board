@@ -100,14 +100,7 @@ export function holderOf(clueId) {
   return claim;
 }
 
-/** Every live claim. */
-export function allClaims() {
-  return [...claims.entries()]
-    .filter(([, c]) => c.expires > Date.now())
-    .map(([clueId, c]) => ({clueId, ...c}));
-}
-
-/** Forget everything, e.g. when the board closes. */
+/** Forget every claim and stop the sweeper, when the board closes. */
 export function clearPresence() {
   claims.clear();
   if ( timer ) {

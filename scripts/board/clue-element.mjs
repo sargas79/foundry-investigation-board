@@ -1,4 +1,4 @@
-import {CATEGORIES, CLUE_TEMPLATES, RELIABILITY} from "../constants.mjs";
+import {CATEGORIES, RELIABILITY} from "../constants.mjs";
 
 /**
  * Builds and updates the DOM for a single clue card.
@@ -156,17 +156,4 @@ export function updateClueElement(el, page, enrichedBody) {
 
   el.querySelector(".ib-clue-link").hidden = !clue.linked;
   return el;
-}
-
-/* -------------------------------------------- */
-
-/**
- * The templates a clue can be rendered with, for pickers.
- * @returns {Array<{value: string, label: string}>}
- */
-export function templateChoices() {
-  return Object.entries(CLUE_TEMPLATES).map(([value, config]) => ({
-    value,
-    label: game.i18n.localize(config.label)
-  }));
 }
