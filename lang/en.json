@@ -75,6 +75,9 @@
   "INVESTIGATION_BOARD.Pin": "Pin It",
   "INVESTIGATION_BOARD.Save": "Save",
   "INVESTIGATION_BOARD.NOTIFY.NoPermission": "You do not have permission to change this case.",
+  "INVESTIGATION_BOARD.NOTIFY.DropUnresolved": "That could not be pinned — the document was not found.",
+  "INVESTIGATION_BOARD.NOTIFY.DropIsClue": "That is already a clue. Drag it on the board to move it.",
+  "INVESTIGATION_BOARD.NOTIFY.LinkBroken": "The document this clue points at no longer exists.",
 
   "INVESTIGATION_BOARD.SETTINGS.Classifications": "Case Classifications",
   "INVESTIGATION_BOARD.SETTINGS.ClassificationsHint": "Comma-separated list of classifications offered when creating or editing a case. Players may also type their own.",

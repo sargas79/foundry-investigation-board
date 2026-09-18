@@ -168,10 +168,17 @@
 .investigation-board-app .ib-badge[data-reliability="questionable"] { background: #b07a1f; color: #fdf6e6; }
 .investigation-board-app .ib-badge[data-reliability="debunked"] { background: #8d2f2c; color: #fbeceb; }
 
+/* Clickable: opens whatever document the clue was made from. */
 .investigation-board-app .ib-clue-link {
   margin-left: auto;
+  padding: 2px;
   font-size: 10px;
   color: rgb(0 0 0 / 45%);
+  cursor: pointer;
+}
+
+.investigation-board-app .ib-clue-link:hover {
+  color: rgb(0 0 0 / 80%);
 }
 
 /* Redaction: black bars struck through the text, as on a released case file. */

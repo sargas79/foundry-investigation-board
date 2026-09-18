@@ -67,8 +67,27 @@
     };
     // enrichHTML is async in Foundry; keep it async here so the timing matches.
     window.foundry = {applications: {ux: {TextEditor: {implementation: {
-      enrichHTML: async html => html
+      enrichHTML: async html => html,
+      getDragEventData: event => {
+        try { return JSON.parse(event.dataTransfer.getData("text/plain")); }
+        catch { return {}; }
+      }
     }}}}};
+
+    // A tiny world of droppable documents, keyed by uuid.
+    window.__world = {
+      "Actor.npc1": {documentName: "Actor", name: "Silas Trent", uuid: "Actor.npc1",
+                     img: "icons/svg/npc.svg"},
+      "Item.itm1":  {documentName: "Item",  name: "Broken Watch", uuid: "Item.itm1",
+                     img: "icons/svg/clockwork.svg"},
+      "Scene.scn1": {documentName: "Scene", name: "Ashwood Lane", uuid: "Scene.scn1",
+                     thumb: "icons/svg/map.svg"},
+      "Actor.faceless": {documentName: "Actor", name: "Unknown", uuid: "Actor.faceless",
+                         img: "icons/svg/mystery-man.svg"}
+    };
+    window.fromUuid = async uuid => window.__world[uuid] ?? null;
+    window.ui = {notifications: {warn: m => (window.__warnings ??= []).push(m),
+                                 info: () => {}, error: () => {}}};
     window.game = {i18n: {localize: k => STRINGS[k] ?? k}};
     Math.clamp ??= (n, min, max) => Math.min(Math.max(n, min), max);
 
@@ -161,6 +180,7 @@
     const {default: BoardView} = await import("/scripts/board/board-view.mjs");
     const {default: BoardRenderer} = await import("/scripts/board/board-renderer.mjs");
     const {default: BoardInteractions} = await import("/scripts/board/interactions.mjs");
+    const {default: DropHandler} = await import("/scripts/board/drop-handler.mjs");
     const caseApi = await import("/scripts/data/case.mjs");
 
     const viewport = document.querySelector(".ib-board-viewport");
@@ -183,6 +203,26 @@
       };
     }
 
+    // Stand-in for createEmbeddedDocuments so drops can be asserted without a server.
+    journal.isOwner = true;
+    window.__created = [];
+    journal.createEmbeddedDocuments = async function(type, records) {
+      const made = [];
+      for ( const record of records ) {
+        const page = makePage(`made-${window.__created.length}-${made.length}`,
+          record.type, record.name, record.system);
+        this.pages.add(page);
+        page.isOwner = true;
+        page.update = pages[0].update;
+        made.push(page);
+        window.__created.push({name: record.name, type: record.type, system: record.system});
+        await renderer.upsertClue(page);
+      }
+      return made;
+    };
+
+    const drops = new DropHandler({viewport, view, getCase: () => journal}).attach();
+
     const interactions = new BoardInteractions({
       viewport, view, renderer,
       getCase: () => journal,
@@ -203,7 +243,14 @@
     report();
     view.onChange(report);
 
-    Object.assign(window, {view, renderer, interactions, journal, caseApi, makePage, report, CLUE, CONN});
+    Object.assign(window, {view, renderer, interactions, drops, journal, caseApi, makePage, report, CLUE, CONN});
+
+    const {runDropTests} = await import("/tools/preview/drop-handler.spec.mjs");
+    window.runDropTests = async () => {
+      const out = await runDropTests({viewport, view});
+      report();
+      return out;
+    };
 
     const {runInteractionTests} = await import("/tools/preview/interactions.spec.mjs");
     window.runInteractionTests = async () => {

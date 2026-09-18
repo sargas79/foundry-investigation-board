@@ -2,6 +2,7 @@ import {MODULE_ID, PAGE_TYPES, modulePath} from "../constants.mjs";
 import BoardView from "../board/board-view.mjs";
 import BoardRenderer from "../board/board-renderer.mjs";
 import BoardInteractions from "../board/interactions.mjs";
+import DropHandler from "../board/drop-handler.mjs";
 import ClueDialog from "./clue-dialog.mjs";
 import {caseState, clueBounds, freeSpotNear, getCases, getClues, isCase, topZ} from "../data/case.mjs";
 
@@ -94,6 +95,12 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
    * @type {BoardInteractions|null}
    */
   #interactions = null;
+
+  /**
+   * Turns documents dropped on the cork into clues.
+   * @type {DropHandler|null}
+   */
+  #drops = null;
 
   /**
    * A clue to drop straight into in-place editing once it has been drawn — how a new lead gets
@@ -196,6 +203,7 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       this.#saveViewState();
       this.#view.destroy();
       this.#interactions?.destroy();
+      this.#drops?.destroy();
     }
 
     this.#view = new BoardView(viewport, world).attach();
@@ -209,6 +217,11 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       renderer: this.#renderer,
       getCase: () => this.currentCase,
       onEdit: page => ClueDialog.edit(page)
+    }).attach();
+    this.#drops = new DropHandler({
+      viewport,
+      view: this.#view,
+      getCase: () => this.currentCase
     }).attach();
 
     const saved = this.#caseId ? this.#viewStates.get(this.#caseId) : null;
@@ -244,8 +257,13 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
   /** @inheritDoc */
   _onClose(options) {
     this.#saveViewState();
+    // Destroying the interaction layer saves any text still being typed on a card.
+    this.#interactions?.destroy();
+    this.#drops?.destroy();
     this.#view?.destroy();
     this.#renderer?.clear();
+    this.#interactions = null;
+    this.#drops = null;
     this.#view = null;
     this.#renderer = null;
     super._onClose(options);

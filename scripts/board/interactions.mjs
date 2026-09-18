@@ -119,6 +119,13 @@ export default class BoardInteractions {
 
     this.select(clueId);
 
+    // The link marker is the way back to whatever the clue was made from.
+    if ( event.target.closest(".ib-clue-link") ) {
+      event.preventDefault();
+      this.#openLinked(page);
+      return;
+    }
+
     // Read-only players can select and inspect, but not move anything.
     if ( !page.isOwner ) return;
 
@@ -210,6 +217,24 @@ export default class BoardInteractions {
 
   /* -------------------------------------------- */
   /*  Editing                                     */
+  /* -------------------------------------------- */
+
+  /**
+   * Open the document a clue was made from.
+   * @param {JournalEntryPage} page
+   * @returns {Promise<void>}
+   */
+  async #openLinked(page) {
+    const uuid = page.system.linkedUuid;
+    if ( !uuid ) return;
+    const document = await fromUuid(uuid);
+    if ( !document ) {
+      ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.LinkBroken", {localize: true});
+      return;
+    }
+    document.sheet?.render({force: true});
+  }
+
   /* -------------------------------------------- */
 
   /** @param {MouseEvent} event */
