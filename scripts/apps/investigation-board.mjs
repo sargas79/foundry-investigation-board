@@ -458,13 +458,10 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
     this.element.classList.toggle("maximized", this.#maximized);
 
     // A select needs "change"; an action would fire on the click that opens it.
-    const grouping = this.element.querySelector(".ib-group-by");
-    if ( grouping ) {
-      grouping.addEventListener("change", async event => {
-        this.#grouping = event.target.value;
-        await this.render({parts: ["sidebar"]});
-      });
-    }
+    this.#bindOnce(this.element.querySelector(".ib-group-by"), "change", async event => {
+      this.#grouping = event.target.value;
+      await this.render({parts: ["sidebar"]});
+    });
 
     this.#bindProgress();
     this.#bindInspectorFields();
@@ -472,6 +469,40 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
 
     this.#attachBoardView();
     await this.#drawCase();
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Which events each element has already been wired for.
+   *
+   * Keyed by element *and* event type, since one element can legitimately want two listeners —
+   * the progress slider wants both `input` and `change`. Weak, so an element replaced by a
+   * re-render is not kept alive merely by being remembered here.
+   * @type {WeakMap<Element, Set<string>>}
+   */
+  #bound = new WeakMap();
+
+  /**
+   * Attach a listener to an element exactly once, however many times this runs.
+   *
+   * Foundry calls `_onRender` after *every* render, partial ones included, and a partial render
+   * leaves the other parts' elements in place. Binding unconditionally would therefore stack a
+   * fresh listener on the untouched parts each time — and partial renders happen constantly, on
+   * every clue change and every selection. Left alone, one rename would fire as many document
+   * updates as there had been renders.
+   *
+   * @param {Element|null} element
+   * @param {string} type
+   * @param {(event: Event) => void} handler
+   */
+  #bindOnce(element, type, handler) {
+    if ( !element ) return;
+    let types = this.#bound.get(element);
+    if ( !types ) this.#bound.set(element, types = new Set());
+    if ( types.has(type) ) return;
+    types.add(type);
+    element.addEventListener(type, handler);
   }
 
   /* -------------------------------------------- */
@@ -500,11 +531,12 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       }
     };
 
-    const text = panel.querySelector('[name="text"]');
-    if ( text ) text.addEventListener("input", event => update("text", event.target.value, false));
+    this.#bindOnce(panel.querySelector('[name="text"]'), "input",
+      event => update("text", event.target.value, false));
 
     for ( const select of panel.querySelectorAll("select[name]") ) {
-      select.addEventListener("change", event => update(event.target.name, event.target.value, true));
+      this.#bindOnce(select, "change",
+        event => update(event.target.name, event.target.value, true));
     }
   }
 
@@ -531,7 +563,7 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
     };
 
     for ( const input of panel.querySelectorAll("[name]") ) {
-      input.addEventListener("change", event => save(event.target.name, event.target.value));
+      this.#bindOnce(input, "change", event => save(event.target.name, event.target.value));
     }
   }
 
@@ -547,14 +579,14 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
   #bindProgress() {
     const slider = this.element.querySelector(".ib-progress-input");
     if ( !slider ) return;
-    const readout = this.element.querySelector(".ib-progress-value");
 
-    slider.addEventListener("input", () => {
+    this.#bindOnce(slider, "input", () => {
+      const readout = this.element.querySelector(".ib-progress-value");
       slider.style.setProperty("--ib-progress", `${slider.value}%`);
       if ( readout ) readout.textContent = `${slider.value}%`;
     });
 
-    slider.addEventListener("change", async () => {
+    this.#bindOnce(slider, "change", async () => {
       const journal = this.currentCase;
       if ( !journal?.isOwner ) return;
       await journal.setFlag(MODULE_ID, CASE_FLAGS.PROGRESS, Number(slider.value));

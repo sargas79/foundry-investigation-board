@@ -30,25 +30,57 @@ export async function runLinkingTests({interactions, journal, view, viewport, ca
 
   /**
    * Find a point on some string that no card is covering, so a click there really lands on it.
-   * Which string that is depends on the board's layout, so the caller takes whatever is exposed.
+   *
+   * Whether any given string is exposed depends on how the board happens to be laid out and how
+   * big the pane is, so this frames the whole case first and, failing that, zooms out — otherwise
+   * the check passes or fails on the window size rather than on the behaviour it is testing.
    */
   const findClickableString = () => {
-    const world = document.querySelector(".ib-board-world").getBoundingClientRect();
-    const scale = view.transform.scale;
-    for ( const group of document.querySelectorAll(".ib-string") ) {
-      const hit = group.querySelector(".ib-string-hit");
-      const length = hit.getTotalLength();
-      for ( let u = 0.1; u <= 0.9; u += 0.02 ) {
-        const p = hit.getPointAtLength(length * u);
-        const x = world.left + (p.x * scale);
-        const y = world.top + (p.y * scale);
-        if ( document.elementFromPoint(x, y) === hit ) {
-          return {id: group.dataset.connectionId, el: hit, x, y};
+    const attempt = () => {
+      const world = document.querySelector(".ib-board-world").getBoundingClientRect();
+      const scale = view.transform.scale;
+      for ( const group of document.querySelectorAll(".ib-string") ) {
+        const hit = group.querySelector(".ib-string-hit");
+        const length = hit.getTotalLength();
+        if ( !length ) continue;
+        for ( let u = 0.06; u <= 0.94; u += 0.01 ) {
+          const p = hit.getPointAtLength(length * u);
+          const x = world.left + (p.x * scale);
+          const y = world.top + (p.y * scale);
+          if ( document.elementFromPoint(x, y) === hit ) {
+            return {id: group.dataset.connectionId, el: hit, x, y};
+          }
         }
       }
+      return null;
+    };
+
+    const bounds = caseApi.clueBounds(caseApi.getClues(journal));
+    for ( const prepare of [
+      () => view.reset(),
+      () => { if ( bounds ) view.fit(bounds); },
+      () => { if ( bounds ) view.fit(bounds); view.zoomBy(0.75); },
+      () => { view.reset(); view.zoomBy(0.5); }
+    ] ) {
+      prepare();
+      const found = attempt();
+      if ( found ) return found;
     }
     return null;
   };
+
+  // With the pane collapsed the page has no layout at all, every elementFromPoint answers null,
+  // and the hit-testing checks below fail for a reason that has nothing to do with the board.
+  if ( !window.innerHeight || !viewport.getBoundingClientRect().height ) {
+    return {
+      passed: 0,
+      failed: 1,
+      results: [{
+        name: "preconditions",
+        error: "the preview pane has no layout — open or widen it and run again"
+      }]
+    };
+  }
 
   view.reset();
   await settle(50);
