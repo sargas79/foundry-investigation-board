@@ -1,3 +1,5 @@
+import {capturePointer, releasePointer} from "./pointer-capture.mjs";
+
 /**
  * Pan and zoom for the corkboard surface.
  *
@@ -253,7 +255,7 @@ export default class BoardView {
       originX: this.#pan.x,
       originY: this.#pan.y
     };
-    this.viewport.setPointerCapture?.(event.pointerId);
+    capturePointer(this.viewport, event.pointerId);
     this.viewport.classList.add("panning");
     event.preventDefault();
   }
@@ -270,9 +272,10 @@ export default class BoardView {
   /** @param {PointerEvent} event */
   #onPointerUp(event) {
     if ( !this.#panning || (event.pointerId !== this.#panning.pointerId) ) return;
-    this.viewport.releasePointerCapture?.(event.pointerId);
-    this.viewport.classList.remove("panning");
+    // Cleared first: a failure to release capture must not strand the view mid-pan.
     this.#panning = null;
+    releasePointer(this.viewport, event.pointerId);
+    this.viewport.classList.remove("panning");
   }
 
   /* -------------------------------------------- */

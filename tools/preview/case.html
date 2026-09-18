@@ -152,8 +152,15 @@
     window.game.journal = {get: id => (id === journal.id ? journal : null),
                            filter: fn => [journal].filter(fn)};
 
+    // expandObject/escapeHTML stand-ins for the few foundry.utils helpers the board code uses.
+    window.foundry.utils = {
+      escapeHTML: v => String(v).replace(/[&<>"']/g, c =>
+        ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"})[c])
+    };
+
     const {default: BoardView} = await import("/scripts/board/board-view.mjs");
     const {default: BoardRenderer} = await import("/scripts/board/board-renderer.mjs");
+    const {default: BoardInteractions} = await import("/scripts/board/interactions.mjs");
     const caseApi = await import("/scripts/data/case.mjs");
 
     const viewport = document.querySelector(".ib-board-viewport");
@@ -163,6 +170,24 @@
       world.querySelector(".ib-clue-layer"),
       world.querySelector(".ib-string-layer")
     );
+
+    // Stand-in for document updates, so drags and edits can be asserted without a server.
+    window.__updates = [];
+    for ( const p of pages ) {
+      p.isOwner = true;
+      p.update = async function(changes) {
+        window.__updates.push({id: this.id, changes: structuredClone(changes)});
+        if ( changes.name !== undefined ) this.name = changes.name;
+        Object.assign(this.system, changes.system ?? {});
+        await renderer.upsertClue(this);
+      };
+    }
+
+    const interactions = new BoardInteractions({
+      viewport, view, renderer,
+      getCase: () => journal,
+      onEdit: page => { window.__edited = page.id; }
+    }).attach();
 
     await renderer.render(journal);
     const bounds = caseApi.clueBounds(caseApi.getClues(journal));
@@ -178,7 +203,14 @@
     report();
     view.onChange(report);
 
-    Object.assign(window, {view, renderer, journal, caseApi, makePage, report, CLUE, CONN});
+    Object.assign(window, {view, renderer, interactions, journal, caseApi, makePage, report, CLUE, CONN});
+
+    const {runInteractionTests} = await import("/tools/preview/interactions.spec.mjs");
+    window.runInteractionTests = async () => {
+      const out = await runInteractionTests({interactions, renderer, journal, view, viewport});
+      report();
+      return out;
+    };
 
     const {runBoardRendererTests} = await import("/tools/preview/board-renderer.spec.mjs");
     window.runBoardRendererTests = async () => {

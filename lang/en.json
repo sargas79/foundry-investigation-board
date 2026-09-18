@@ -71,6 +71,7 @@
   "INVESTIGATION_BOARD.RedactedHint": "Strike the details through with black bars.",
   "INVESTIGATION_BOARD.ImageHint": "Leave empty for a card with no photograph.",
   "INVESTIGATION_BOARD.UntitledClue": "Untitled Clue",
+  "INVESTIGATION_BOARD.NewLead": "New Lead",
   "INVESTIGATION_BOARD.Pin": "Pin It",
   "INVESTIGATION_BOARD.Save": "Save",
   "INVESTIGATION_BOARD.NOTIFY.NoPermission": "You do not have permission to change this case.",

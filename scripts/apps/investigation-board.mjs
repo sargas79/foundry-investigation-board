@@ -1,8 +1,9 @@
 import {MODULE_ID, PAGE_TYPES, modulePath} from "../constants.mjs";
 import BoardView from "../board/board-view.mjs";
 import BoardRenderer from "../board/board-renderer.mjs";
+import BoardInteractions from "../board/interactions.mjs";
 import ClueDialog from "./clue-dialog.mjs";
-import {caseState, clueBounds, getCases, getClues, isCase} from "../data/case.mjs";
+import {caseState, clueBounds, freeSpotNear, getCases, getClues, isCase, topZ} from "../data/case.mjs";
 
 const {ApplicationV2, HandlebarsApplicationMixin} = foundry.applications.api;
 
@@ -39,7 +40,8 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
     actions: {
       toggleMaximize: InvestigationBoard.#onToggleMaximize,
       selectCase: InvestigationBoard.#onSelectCase,
-      pinEvidence: InvestigationBoard.#onPinEvidence
+      pinEvidence: InvestigationBoard.#onPinEvidence,
+      createLead: InvestigationBoard.#onCreateLead
     }
   };
 
@@ -86,6 +88,19 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
 
   /** Cases whose view has already been framed, so opening one doesn't re-fit on every render. */
   #framed = new Set();
+
+  /**
+   * Pointer and keyboard handling for the cards.
+   * @type {BoardInteractions|null}
+   */
+  #interactions = null;
+
+  /**
+   * A clue to drop straight into in-place editing once it has been drawn — how a new lead gets
+   * its text without a dialog.
+   * @type {string|null}
+   */
+  #pendingInlineEdit = null;
 
   /** The board's pan/zoom controller, once rendered. */
   get view() {
@@ -154,6 +169,8 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
     const currentCase = this.currentCase;
     await this.#renderer.render(currentCase);
 
+    this.#consumePendingInlineEdit();
+
     if ( !currentCase || this.#framed.has(currentCase.id) ) return;
     this.#framed.add(currentCase.id);
     // Only frame a case the user hasn't already positioned themselves.
@@ -178,6 +195,7 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       if ( this.#view.viewport.isConnected ) return;
       this.#saveViewState();
       this.#view.destroy();
+      this.#interactions?.destroy();
     }
 
     this.#view = new BoardView(viewport, world).attach();
@@ -185,10 +203,33 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       world.querySelector(".ib-clue-layer"),
       world.querySelector(".ib-string-layer")
     );
+    this.#interactions = new BoardInteractions({
+      viewport,
+      view: this.#view,
+      renderer: this.#renderer,
+      getCase: () => this.currentCase,
+      onEdit: page => ClueDialog.edit(page)
+    }).attach();
 
     const saved = this.#caseId ? this.#viewStates.get(this.#caseId) : null;
     if ( saved ) this.#view.setTransform(saved);
     this.#view.onChange(() => this.#saveViewState());
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Drop a newly created lead straight into in-place editing, once its card exists.
+   *
+   * The card arrives through the create hook rather than a full render, so this is checked from
+   * both paths — whichever draws the card first wins.
+   */
+  #consumePendingInlineEdit() {
+    const clueId = this.#pendingInlineEdit;
+    if ( !clueId || !this.#renderer?.cards.has(clueId) ) return;
+    this.#pendingInlineEdit = null;
+    this.#interactions?.select(clueId);
+    this.#interactions?.beginInlineEdit(clueId, "body");
   }
 
   /* -------------------------------------------- */
@@ -256,8 +297,14 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
   async onPageChange(page, action) {
     if ( !this.rendered || (page.parent?.id !== this.#caseId) || !this.#renderer ) return;
     if ( page.type === PAGE_TYPES.CLUE ) {
-      if ( action === "delete" ) this.#renderer.removeClue(page.id);
-      else await this.#renderer.upsertClue(page);
+      if ( action === "delete" ) {
+        this.#renderer.removeClue(page.id);
+        if ( this.#interactions?.selected === page.id ) this.#interactions.select(null);
+      }
+      else {
+        await this.#renderer.upsertClue(page);
+        this.#consumePendingInlineEdit();
+      }
     }
     else if ( page.type === PAGE_TYPES.CONNECTION ) {
       if ( action === "delete" ) this.#renderer.removeConnection(page.id);
@@ -324,12 +371,60 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
    * @this {InvestigationBoard}
    */
   static #onPinEvidence() {
-    const currentCase = this.currentCase;
+    const currentCase = this.#writableCase();
     if ( !currentCase ) return;
+    ClueDialog.pin(currentCase, this.#view?.center ?? {x: 0, y: 0});
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Drop a sticky note on the board and start typing into it.
+   *
+   * A lead is a half-formed thought — a hunch, a thing to check — so it deliberately skips the
+   * dialog: one click puts the note down and the caret is already in it.
+   * @this {InvestigationBoard}
+   * @returns {Promise<void>}
+   */
+  static async #onCreateLead() {
+    const currentCase = this.#writableCase();
+    if ( !currentCase ) return;
+
+    const spot = freeSpotNear(currentCase, this.#view?.center ?? {x: 0, y: 0});
+    const [page] = await currentCase.createEmbeddedDocuments("JournalEntryPage", [{
+      name: game.i18n.localize("INVESTIGATION_BOARD.NewLead"),
+      type: PAGE_TYPES.CLUE,
+      system: {
+        template: "sticky",
+        category: "lead",
+        reliability: "unverified",
+        pinColor: "yellow",
+        body: "",
+        x: spot.x,
+        y: spot.y,
+        z: topZ(currentCase) + 1,
+        width: 180,
+        rotation: Math.round(((Math.random() * 10) - 5) * 10) / 10
+      }
+    }]);
+
+    // The card is drawn by the create hook; editing begins as soon as it exists.
+    if ( page ) this.#pendingInlineEdit = page.id;
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * The current case, if it can be written to, warning the user if not.
+   * @returns {JournalEntry|null}
+   */
+  #writableCase() {
+    const currentCase = this.currentCase;
+    if ( !currentCase ) return null;
     if ( !currentCase.isOwner ) {
       ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.NoPermission", {localize: true});
-      return;
+      return null;
     }
-    ClueDialog.pin(currentCase, this.#view?.center ?? {x: 0, y: 0});
+    return currentCase;
   }
 }
