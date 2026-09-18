@@ -1,0 +1,146 @@
+/* =========================================================================
+   Pin Evidence / Edit Clue dialog.
+   Sits inside Foundry's own dialog chrome, so this only styles the pickers
+   that core has no equivalent for.
+   ========================================================================= */
+
+.ib-dialog .ib-clue-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* --- Template picker ----------------------------------------------------- */
+
+.ib-dialog .ib-template-picker,
+.ib-dialog .ib-pin-picker {
+  margin: 0;
+  padding: 8px 10px 10px;
+  border: 1px solid var(--color-border-light-tertiary, #7a7971);
+  border-radius: 5px;
+}
+
+.ib-dialog .ib-template-picker legend,
+.ib-dialog .ib-pin-picker legend {
+  padding: 0 5px;
+  font-size: var(--font-size-12, 12px);
+  font-weight: 600;
+}
+
+.ib-dialog .ib-template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+  gap: 6px;
+}
+
+.ib-dialog .ib-template-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: auto;
+  height: auto;
+  padding: 7px 4px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: rgb(0 0 0 / 5%);
+  font-size: 10px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.ib-dialog .ib-template-option:hover {
+  background: rgb(0 0 0 / 10%);
+}
+
+.ib-dialog .ib-template-option.selected {
+  border-color: #b8860b;
+  background: rgb(184 134 11 / 16%);
+  font-weight: 600;
+}
+
+/* Miniature of each paper stock, so the choice reads at a glance. */
+.ib-dialog .ib-template-swatch {
+  width: 34px;
+  height: 26px;
+  border-radius: 2px;
+  background: #f3ece0;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 35%);
+}
+
+.ib-dialog .ib-template-swatch[data-template="polaroid"] {
+  background: linear-gradient(#fbfbf8 0 62%, #fbfbf8 62%);
+  border: 3px solid #fbfbf8;
+  box-shadow: inset 0 0 0 1px #d8d4cb, 0 1px 2px rgb(0 0 0 / 35%);
+}
+
+.ib-dialog .ib-template-swatch[data-template="mugshot"] {
+  background: repeating-linear-gradient(to bottom, #8a8a8a 0 1px, #6f6f6f 1px 5px);
+}
+
+.ib-dialog .ib-template-swatch[data-template="profile"] {
+  background: linear-gradient(to right, #8a8a8a 0 38%, #f3ece0 38%);
+}
+
+.ib-dialog .ib-template-swatch[data-template="document"] {
+  background:
+    linear-gradient(#2b2b2b 0 0) 3px 5px / 26px 2px no-repeat,
+    linear-gradient(#9a9a9a 0 0) 3px 11px / 22px 1px no-repeat,
+    linear-gradient(#9a9a9a 0 0) 3px 15px / 26px 1px no-repeat,
+    linear-gradient(#9a9a9a 0 0) 3px 19px / 18px 1px no-repeat,
+    #f7f4ec;
+}
+
+.ib-dialog .ib-template-swatch[data-template="letter"] {
+  background:
+    linear-gradient(#23324d 0 0) 4px 7px / 20px 1px no-repeat,
+    linear-gradient(#23324d 0 0) 4px 12px / 24px 1px no-repeat,
+    linear-gradient(#23324d 0 0) 4px 17px / 14px 1px no-repeat,
+    #efe4cf;
+}
+
+.ib-dialog .ib-template-swatch[data-template="sticky"] {
+  background: #f6e07f;
+}
+
+.ib-dialog .ib-template-swatch[data-template="map"] {
+  background:
+    linear-gradient(#c9c0a8 0 0) 0 9px / 100% 2px no-repeat,
+    linear-gradient(#c9c0a8 0 0) 12px 0 / 2px 100% no-repeat,
+    #e8e2d2;
+}
+
+/* --- Pin colour picker --------------------------------------------------- */
+
+.ib-dialog .ib-pin-swatches {
+  display: flex;
+  gap: 8px;
+}
+
+.ib-dialog .ib-pin-swatch {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: var(--ib-swatch, #c8322f);
+  box-shadow: inset 0 2px 3px rgb(255 255 255 / 45%), 0 1px 2px rgb(0 0 0 / 40%);
+  cursor: pointer;
+}
+
+.ib-dialog .ib-pin-swatch.selected {
+  border-color: #1b1b1b;
+  outline: 2px solid #f0b429;
+  outline-offset: 1px;
+}
+
+/* The picker is used inside the dialog, which is outside the board's own scope. */
+.ib-dialog {
+  --ib-pin-red: #c8322f;
+  --ib-pin-blue: #2f6fc8;
+  --ib-pin-yellow: #e3b127;
+  --ib-pin-green: #3f9e52;
+  --ib-pin-white: #eceff1;
+  --ib-pin-black: #22262a;
+}

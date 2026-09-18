@@ -61,6 +61,19 @@
   "INVESTIGATION_BOARD.CONNECTION_STYLE.Dashed": "Dashed",
   "INVESTIGATION_BOARD.CONNECTION_STYLE.Dotted": "Dotted",
 
+  "INVESTIGATION_BOARD.DIALOG.PinEvidence": "Pin Evidence",
+  "INVESTIGATION_BOARD.DIALOG.EditClue": "Edit Clue",
+  "INVESTIGATION_BOARD.TitleLabel": "Title",
+  "INVESTIGATION_BOARD.TitlePlaceholder": "What is this clue?",
+  "INVESTIGATION_BOARD.PinColorLabel": "Pin",
+  "INVESTIGATION_BOARD.RedactedLabel": "Redacted",
+  "INVESTIGATION_BOARD.RedactedHint": "Strike the details through with black bars.",
+  "INVESTIGATION_BOARD.ImageHint": "Leave empty for a card with no photograph.",
+  "INVESTIGATION_BOARD.UntitledClue": "Untitled Clue",
+  "INVESTIGATION_BOARD.Pin": "Pin It",
+  "INVESTIGATION_BOARD.Save": "Save",
+  "INVESTIGATION_BOARD.NOTIFY.NoPermission": "You do not have permission to change this case.",
+
   "INVESTIGATION_BOARD.SETTINGS.Classifications": "Case Classifications",
   "INVESTIGATION_BOARD.SETTINGS.ClassificationsHint": "Comma-separated list of classifications offered when creating or editing a case. Players may also type their own.",
 

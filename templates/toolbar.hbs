@@ -1,6 +1,6 @@
 {{!-- Floating action bar. Each action is wired up in milestones 3-7. --}}
 <nav class="ib-toolbar" aria-label="{{localize 'INVESTIGATION_BOARD.ToolbarLabel'}}">
-    <button type="button" class="ib-tool" data-action="pinEvidence" disabled>
+    <button type="button" class="ib-tool" data-action="pinEvidence" {{#unless hasCase}}disabled{{/unless}}>
         <i class="fa-solid fa-thumbtack"></i>
         <span>{{localize "INVESTIGATION_BOARD.TOOL.PinEvidence"}}</span>
     </button>

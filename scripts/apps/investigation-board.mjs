@@ -1,6 +1,7 @@
 import {MODULE_ID, PAGE_TYPES, modulePath} from "../constants.mjs";
 import BoardView from "../board/board-view.mjs";
 import BoardRenderer from "../board/board-renderer.mjs";
+import ClueDialog from "./clue-dialog.mjs";
 import {caseState, clueBounds, getCases, getClues, isCase} from "../data/case.mjs";
 
 const {ApplicationV2, HandlebarsApplicationMixin} = foundry.applications.api;
@@ -36,7 +37,9 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
     },
     position: {width: 1400, height: 820},
     actions: {
-      toggleMaximize: InvestigationBoard.#onToggleMaximize
+      toggleMaximize: InvestigationBoard.#onToggleMaximize,
+      selectCase: InvestigationBoard.#onSelectCase,
+      pinEvidence: InvestigationBoard.#onPinEvidence
     }
   };
 
@@ -295,4 +298,33 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
 
   /** Position to return to when un-maximizing. */
   #restorePosition = null;
+
+  /* -------------------------------------------- */
+
+  /**
+   * Switch the board to another case file.
+   * @this {InvestigationBoard}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static async #onSelectCase(_event, target) {
+    await this.showCase(target.dataset.caseId);
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Open the Pin Evidence dialog, dropping the new clue near the middle of what the user is
+   * currently looking at rather than at the board's origin.
+   * @this {InvestigationBoard}
+   */
+  static #onPinEvidence() {
+    const currentCase = this.currentCase;
+    if ( !currentCase ) return;
+    if ( !currentCase.isOwner ) {
+      ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.NoPermission", {localize: true});
+      return;
+    }
+    ClueDialog.pin(currentCase, this.#view?.center ?? {x: 0, y: 0});
+  }
 }

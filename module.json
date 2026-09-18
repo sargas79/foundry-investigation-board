@@ -20,7 +20,8 @@
     "styles/fonts.css",
     "styles/investigation-board.css",
     "styles/clue-cards.css",
-    "styles/strings.css"
+    "styles/strings.css",
+    "styles/dialogs.css"
   ],
   "languages": [
     {

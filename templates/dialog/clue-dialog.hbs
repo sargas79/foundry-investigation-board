@@ -1,0 +1,83 @@
+<div class="ib-clue-dialog">
+
+    <div class="form-group">
+        <label for="ib-clue-name">{{localize "INVESTIGATION_BOARD.TitleLabel"}}</label>
+        <div class="form-fields">
+            <input type="text" id="ib-clue-name" name="name" value="{{name}}" autofocus
+                   placeholder="{{localize 'INVESTIGATION_BOARD.TitlePlaceholder'}}">
+        </div>
+    </div>
+
+    <fieldset class="ib-template-picker">
+        <legend>{{localize "INVESTIGATION_BOARD.TemplateLabel"}}</legend>
+        <div class="ib-template-grid">
+            {{#each templates}}
+                <button type="button" class="ib-template-option {{#if this.selected}}selected{{/if}}"
+                        data-action="pickTemplate" data-template="{{this.value}}"
+                        aria-pressed="{{#if this.selected}}true{{else}}false{{/if}}">
+                    <span class="ib-template-swatch" data-template="{{this.value}}"></span>
+                    <span class="ib-template-name">{{this.label}}</span>
+                </button>
+            {{/each}}
+        </div>
+    </fieldset>
+
+    {{#if showsImage}}
+        <div class="form-group">
+            <label for="ib-clue-image">{{localize "INVESTIGATION_BOARD.ImageLabel"}}</label>
+            <div class="form-fields">
+                <file-picker id="ib-clue-image" type="image" name="system.image"
+                             value="{{clue.image}}" {{#unless canUpload}}noupload{{/unless}}></file-picker>
+            </div>
+            <p class="hint">{{localize "INVESTIGATION_BOARD.ImageHint"}}</p>
+        </div>
+    {{/if}}
+
+    {{#if showsBody}}
+        <div class="form-group stacked">
+            <label for="ib-clue-body">{{localize "INVESTIGATION_BOARD.BodyLabel"}}</label>
+            <prose-mirror id="ib-clue-body" name="system.body" value="{{clue.body}}" toggled></prose-mirror>
+        </div>
+    {{/if}}
+
+    <div class="form-group ib-split">
+        <label for="ib-clue-category">{{localize "INVESTIGATION_BOARD.CategoryLabel"}}</label>
+        <div class="form-fields">
+            <select id="ib-clue-category" name="system.category">
+                {{selectOptions categories selected=clue.category valueAttr="value" labelAttr="label"}}
+            </select>
+        </div>
+    </div>
+
+    <div class="form-group ib-split">
+        <label for="ib-clue-reliability">{{localize "INVESTIGATION_BOARD.ReliabilityLabel"}}</label>
+        <div class="form-fields">
+            <select id="ib-clue-reliability" name="system.reliability">
+                {{selectOptions reliabilities selected=clue.reliability valueAttr="value" labelAttr="label"}}
+            </select>
+        </div>
+    </div>
+
+    <fieldset class="ib-pin-picker">
+        <legend>{{localize "INVESTIGATION_BOARD.PinColorLabel"}}</legend>
+        <div class="ib-pin-swatches">
+            {{#each pinColors}}
+                <button type="button" class="ib-pin-swatch {{#if this.selected}}selected{{/if}}"
+                        data-action="pickPin" data-color="{{this.value}}"
+                        style="--ib-swatch: var(--ib-pin-{{this.value}})"
+                        aria-label="{{this.value}}"
+                        aria-pressed="{{#if this.selected}}true{{else}}false{{/if}}"></button>
+            {{/each}}
+        </div>
+    </fieldset>
+
+    <div class="form-group">
+        <label for="ib-clue-redacted">{{localize "INVESTIGATION_BOARD.RedactedLabel"}}</label>
+        <div class="form-fields">
+            <input type="checkbox" id="ib-clue-redacted" name="system.redacted"
+                   {{#if clue.redacted}}checked{{/if}}>
+        </div>
+        <p class="hint">{{localize "INVESTIGATION_BOARD.RedactedHint"}}</p>
+    </div>
+
+</div>
