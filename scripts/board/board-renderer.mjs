@@ -39,6 +39,17 @@ export default class BoardRenderer {
    */
   #ghosts = new Map();
 
+  /**
+   * Bumped whenever the board switches to a different case.
+   *
+   * Enriching clue bodies is asynchronous, so a render or an update can be suspended mid-flight
+   * while the user switches cases. Anything that awaits captures this value first and checks it
+   * again afterwards, and abandons its work if the board has moved on — otherwise cards from the
+   * case that was open get appended to the one now showing.
+   * @type {number}
+   */
+  #generation = 0;
+
   /** The case currently rendered. */
   get journal() {
     return this.#journal;
@@ -61,11 +72,14 @@ export default class BoardRenderer {
   async render(journal) {
     this.#journal = journal;
     this.#ghosts.clear();
+    const generation = ++this.#generation;
 
     if ( !journal ) return this.clear();
 
     const clues = getClues(journal);
     const bodies = await this.#enrichAll(clues);
+    // The board moved on to another case while bodies were being enriched.
+    if ( generation !== this.#generation ) return;
 
     // Reuse cards that survive across the render so images don't flash when switching back.
     const keep = new Set(clues.map(p => p.id));
@@ -159,10 +173,13 @@ export default class BoardRenderer {
     // A dismissed clue leaves the board, taking its strings with it.
     if ( page.system.dismissed || !page.visible ) return this.removeClue(page.id);
 
+    const generation = this.#generation;
     const editor = foundry.applications.ux.TextEditor.implementation;
     const body = page.system.body
       ? await editor.enrichHTML(page.system.body, {relativeTo: page, secrets: page.isOwner})
       : "";
+    // The board switched case, or this clue was removed, while the body was being enriched.
+    if ( (generation !== this.#generation) || (page.parent !== this.#journal) ) return;
 
     let el = this.#cards.get(page.id);
     if ( el ) updateClueElement(el, page, body);

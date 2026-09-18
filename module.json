@@ -2,7 +2,7 @@
   "id": "investigation-board",
   "title": "Investigation Board",
   "description": "A pinboard for collaborative investigation. Players pin clues, string them together, and work cases as a party — no GM required at the table.",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "compatibility": {
     "minimum": "14",
     "verified": "14.367"
@@ -46,6 +46,5 @@
   "manifest": "https://github.com/sargas79/foundry-investigation-board/releases/latest/download/module.json",
   "download": "https://github.com/sargas79/foundry-investigation-board/releases/latest/download/module.zip",
   "readme": "https://github.com/sargas79/foundry-investigation-board/blob/main/README.md",
-  "bugs": "https://github.com/sargas79/foundry-investigation-board/issues",
-  "license": "LICENSE"
+  "bugs": "https://github.com/sargas79/foundry-investigation-board/issues"
 }

@@ -97,6 +97,40 @@ export async function runBoardRendererTests({renderer, journal, makePage, CLUE, 
     renderer.clearGhost("a");
   });
 
+  // Enriching bodies is async, so a case switch can land mid-flight. Without a generation guard
+  // the suspended render resumes and appends the previous case's cards onto the new board.
+  await check("a render interrupted by a case switch does not leak its cards", async () => {
+    const other = {
+      id: "other-case", name: "Dockside", visible: true,
+      flags: {"investigation-board": {isCase: true}},
+      getFlag(scope, key) { return this.flags?.[scope]?.[key]; },
+      pages: {get: () => undefined, filter: () => [], contents: []}
+    };
+    // Start rendering the populated case, then switch to the empty one without awaiting.
+    const first = renderer.render(journal);
+    const second = renderer.render(other);
+    await Promise.all([first, second]);
+    assert(cards().length === 0,
+      `the abandoned render leaked ${cards().length} cards onto the new case`);
+    await renderer.render(journal);
+    assert(cards().length > 0, "re-rendering the original case drew nothing");
+  });
+
+  await check("an upsert interrupted by a case switch does not leak its card", async () => {
+    const page = journal.pages.get("b");
+    const other = {
+      id: "other-case-2", name: "Cold Case", visible: true,
+      flags: {"investigation-board": {isCase: true}},
+      getFlag(scope, key) { return this.flags?.[scope]?.[key]; },
+      pages: {get: () => undefined, filter: () => [], contents: []}
+    };
+    const pending = renderer.upsertClue(page);
+    await renderer.render(other);
+    await pending;
+    assert(!cards().includes("b"), "a clue from the previous case was appended");
+    await renderer.render(journal);
+  });
+
   await check("clear empties the board", async () => {
     renderer.clear();
     assert(cards().length === 0, `${cards().length} cards left`);

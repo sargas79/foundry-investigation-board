@@ -17,8 +17,10 @@ await bootstrapFoundry();
 
 const {default: testManifest} = await import("./manifest.test.mjs");
 const {default: testDataModels} = await import("./data-models.test.mjs");
+const {default: testCase} = await import("./case.test.mjs");
 
 await testManifest();
 await testDataModels();
+await testCase();
 
 report();

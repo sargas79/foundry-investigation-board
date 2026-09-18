@@ -9,6 +9,7 @@
   "INVESTIGATION_BOARD.EmptyBoardHint": "Open a case file to start pinning evidence.",
   "INVESTIGATION_BOARD.ToolbarLabel": "Board actions",
   "INVESTIGATION_BOARD.ToggleMaximize": "Expand / Restore",
+  "INVESTIGATION_BOARD.ProgressTooltip": "Case progress, as judged by the investigators.",
 
   "INVESTIGATION_BOARD.SceneControl": "Investigation Board",
   "INVESTIGATION_BOARD.CluePageSheet": "Clue Page",

@@ -67,6 +67,16 @@ export default class ClueDialog extends HandlebarsApplicationMixin(ApplicationV2
   #template;
   #pinColor;
 
+  /**
+   * Field values typed but not yet submitted.
+   *
+   * Choosing a card template re-renders the form, because which fields are shown depends on the
+   * template. Without this the re-render would rebuild every field from the document — empty, for
+   * a clue being created — and silently discard whatever the user had already typed.
+   * @type {Record<string, unknown>}
+   */
+  #draft = {};
+
   /** Whether this dialog is editing an existing clue. */
   get isEdit() {
     return !!this.page;
@@ -84,15 +94,18 @@ export default class ClueDialog extends HandlebarsApplicationMixin(ApplicationV2
   /** @inheritDoc */
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
-    const clue = this.page?.system;
     const localized = record => Object.entries(record).map(([value, label]) => ({
       value,
       label: game.i18n.localize(label)
     }));
 
+    // Anything already typed wins over the stored document, so a re-render doesn't lose it.
+    const draft = foundry.utils.expandObject(this.#draft);
+    const clue = {...(this.page?.system ?? {}), ...(draft.system ?? {})};
+
     return Object.assign(context, {
       isEdit: this.isEdit,
-      name: this.page?.name ?? "",
+      name: draft.name ?? this.page?.name ?? "",
       clue,
       selectedTemplate: this.#template,
       selectedPin: this.#pinColor,
@@ -128,8 +141,24 @@ export default class ClueDialog extends HandlebarsApplicationMixin(ApplicationV2
    * @param {HTMLElement} target
    */
   static async #onPickTemplate(_event, target) {
+    this.#captureDraft();
     this.#template = target.dataset.template;
     await this.render();
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Remember what is currently in the form, so a re-render can put it back.
+   *
+   * Fields the outgoing template rendered but the incoming one does not are kept in the draft
+   * rather than dropped: switching to a polaroid and back must not lose the body text typed in
+   * between.
+   */
+  #captureDraft() {
+    if ( !this.element ) return;
+    const current = new foundry.applications.ux.FormDataExtended(this.element).object;
+    this.#draft = foundry.utils.mergeObject(this.#draft, current, {inplace: false});
   }
 
   /**
@@ -156,18 +185,25 @@ export default class ClueDialog extends HandlebarsApplicationMixin(ApplicationV2
    * @returns {Promise<void>}
    */
   static async #onSubmit(_event, _form, formData) {
-    const data = foundry.utils.expandObject(formData.object);
+    // The visible form wins, but values typed under a previously-selected template are still
+    // carried in the draft and must be saved too.
+    const merged = foundry.utils.mergeObject(this.#draft, formData.object, {inplace: false});
+    const data = foundry.utils.expandObject(merged);
     const name = data.name?.trim() || game.i18n.localize("INVESTIGATION_BOARD.UntitledClue");
 
     const system = {
       template: this.#template,
       pinColor: this.#pinColor,
-      image: data.system?.image || null,
-      body: data.system?.body ?? "",
       category: data.system?.category ?? "other",
       reliability: data.system?.reliability ?? "unverified",
       redacted: !!data.system?.redacted
     };
+
+    // Only write the fields this template actually rendered. A template without a body or a photo
+    // omits those inputs, and defaulting them here would silently wipe content the user still has
+    // — switching a written-up document clue to a polaroid must not destroy its text.
+    if ( "image" in (data.system ?? {}) ) system.image = data.system.image || null;
+    if ( "body" in (data.system ?? {}) ) system.body = data.system.body ?? "";
 
     if ( this.isEdit ) {
       await this.page.update({name, system});

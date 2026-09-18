@@ -1,4 +1,4 @@
-import {CASE_FLAGS, MODULE_ID, PAGE_TYPES} from "../constants.mjs";
+import {CASE_FLAGS, CASE_STATUSES, MODULE_ID, PAGE_TYPES} from "../constants.mjs";
 
 /**
  * Helpers for treating a JournalEntry as an investigation case.
@@ -146,13 +146,16 @@ export function topZ(journal) {
 /**
  * Read a case's board-level flags with sensible fallbacks.
  * @param {JournalEntry} journal
- * @returns {{status: string, progress: number, classification: string, assignedTo: string|null, archived: boolean}}
+ * @returns {{status: string, statusLabel: string, progress: number, classification: string,
+ *            assignedTo: string|null, archived: boolean}}
  */
 export function caseState(journal) {
   const flag = key => journal?.getFlag(MODULE_ID, key);
+  const status = flag(CASE_FLAGS.STATUS) ?? "active";
   return {
-    status: flag(CASE_FLAGS.STATUS) ?? "active",
-    progress: Math.clamp(flag(CASE_FLAGS.PROGRESS) ?? 0, 0, 100),
+    status,
+    statusLabel: CASE_STATUSES[status] ?? CASE_STATUSES.active,
+    progress: Math.round(Math.clamp(flag(CASE_FLAGS.PROGRESS) ?? 0, 0, 100)),
     classification: flag(CASE_FLAGS.CLASSIFICATION) ?? "",
     assignedTo: flag(CASE_FLAGS.ASSIGNED_TO) ?? null,
     archived: !!flag(CASE_FLAGS.ARCHIVED)

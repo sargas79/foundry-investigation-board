@@ -130,12 +130,17 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
 
   /* -------------------------------------------- */
 
-  /** @inheritDoc */
-  _onRender(context, options) {
-    super._onRender(context, options);
+  /**
+   * @inheritDoc
+   * Async because core awaits this hook: drawing the case must finish before the render is
+   * considered complete, and any failure while enriching clue bodies must surface as a rejected
+   * render rather than an unhandled promise.
+   */
+  async _onRender(context, options) {
+    await super._onRender(context, options);
     this.element.classList.toggle("maximized", this.#maximized);
     this.#attachBoardView();
-    this.#drawCase();
+    await this.#drawCase();
   }
 
   /* -------------------------------------------- */

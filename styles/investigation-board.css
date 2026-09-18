@@ -176,9 +176,23 @@
   color: var(--ib-text-muted);
 }
 
-.investigation-board-app .ib-status-value[data-status="active"] {
-  color: var(--ib-active);
+.investigation-board-app .ib-status-value {
   font-weight: 600;
+  color: var(--ib-text);
+}
+
+.investigation-board-app .ib-status-value[data-status="active"] { color: var(--ib-active); }
+.investigation-board-app .ib-status-value[data-status="hold"] { color: var(--ib-accent); }
+.investigation-board-app .ib-status-value[data-status="cold"] { color: #6fb3d6; }
+.investigation-board-app .ib-status-value[data-status="solved"] { color: #b39ddb; }
+
+.investigation-board-app .ib-case-classification {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 2px;
+  background: var(--ib-panel-raised);
+  color: var(--ib-text-muted);
+  font-size: 10px;
 }
 
 .investigation-board-app .ib-progress {

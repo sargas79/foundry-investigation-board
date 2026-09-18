@@ -1,4 +1,4 @@
-{{!-- Case title, status and progress. Made interactive in milestone 5 (#29, #30). --}}
+{{!-- Case title, status and progress. Made editable in milestone 5 (#29, #30). --}}
 <header class="ib-header">
     <div class="ib-header-titles">
         <h1 class="ib-case-title">
@@ -7,25 +7,28 @@
         {{#if hasCase}}
             <p class="ib-case-status">
                 {{localize "INVESTIGATION_BOARD.StatusLabel"}}
-                <span class="ib-status-value" data-status="active">
-                    {{localize "INVESTIGATION_BOARD.STATUS.Active"}}
+                <span class="ib-status-value" data-status="{{state.status}}">
+                    {{localize state.statusLabel}}
                 </span>
+                {{#if state.classification}}
+                    <span class="ib-case-classification">{{state.classification}}</span>
+                {{/if}}
             </p>
         {{/if}}
     </div>
 
     {{#if hasCase}}
-        <div class="ib-progress">
+        <div class="ib-progress" data-tooltip="{{localize 'INVESTIGATION_BOARD.ProgressTooltip'}}">
             <div class="ib-progress-track">
-                <div class="ib-progress-fill" style="width: 0%"></div>
+                <div class="ib-progress-fill" style="width: {{state.progress}}%"></div>
             </div>
-            <span class="ib-progress-value">0%</span>
+            <span class="ib-progress-value">{{state.progress}}%</span>
         </div>
     {{/if}}
 
     <button type="button" class="ib-icon-button ib-settings" data-action="toggleMaximize"
             data-tooltip="INVESTIGATION_BOARD.ToggleMaximize"
             aria-label="{{localize 'INVESTIGATION_BOARD.ToggleMaximize'}}">
-        <i class="fa-solid fa-gear"></i>
+        <i class="fa-solid fa-expand"></i>
     </button>
 </header>
