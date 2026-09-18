@@ -1,0 +1,23 @@
+<section class="ib-report-page-edit">
+    <div class="form-group">
+        <label for="{{rootId}}-name">{{localize "Name"}}</label>
+        <div class="form-fields">
+            <input type="text" id="{{rootId}}-name" name="name" value="{{name}}" required>
+        </div>
+    </div>
+
+    {{#if report.isBrief}}
+        <div class="form-group">
+            <label for="{{rootId}}-number">{{localize "INVESTIGATION_BOARD.CaseNumberLabel"}}</label>
+            <div class="form-fields">
+                <input type="text" id="{{rootId}}-number" name="system.caseNumber"
+                       value="{{report.caseNumber}}">
+            </div>
+        </div>
+    {{/if}}
+
+    <div class="form-group stacked">
+        <label for="{{rootId}}-body">{{localize "INVESTIGATION_BOARD.BodyLabel"}}</label>
+        <prose-mirror id="{{rootId}}-body" name="system.body" value="{{report.body}}" toggled></prose-mirror>
+    </div>
+</section>

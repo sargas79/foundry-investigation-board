@@ -183,6 +183,56 @@ export function recoverClue(page) {
 /* -------------------------------------------- */
 
 /**
+ * The case's opening document, if it has been written.
+ * @param {JournalEntry} journal
+ * @returns {JournalEntryPage|undefined}
+ */
+export function getBrief(journal) {
+  return journal?.pages.find(p => (p.type === PAGE_TYPES.REPORT) && (p.system.kind === "brief"));
+}
+
+/* -------------------------------------------- */
+
+/**
+ * The findings pages, oldest first, so the file reads in the order it was written.
+ * @param {JournalEntry} journal
+ * @returns {JournalEntryPage[]}
+ */
+export function getFindings(journal) {
+  if ( !journal ) return [];
+  return journal.pages
+    .filter(p => (p.type === PAGE_TYPES.REPORT) && (p.system.kind === "entry") && p.visible)
+    .sort((a, b) => (a.system.sort - b.system.sort)
+      || ((a.system.createdAt ?? 0) - (b.system.createdAt ?? 0)));
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Whether a user may write a given case-file page.
+ *
+ * The opening file is the official record, so it belongs to the GM and to whoever the case belongs
+ * to. A findings page belongs to whoever wrote it — anyone can add to the file, nobody rewrites
+ * someone else's account of it. The GM may edit anything.
+ *
+ * @param {JournalEntryPage} page
+ * @param {User} user
+ * @returns {boolean}
+ */
+export function canEditReport(page, user) {
+  if ( !page || !user ) return false;
+  if ( user.isGM ) return true;
+  if ( !page.parent?.isOwner ) return false;
+  if ( page.system.kind === "brief" ) {
+    const assigned = page.parent.getFlag(MODULE_ID, CASE_FLAGS.ASSIGNED_TO);
+    return assigned ? (assigned === user.id) : true;
+  }
+  return page.system.author === user.id;
+}
+
+/* -------------------------------------------- */
+
+/**
  * Close a case, moving it to the archived group.
  *
  * Archiving is to a case what dismissing is to a clue: the player's way of setting something

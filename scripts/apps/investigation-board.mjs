@@ -5,6 +5,7 @@ import BoardInteractions from "../board/interactions.mjs";
 import DropHandler from "../board/drop-handler.mjs";
 import ClueDialog from "./clue-dialog.mjs";
 import CaseConfig from "./case-config.mjs";
+import CaseFile from "./case-file.mjs";
 import ShareDialog from "./share-dialog.mjs";
 import {canCreateDirectly, createCase} from "../data/case-create.mjs";
 import {canManageSharing} from "../data/sharing.mjs";
@@ -83,6 +84,7 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       shareCase: InvestigationBoard.#onShareCase,
       archiveCase: InvestigationBoard.#onArchiveCase,
       deleteCase: InvestigationBoard.#onDeleteCase,
+      openCaseFile: InvestigationBoard.#onOpenCaseFile,
       exportCase: InvestigationBoard.#onExportCase,
       importCase: InvestigationBoard.#onImportCase
     }
@@ -982,6 +984,19 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
     const nowArchived = !caseState(journal).archived;
     await archiveCase(journal, nowArchived);
     await this.render();
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Open the case's written record beside the board.
+   * @this {InvestigationBoard}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static #onOpenCaseFile(_event, target) {
+    const caseId = target.dataset.caseId ?? this.#caseId;
+    if ( caseId ) CaseFile.open(caseId);
   }
 
   /* -------------------------------------------- */

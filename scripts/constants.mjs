@@ -8,12 +8,26 @@ export const MODULE_ID = "investigation-board";
 /** Fully-qualified JournalEntryPage sub-types provided by this module. */
 export const PAGE_TYPES = {
   CLUE: `${MODULE_ID}.clue`,
-  CONNECTION: `${MODULE_ID}.connection`
+  CONNECTION: `${MODULE_ID}.connection`,
+  REPORT: `${MODULE_ID}.report`
+};
+
+/**
+ * The two kinds of case-file page. One document each way — to a reader they are the same thing,
+ * a dated and attributed piece of writing about the case.
+ */
+export const REPORT_KINDS = {
+  brief: "INVESTIGATION_BOARD.REPORT.Brief",
+  entry: "INVESTIGATION_BOARD.REPORT.Entry"
 };
 
 /** Flag keys written on the case JournalEntry. */
 export const CASE_FLAGS = {
   IS_CASE: "isCase",
+  /** The GM-only companion entry holding this case's redacted passages. */
+  SEALED_ENTRY: "sealedEntry",
+  /** On the companion entry itself: which case it belongs to. */
+  SEALED_FOR: "sealedFor",
   STATUS: "status",
   PROGRESS: "progress",
   CLASSIFICATION: "classification",

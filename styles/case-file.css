@@ -1,0 +1,223 @@
+/* =========================================================================
+   The case file — the written record beside the board.
+
+   Reads like a document rather than an interface: generous measure, real
+   paragraph spacing, and the chrome kept out of the way until hovered.
+   ========================================================================= */
+
+.ib-case-file .window-content.ib-case-file-content {
+  padding: 0;
+  background: #12171c;
+  color: #e6eaee;
+  overflow: hidden;
+}
+
+.ib-case-file .ib-file {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.ib-case-file .ib-file-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 26px 30px 30px;
+}
+
+/* --- The opening document ------------------------------------------------ */
+
+.ib-case-file .ib-file-brief {
+  padding-bottom: 22px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid #39424c;
+}
+
+.ib-case-file .ib-file-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ib-case-file .ib-file-titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.ib-case-file h1 {
+  margin: 0;
+  border: none;
+  font-family: "Courier Prime", monospace;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #e6eaee;
+}
+
+.ib-case-file h3 {
+  margin: 0;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: #e6eaee;
+}
+
+.ib-case-file .ib-case-number {
+  margin: 3px 0 0;
+  font-family: "Courier Prime", monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: #8c98a4;
+}
+
+.ib-case-file .ib-case-number strong {
+  color: #f0b429;
+}
+
+/* The chrome stays quiet until the reader reaches for it. */
+.ib-case-file .ib-file-actions {
+  display: flex;
+  gap: 4px;
+  flex: 0 0 auto;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.ib-case-file .ib-file-heading:hover .ib-file-actions,
+.ib-case-file .ib-file-actions:focus-within {
+  opacity: 1;
+}
+
+.ib-case-file .ib-icon-button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #39424c;
+  border-radius: 5px;
+  background: #2b333b;
+  color: #8c98a4;
+  cursor: pointer;
+}
+
+.ib-case-file .ib-icon-button:hover { color: #e6eaee; }
+
+.ib-case-file .ib-icon-button.ib-danger:hover {
+  border-color: #8d2f2c;
+  background: #8d2f2c;
+  color: #fff;
+}
+
+/* --- The prose itself ---------------------------------------------------- */
+
+.ib-case-file .ib-file-prose {
+  max-width: 68ch;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: #d7dde3;
+}
+
+.ib-case-file .ib-file-prose p { margin: 0 0 0.9em; }
+.ib-case-file .ib-file-prose :last-child { margin-bottom: 0; }
+
+.ib-case-file .ib-file-prose h2,
+.ib-case-file .ib-file-prose h3 { margin: 1.2em 0 0.4em; }
+
+/* --- Redaction ------------------------------------------------------------ */
+
+/*
+ * What a player sees. There is nothing behind this: the text was moved into a document their
+ * client never receives, so the bar is the whole truth rather than a covering.
+ */
+.ib-case-file .ib-redacted {
+  display: inline-block;
+  padding: 0 2px;
+  border-radius: 1px;
+  background: #0b0b0b;
+  color: #0b0b0b;
+  letter-spacing: -0.06em;
+  user-select: none;
+  cursor: not-allowed;
+}
+
+/* What the GM sees in its place: the real text, marked as withheld from the table. */
+.ib-case-file .ib-redacted-open {
+  background: rgb(240 180 41 / 14%);
+  box-shadow: inset 0 -1px 0 rgb(240 180 41 / 60%);
+  color: #f3d79a;
+}
+
+.ib-case-file .ib-redaction-note {
+  margin: 12px 0 0;
+  font-size: 11px;
+  color: #8c98a4;
+}
+
+/* --- Findings ------------------------------------------------------------- */
+
+.ib-case-file .ib-findings-label {
+  margin: 0 0 12px;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8c98a4;
+}
+
+.ib-case-file .ib-finding {
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  border-left: 2px solid #39424c;
+  border-radius: 0 6px 6px 0;
+  background: #1b2128;
+}
+
+.ib-case-file .ib-finding-by {
+  margin: 2px 0 0;
+  font-size: 10.5px;
+  color: #8c98a4;
+}
+
+/* --- Empty and footer ----------------------------------------------------- */
+
+.ib-case-file .ib-empty {
+  margin: 8px 0;
+  font-size: 12.5px;
+  font-style: italic;
+  color: #8c98a4;
+}
+
+.ib-case-file .ib-file-unopened { text-align: center; padding: 30px 0; }
+
+.ib-case-file .ib-file-start,
+.ib-case-file .ib-add-finding {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border: 1px dashed #39424c;
+  border-radius: 6px;
+  background: transparent;
+  color: #8c98a4;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.ib-case-file .ib-file-start:hover,
+.ib-case-file .ib-add-finding:hover {
+  border-style: solid;
+  border-color: #f0b429;
+  color: #e6eaee;
+}
+
+.ib-case-file .ib-file-footer {
+  padding: 12px 30px;
+  border-top: 1px solid #39424c;
+  background: #161c22;
+}
+
+.ib-case-file .ib-add-finding { width: 100%; }

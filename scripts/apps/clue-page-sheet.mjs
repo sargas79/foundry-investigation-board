@@ -63,6 +63,48 @@ export class CluePageSheet extends JournalEntryPageHandlebarsSheet {
 /* -------------------------------------------- */
 
 /**
+ * The native journal sheet for a case-file page.
+ *
+ * The file is meant to be read in the case-file window, but a page is still an ordinary journal
+ * page and can be opened from the sidebar — so core needs a sheet to instantiate. Redacted
+ * passages show as bars here too: the text is not in this document at all.
+ */
+export class ReportPageSheet extends JournalEntryPageHandlebarsSheet {
+
+  /** @override */
+  static DEFAULT_OPTIONS = {
+    classes: [MODULE_ID, "report-page"],
+    window: {icon: "fa-solid fa-file-lines"}
+  };
+
+  /** @inheritDoc */
+  static EDIT_PARTS = {
+    header: super.EDIT_PARTS.header,
+    content: {template: modulePath("templates/page/report-edit.hbs"), classes: ["standard-form"]},
+    footer: super.EDIT_PARTS.footer
+  };
+
+  /** @override */
+  static VIEW_PARTS = {
+    content: {template: modulePath("templates/page/report-view.hbs"), root: true}
+  };
+
+  /** @inheritDoc */
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+    const report = this.page.system;
+    return Object.assign(context, {
+      report,
+      enrichedBody: await foundry.applications.ux.TextEditor.implementation.enrichHTML(
+        report.body ?? "", {relativeTo: this.page, secrets: this.page.isOwner}
+      )
+    });
+  }
+}
+
+/* -------------------------------------------- */
+
+/**
  * The native journal sheet for a connection page.
  *
  * Connections carry no authored content — they are pure structure between two clues — so this sheet

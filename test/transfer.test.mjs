@@ -77,6 +77,55 @@ export default async function testTransfer() {
     assert(string.label === "same night", "the label was lost");
   });
 
+  describe("the case file in transit");
+
+  const withFile = journalOf("Ashwood", [
+    cluePage("a", "Mara Vale"),
+    {id: "b1", name: "The File", type: "investigation-board.report", system: {
+      kind: "brief", caseNumber: "4471-B", body: "<p>Opening. <span>REDACTED</span></p>",
+      sort: -1, sealed: [{id: "s1", label: "a name", sealedBy: "gm", sealedAt: 1}]
+    }},
+    {id: "f1", name: "Docks", type: "investigation-board.report", system: {
+      kind: "entry", caseNumber: "", body: "<p>Found it.</p>", sort: 0, sealed: []
+    }}
+  ], {});
+
+  const fileExport = exportCase(withFile);
+
+  await check("the opening file and the findings travel", () => {
+    assert(fileExport.reports?.length === 2, `exported ${fileExport.reports?.length} pages`);
+    const brief = fileExport.reports.find(r => r.kind === "brief");
+    assert(brief?.caseNumber === "4471-B", "the case number was lost");
+    assert(fileExport.reports.some(r => r.name === "Docks"), "a finding was lost");
+  });
+
+  // The markers stay so the bars still read as redactions, but nothing is behind them — the text
+  // lives in a GM-only document and putting it in a portable file would defeat the point.
+  await check("redaction markers travel but carry nothing", () => {
+    const brief = fileExport.reports.find(r => r.kind === "brief");
+    assert(brief.sealed.length === 1, "the marker was dropped");
+    assert(brief.sealed[0].id === "s1", "the marker id was lost");
+    const serialised = JSON.stringify(fileExport);
+    assert(!serialised.includes("sealedBy"), "who redacted it leaked into the export");
+    assert(!serialised.includes("sealedAt"), "when it was redacted leaked into the export");
+  });
+
+  await check("importing rebuilds the file, crediting the importer", () => {
+    const built = buildImport(fileExport, "newplayer");
+    const reports = built.pages.filter(p => p.type === "investigation-board.report");
+    assert(reports.length === 2, `built ${reports.length} case-file pages`);
+    const brief = reports.find(p => p.system.kind === "brief");
+    assert(brief.system.caseNumber === "4471-B", "the case number did not survive");
+    assert(brief.system.author === "newplayer", "authorship was not reassigned");
+    assert(brief.system.sealed.length === 1, "the marker did not survive");
+  });
+
+  await check("a file with no case-file pages imports cleanly", () => {
+    const built = buildImport({...fileExport, reports: undefined}, "p");
+    assert(built.pages.every(p => p.type !== "investigation-board.report"),
+      "case-file pages appeared from nowhere");
+  });
+
   describe("validateExport");
 
   await check("accepts its own output", () => {

@@ -41,6 +41,21 @@ export function exportCase(journal) {
       // A link to a document in the world this came from cannot survive the journey.
       linkedUuid: null
     })),
+    // The written record travels with the board. Redacted passages deliberately do not: they live
+    // in a GM-only document precisely so they are not in anything a player could obtain, and
+    // writing them into a portable file would undo that in one step.
+    reports: journal.pages
+      .filter(p => p.type === PAGE_TYPES.REPORT)
+      .map(page => ({
+        name: page.name,
+        kind: page.system.kind,
+        caseNumber: page.system.caseNumber,
+        body: page.system.body,
+        sort: page.system.sort,
+        // The markers stay so the bars still read as redactions in the destination world, but
+        // there is nothing behind them there and no way to reveal them.
+        sealed: page.system.sealed.map(s => ({id: s.id, label: s.label}))
+      })),
     connections: connections.reduce((out, page) => {
       const from = indexOf.get(page.system.from);
       const to = indexOf.get(page.system.to);
@@ -121,6 +136,26 @@ export function buildImport(data, ownerId) {
         color: connection.color ?? "red",
         style: connection.style ?? "solid",
         label: connection.label ?? ""
+      }
+    });
+  }
+
+  for ( const report of data.reports ?? [] ) {
+    pages.push({
+      name: String(report.name ?? "").trim()
+        || game.i18n.localize("INVESTIGATION_BOARD.UntitledFinding"),
+      type: PAGE_TYPES.REPORT,
+      system: {
+        kind: report.kind === "brief" ? "brief" : "entry",
+        caseNumber: String(report.caseNumber ?? ""),
+        body: String(report.body ?? ""),
+        // Authorship belongs to the world it came from; the importer becomes the writer of record.
+        author: ownerId,
+        createdAt: Date.now(),
+        sealed: Array.isArray(report.sealed)
+          ? report.sealed.map(s => ({id: String(s.id ?? ""), label: String(s.label ?? "")}))
+          : [],
+        sort: Number(report.sort) || 0
       }
     });
   }

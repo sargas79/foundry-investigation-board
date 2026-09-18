@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Investigation Board — case file</title>
+  <link rel="stylesheet" href="/styles/fonts.css">
+  <link rel="stylesheet" href="/styles/case-file.css">
+  <style>
+    html, body { height: 100%; margin: 0; background: #0b0f13; }
+    body { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 14px;
+           box-sizing: border-box; font-family: system-ui, sans-serif; }
+    .pane { display: flex; flex-direction: column; min-height: 0; border: 1px solid #39424c;
+            border-radius: 8px; overflow: hidden; }
+    .pane > h2 { margin: 0; padding: 8px 12px; background: #1b2128; color: #8c98a4;
+                 font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+    .window-content { flex: 1; min-height: 0; }
+  </style>
+</head>
+<body>
+  <div class="pane">
+    <h2>What a player sees</h2>
+    <div class="ib-case-file"><div class="window-content ib-case-file-content" id="player"></div></div>
+  </div>
+  <div class="pane">
+    <h2>What the GM sees</h2>
+    <div class="ib-case-file"><div class="window-content ib-case-file-content" id="gm"></div></div>
+  </div>
+
+  <script type="module">
+    // Rendered from the real template, so this shows what the module actually produces.
+    const tpl = await (await fetch("/templates/case-file.hbs")).text();
+    const {default: Handlebars} = await import("https://cdn.jsdelivr.net/npm/handlebars@4.7.8/+esm")
+      .catch(() => ({default: null}));
+
+    const SECRET = "the harbourmaster";
+    const redacted = `<span class="ib-redacted" data-redaction-id="s1">███████████████</span>`;
+    const opened = `<span class="ib-redacted-open" data-redaction-id="s1">${SECRET}</span>`;
+
+    const context = isGM => ({
+      isGM,
+      caseName: "The Ashwood Murders",
+      brief: {
+        id: "b1", caseNumber: "4471-B", editable: isGM, redactions: 1,
+        body: `<p>Victim found 02:14 on Ashwood Lane, throat cut, watch stopped at the hour.
+               No forced entry.</p>
+               <p>We have reason to believe ${isGM ? opened : redacted} was present that night,
+               though the harbour ledger says otherwise.</p>`
+      },
+      canStartBrief: false,
+      findings: [
+        {id: "f1", name: "The pawn shop receipts", byline: "Diego, 2 hours ago",
+          editable: !isGM, deletable: !isGM,
+          body: "<p>Three receipts, all the week of the 12th, all signed with the same initials.</p>"},
+        {id: "f2", name: "Witness recanted", byline: "Sam, yesterday", editable: false,
+          deletable: isGM,
+          body: "<p>She now says she never saw the grey coat. Someone got to her.</p>"}
+      ],
+      canAddFinding: true
+    });
+
+    if ( Handlebars ) {
+      Handlebars.registerHelper({localize: k => k, eq: (a, b) => a === b});
+      const render = Handlebars.compile(tpl);
+      document.getElementById("player").innerHTML = render(context(false));
+      document.getElementById("gm").innerHTML = render(context(true));
+    }
+    else {
+      document.body.textContent = "Handlebars could not be loaded from the CDN.";
+    }
+  </script>
+</body>
+</html>

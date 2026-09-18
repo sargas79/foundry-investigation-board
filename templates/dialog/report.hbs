@@ -1,0 +1,37 @@
+<div class="ib-report-dialog">
+
+    <div class="form-group">
+        <label for="ib-report-name">{{localize "INVESTIGATION_BOARD.TitleLabel"}}</label>
+        <div class="form-fields">
+            <input type="text" id="ib-report-name" name="name" value="{{name}}" autofocus
+                   placeholder="{{#if isBrief}}{{caseName}}{{else}}{{localize 'INVESTIGATION_BOARD.FindingPlaceholder'}}{{/if}}">
+        </div>
+    </div>
+
+    {{#if isBrief}}
+        <div class="form-group">
+            <label for="ib-report-number">{{localize "INVESTIGATION_BOARD.CaseNumberLabel"}}</label>
+            <div class="form-fields">
+                <input type="text" id="ib-report-number" name="caseNumber" value="{{caseNumber}}"
+                       placeholder="{{localize 'INVESTIGATION_BOARD.CaseNumberPlaceholder'}}">
+            </div>
+            <p class="hint">{{localize "INVESTIGATION_BOARD.CaseNumberHint"}}</p>
+        </div>
+    {{/if}}
+
+    <div class="form-group stacked">
+        <label for="ib-report-body">
+            {{#if isBrief}}
+                {{localize "INVESTIGATION_BOARD.FileContentLabel"}}
+            {{else}}
+                {{localize "INVESTIGATION_BOARD.FindingContentLabel"}}
+            {{/if}}
+        </label>
+        <prose-mirror id="ib-report-body" name="body" value="{{body}}" toggled></prose-mirror>
+    </div>
+
+    {{#if redactions}}
+        <p class="notification info">{{localize "INVESTIGATION_BOARD.RedactionsPreserved"}}</p>
+    {{/if}}
+
+</div>

@@ -5,8 +5,9 @@ import {SHARE_QUERY, handleShareQuery} from "./data/sharing.mjs";
 import {receivePresence} from "./presence.mjs";
 import ClueData from "./data/clue-data.mjs";
 import ConnectionData from "./data/connection-data.mjs";
+import ReportData from "./data/report-data.mjs";
 import InvestigationBoard from "./apps/investigation-board.mjs";
-import {CluePageSheet, ConnectionPageSheet} from "./apps/clue-page-sheet.mjs";
+import {CluePageSheet, ConnectionPageSheet, ReportPageSheet} from "./apps/clue-page-sheet.mjs";
 import {registerKeybindings, registerSettings} from "./settings.mjs";
 
 /**
@@ -33,7 +34,8 @@ Hooks.once("init", () => {
   // Data models for our JournalEntryPage sub-types.
   Object.assign(CONFIG.JournalEntryPage.dataModels, {
     [PAGE_TYPES.CLUE]: ClueData,
-    [PAGE_TYPES.CONNECTION]: ConnectionData
+    [PAGE_TYPES.CONNECTION]: ConnectionData,
+    [PAGE_TYPES.REPORT]: ReportData
   });
 
   // Sheets, so these pages can still be opened from the journal sidebar.
@@ -48,6 +50,11 @@ Hooks.once("init", () => {
     types: [PAGE_TYPES.CONNECTION],
     makeDefault: true,
     label: "INVESTIGATION_BOARD.ConnectionPageSheet"
+  });
+  DocumentSheetConfig.registerSheet(JournalEntryPage, MODULE_ID, ReportPageSheet, {
+    types: [PAGE_TYPES.REPORT],
+    makeDefault: true,
+    label: "INVESTIGATION_BOARD.ReportPageSheet"
   });
 
   registerFonts();

@@ -111,6 +111,49 @@ export default async function testTemplates() {
     assert(countAction(html, "archiveCase") === 0, "a non-owner was offered archive");
   });
 
+  describe("case-file.hbs");
+
+  const fileContext = isGM => ({
+    isGM,
+    caseName: "Ashwood",
+    brief: {id: "b1", caseNumber: "4471-B", body: "<p>Opening.</p>", editable: true, redactions: 2},
+    findings: [{id: "f1", name: "Docks", body: "<p>One.</p>", byline: "Sam",
+      editable: false, deletable: false}],
+    canStartBrief: false,
+    canAddFinding: true
+  });
+
+  // Redacting is the GM's alone, so the control must not be offered to anyone else.
+  await check("only a GM is offered the redact control", () => {
+    const gm = render("templates/case-file.hbs", fileContext(true));
+    const player = render("templates/case-file.hbs", fileContext(false));
+    assert(countAction(gm, "redactSelection") === 2,
+      `a GM saw ${countAction(gm, "redactSelection")} redact controls, expected one per page`);
+    assert(countAction(player, "redactSelection") === 0,
+      `a player was offered ${countAction(player, "redactSelection")} redact controls`);
+  });
+
+  await check("a player cannot edit or remove someone else's finding", () => {
+    const player = render("templates/case-file.hbs", fileContext(false));
+    assert(countAction(player, "editFinding") === 0, "a player was offered an edit control");
+    assert(countAction(player, "deleteFinding") === 0, "a player was offered a delete control");
+  });
+
+  await check("the case number and findings are shown", () => {
+    const html = render("templates/case-file.hbs", fileContext(true));
+    assert(html.includes("4471-B"), "the case number is missing");
+    assert(html.includes("Docks"), "the finding is missing");
+    assert(html.includes("Sam"), "the byline is missing");
+  });
+
+  await check("an unopened file invites whoever may start it", () => {
+    const context = fileContext(false);
+    context.brief = null;
+    context.canStartBrief = true;
+    const html = render("templates/case-file.hbs", context);
+    assert(countAction(html, "editBrief") === 1, "no way to start the file");
+  });
+
   describe("every part compiles and renders");
 
   const parts = [
@@ -132,7 +175,13 @@ export default async function testTemplates() {
     ["templates/page/clue-view.hbs", {name: "X", clue: {}, categoryChoices: {}, reliabilityChoices: {}}],
     ["templates/page/clue-edit.hbs", {rootId: "r", name: "X", clue: {}}],
     ["templates/page/connection-view.hbs", {name: "X", connection: {}}],
-    ["templates/page/connection-edit.hbs", {rootId: "r", connection: {}}]
+    ["templates/page/connection-edit.hbs", {rootId: "r", connection: {}}],
+    ["templates/page/report-view.hbs", {name: "X", report: {}, enrichedBody: "<p>x</p>"}],
+    ["templates/page/report-edit.hbs", {rootId: "r", name: "X", report: {}}],
+    ["templates/dialog/report.hbs", {isBrief: true, caseName: "X", name: "", caseNumber: "",
+      body: "", redactions: 0}],
+    ["templates/case-file.hbs", {isGM: false, caseName: "X", brief: null, findings: [],
+      canStartBrief: true, canAddFinding: true}]
   ];
 
   for ( const [file, context] of parts ) {

@@ -24,7 +24,8 @@
     "styles/dialogs.css",
     "styles/tray.css",
     "styles/inspector.css",
-    "styles/filter.css"
+    "styles/filter.css",
+    "styles/case-file.css"
   ],
   "languages": [
     {
@@ -45,7 +46,12 @@
           ]
         }
       },
-      "connection": {}
+      "connection": {},
+      "report": {
+        "htmlFields": [
+          "body"
+        ]
+      }
     }
   },
   "socket": true,

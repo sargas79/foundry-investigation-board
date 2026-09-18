@@ -37,6 +37,12 @@
 
     <div class="ib-header-actions">
         {{#if hasCase}}
+            <button type="button" class="ib-icon-button" data-action="openCaseFile"
+                    data-case-id="{{currentCase.id}}"
+                    data-tooltip="INVESTIGATION_BOARD.CaseFile"
+                    aria-label="{{localize 'INVESTIGATION_BOARD.CaseFile'}}">
+                <i class="fa-solid fa-folder-open"></i>
+            </button>
             {{#if canShare}}
                 <button type="button" class="ib-icon-button" data-action="shareCase"
                         data-case-id="{{currentCase.id}}"

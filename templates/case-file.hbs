@@ -1,0 +1,115 @@
+<section class="ib-file">
+    {{#if missing}}
+        <p class="ib-empty">{{localize "INVESTIGATION_BOARD.CaseGone"}}</p>
+    {{else}}
+        <div class="ib-file-body">
+
+            {{!-- The opening document --}}
+            <article class="ib-file-brief">
+                {{#if brief}}
+                    <header class="ib-file-heading">
+                        <div class="ib-file-titles">
+                            <h1>{{caseName}}</h1>
+                            {{#if brief.caseNumber}}
+                                <p class="ib-case-number">{{localize "INVESTIGATION_BOARD.CaseNumber"}}
+                                    <strong>{{brief.caseNumber}}</strong></p>
+                            {{/if}}
+                        </div>
+                        <div class="ib-file-actions">
+                            {{#if isGM}}
+                                <button type="button" class="ib-icon-button" data-action="redactSelection"
+                                        data-page-id="{{brief.id}}"
+                                        data-tooltip="INVESTIGATION_BOARD.RedactSelection"
+                                        aria-label="{{localize 'INVESTIGATION_BOARD.RedactSelection'}}">
+                                    <i class="fa-solid fa-marker"></i>
+                                </button>
+                            {{/if}}
+                            {{#if brief.editable}}
+                                <button type="button" class="ib-icon-button" data-action="editBrief"
+                                        data-tooltip="INVESTIGATION_BOARD.EditFile"
+                                        aria-label="{{localize 'INVESTIGATION_BOARD.EditFile'}}">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                            {{/if}}
+                        </div>
+                    </header>
+
+                    <div class="ib-file-prose">{{{brief.body}}}</div>
+
+                    {{#if isGM}}
+                        {{#if brief.redactions}}
+                            <p class="ib-redaction-note">
+                                {{localize "INVESTIGATION_BOARD.RedactionNoteGM"}}
+                            </p>
+                        {{/if}}
+                    {{/if}}
+                {{else}}
+                    <div class="ib-file-unopened">
+                        <h1>{{caseName}}</h1>
+                        <p class="ib-empty">{{localize "INVESTIGATION_BOARD.NoFileYet"}}</p>
+                        {{#if canStartBrief}}
+                            <button type="button" class="ib-file-start" data-action="editBrief">
+                                <i class="fa-solid fa-file-pen"></i>
+                                <span>{{localize "INVESTIGATION_BOARD.StartFile"}}</span>
+                            </button>
+                        {{/if}}
+                    </div>
+                {{/if}}
+            </article>
+
+            {{!-- What the investigators added as the case went on --}}
+            {{#if findings.length}}
+                <h2 class="ib-panel-label ib-findings-label">
+                    {{localize "INVESTIGATION_BOARD.Findings"}}
+                </h2>
+            {{/if}}
+
+            {{#each findings}}
+                <article class="ib-finding" data-page-id="{{this.id}}">
+                    <header class="ib-file-heading">
+                        <div class="ib-file-titles">
+                            <h3>{{this.name}}</h3>
+                            <p class="ib-finding-by">{{this.byline}}</p>
+                        </div>
+                        <div class="ib-file-actions">
+                            {{#if ../isGM}}
+                                <button type="button" class="ib-icon-button" data-action="redactSelection"
+                                        data-page-id="{{this.id}}"
+                                        data-tooltip="INVESTIGATION_BOARD.RedactSelection"
+                                        aria-label="{{localize 'INVESTIGATION_BOARD.RedactSelection'}}">
+                                    <i class="fa-solid fa-marker"></i>
+                                </button>
+                            {{/if}}
+                            {{#if this.editable}}
+                                <button type="button" class="ib-icon-button" data-action="editFinding"
+                                        data-page-id="{{this.id}}"
+                                        data-tooltip="INVESTIGATION_BOARD.EditFinding"
+                                        aria-label="{{localize 'INVESTIGATION_BOARD.EditFinding'}}">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                            {{/if}}
+                            {{#if this.deletable}}
+                                <button type="button" class="ib-icon-button ib-danger"
+                                        data-action="deleteFinding" data-page-id="{{this.id}}"
+                                        data-tooltip="INVESTIGATION_BOARD.DeleteFinding"
+                                        aria-label="{{localize 'INVESTIGATION_BOARD.DeleteFinding'}}">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            {{/if}}
+                        </div>
+                    </header>
+                    <div class="ib-file-prose">{{{this.body}}}</div>
+                </article>
+            {{/each}}
+        </div>
+
+        {{#if canAddFinding}}
+            <footer class="ib-file-footer">
+                <button type="button" class="ib-add-finding" data-action="addFinding">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>{{localize "INVESTIGATION_BOARD.AddFinding"}}</span>
+                </button>
+            </footer>
+        {{/if}}
+    {{/if}}
+</section>
