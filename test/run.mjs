@@ -22,6 +22,7 @@ const {default: testCaseCreate} = await import("./case-create.test.mjs");
 const {default: testFilter} = await import("./filter.test.mjs");
 const {default: testSharing} = await import("./sharing.test.mjs");
 const {default: testTransfer} = await import("./transfer.test.mjs");
+const {default: testI18n} = await import("./i18n.test.mjs");
 
 await testManifest();
 await testDataModels();
@@ -30,5 +31,6 @@ await testCaseCreate();
 await testFilter();
 await testSharing();
 await testTransfer();
+await testI18n();
 
 report();

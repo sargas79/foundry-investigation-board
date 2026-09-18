@@ -1,0 +1,56 @@
+name: Release
+
+# Publishing is driven by the tag, so the version in module.json and the tag can never disagree:
+# the workflow checks them against each other and refuses to publish if they differ.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the tag matches module.json
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          MANIFEST=$(node -p "require('./module.json').version")
+          echo "tag=$TAG manifest=$MANIFEST"
+          if [ "$TAG" != "$MANIFEST" ]; then
+            echo "::error::Tag $TAG does not match module.json version $MANIFEST"
+            exit 1
+          fi
+
+      - name: Check the download URLs point at this release
+        run: |
+          node - <<'EOF'
+          const m = require('./module.json');
+          const expected = 'https://github.com/${{ github.repository }}/releases/latest/download';
+          for ( const key of ['manifest', 'download'] ) {
+            if ( !m[key]?.startsWith(expected) ) {
+              console.error(`::error::${key} should start with ${expected}, got ${m[key]}`);
+              process.exit(1);
+            }
+          }
+          EOF
+
+      # Ships only what Foundry needs: no tests, tooling or preview harness.
+      - name: Build the package
+        run: |
+          git archive --format=zip -o module.zip HEAD \
+            module.json LICENSE README.md CREDITS.md \
+            scripts styles templates lang assets
+          unzip -l module.zip | tail -3
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            module.json
+            module.zip
+          generate_release_notes: true

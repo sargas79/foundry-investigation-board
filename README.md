@@ -3,9 +3,6 @@
 A corkboard for collaborative investigation in **Foundry VTT V14**. Players pin clues, string them
 together, and work cases as a party — no GM required at the table.
 
-> **v0.0.1 is an early test build.** The board renders and you can pin evidence; most interaction
-> still lands in later milestones. See [Status](#status) for exactly what works today.
-
 ## Installation
 
 Paste this manifest URL into Foundry's **Add-on Modules → Install Module**:
@@ -18,100 +15,124 @@ Then enable **Investigation Board** in your world's module settings.
 
 ## Opening the board
 
-Three ways, all equivalent:
-
-- The thumbtack button at the bottom of the **token scene controls**
+- The thumbtack in the **token scene controls**
 - **Shift+I**
 - `game.modules.get("investigation-board").api.open()` from a macro
 
-## How a case is stored
+## Working a case
 
-A case is an ordinary **JournalEntry** flagged as one. Each clue and each connecting string is a
-**JournalEntryPage** of a module sub-type.
+**Start one** with **New Case** in the sidebar. You choose there and then whether it's yours alone,
+something the party can watch, or something everyone can work on — see [Sharing](#sharing) for why
+that choice is offered up front.
 
-That design is deliberate: ownership, folders, compendium export, permissions and multi-client sync
-all come from Foundry core rather than being rebuilt. It also means two players moving different
-clues never collide, because they are writing to different documents.
+**Pin evidence** from the toolbar, or drag an **Actor, Item or Scene from the sidebar** straight
+onto the cork. A dropped document is *linked*, not copied: rename an NPC and the clue still points
+at them, and the link marker on the card opens the original.
 
-To create a case by hand for testing, make a Journal Entry and set the flag:
+**Jot a lead** with Create Lead — one click drops a sticky note with the caret already in it.
 
-```js
-const entry = await JournalEntry.create({name: "The Ashwood Murders"});
-await entry.setFlag("investigation-board", "isCase", true);
-await entry.setFlag("investigation-board", "status", "active");     // active | hold | cold | solved
-await entry.setFlag("investigation-board", "progress", 68);          // 0-100
-await entry.setFlag("investigation-board", "classification", "Homicide");
-```
+**String clues together** with the Draw Connection tool (click one clue, then another; it stays on
+so you can tie several in a row) or by dragging straight from a clue's pushpin. Cut a string by
+selecting it and pressing Delete, or right-clicking it. Strings take the colour of the pin they
+start from, so a line of enquiry reads as one colour across the board.
 
-Creating cases from the UI arrives in milestone 5.
+**Set clues aside** with Delete or the right-click menu. They go to the **Discarded** tray and come
+back with every string they were tied to still attached — dismissing is never destructive.
+
+**Filter** the board to find things. Non-matching clues *dim* rather than disappear, so the layout
+never moves: a board is a spatial memory, and "the watch is bottom-right, next to the map" should
+stay true.
+
+### Keyboard
+
+The board can be worked without a mouse. With the cork focused: **arrows** pan (hold Shift to go
+further), **+**/**−** zoom, **0** resets. With a card focused: **Enter** opens it, **L** starts a
+string and Enter on another card finishes it, **Delete** sets it aside. **Escape** unwinds whatever
+is in progress, one step at a time.
+
+## Sharing
+
+A case starts out belonging to whoever made it. How it gets shared depends on one quirk of
+Foundry's permission model, which is worth understanding:
+
+**Foundry's server refuses a non-GM any change to a document's ownership after it exists** — but it
+*permits* setting it at the moment of creation. So:
+
+- **Choosing "the whole party" when you create a case needs no GM at all.** This is the path to
+  prefer.
+- **Changing who can see a case afterwards needs a GM or Assistant GM online.** The Share dialog
+  relays the request to their client, which re-checks that you own the case before applying it.
+
+A case's own player always keeps it, and every GM always keeps access, so sharing can never orphan
+a case or lock out the only people who could repair it.
 
 ## Permissions
 
-Verified against the V14 source, and worth knowing before you hand cases to players:
-
-| Action | Who can do it |
+| Action | Who |
 |---|---|
-| Add, edit, move, dismiss clues; link and unlink | Anyone with **Owner** on the case journal |
+| Add, edit, move, dismiss clues; string and cut | Anyone with **Owner** on the case |
 | View only | **Observer** |
-| Create a case | Needs the **Create Journal Entries** permission, which defaults to **Trusted Player** |
-| Share a case with another player | **GM or Assistant GM only** — Foundry forbids players changing ownership |
-| Permanently delete a clue or case | **GM only** (players archive and dismiss instead) |
+| Create or import a case | Needs **Create Journal Entries** — the **Trusted Player** rank has it by default |
+| Share an existing case | **GM or Assistant GM** |
+| Delete a clue or a case permanently | **GM only** — players set aside and archive instead |
 
-**On the GM-only delete:** the guard runs on the client attempting the delete, so it stops every
-path through the interface and any accident. It cannot stop a player who deliberately calls the API
-from the browser console — Foundry grants an Owner deletion rights, and revoking those would mean
-relaying every clue edit through a GM, which would break playing with the GM offline. Players get
-**Set aside** instead, which keeps the clue and all its connections recoverable.
+**Recommended setup: give your players the Trusted Player rank.** They can then create cases, share
+them with the party at creation, and import cases, all without a GM online. Editing clues never
+needs one either way — the board works with the GM away.
 
-Two consequences worth planning around:
+If a player lacks the permission, a connected GM's client will create the case for them as a
+fallback, but that means waiting for a GM to be online.
 
-- Clue editing needs **no GM online** — the board works with the GM away.
-- Sharing always needs a GM or Assistant GM. Promoting players to **Trusted** removes the
-  GM-online requirement for *creating* cases, but not for sharing them.
-- Image upload needs the **Upload Files** permission (defaults to Assistant GM). Without it the
-  image picker falls back to browsing existing files or pasting a path.
+**On GM-only deletion:** the guard runs on the client attempting the delete, so it stops every path
+through the interface and any accident. It cannot stop a player deliberately calling the API from
+the browser console — Foundry grants an Owner delete rights, and revoking those would mean relaying
+every clue edit through a GM and breaking offline-GM play. Players get **Set aside** and **Close
+case**, which keep everything recoverable.
 
-## Status
+Image upload needs **Upload Files** (Assistant GM by default). Without it, the image picker falls
+back to browsing existing files or pasting a path.
 
-Built so far (v0.0.1 shipped the first group; the rest is on `main`):
+## Moving a case between worlds
 
-- The board window: case sidebar, header, corkboard, floating toolbar, inspector panel
-- Pan (drag the cork or middle-drag) and zoom (wheel), remembered per case
-- All seven card templates — polaroid, mugshot, profile, document, letter, sticky note, map
-- Connection strings with sag, colour, dashed/dotted styles and labels
-- Live sync — another player's changes patch your board in place
-- **Pin Evidence** creates clues; **Create Lead** drops a sticky note you type straight into
-- Drag clues to move them, double-click to edit, right-click for actions
-- Drag an Actor, Item or Scene from the sidebar onto the cork to pin a linked clue
-- **Set aside** clues to the discarded tray and recover them, strings and all
+**Export Case** writes a JSON file; **Import** reads one back. The board itself travels — clues,
+where they sit, the strings between them, and the discarded tray. Ownership and links to documents
+do not: both are meaningless in another world, where those users and documents don't exist.
 
-Not yet implemented (milestones 4–7): drawing and cutting connections, the filter, the inspector
-panel's contents, creating and sharing cases from the interface, export/import.
+## How it is stored
 
-Progress is tracked in the
-[issues](https://github.com/sargas79/foundry-investigation-board/issues), grouped under one epic per
-milestone.
+A case is an ordinary **JournalEntry** flagged as one. Each clue and each string is a
+**JournalEntryPage** of a module sub-type.
+
+That is deliberate: ownership, folders, compendium export, permissions and multi-client sync all
+come from Foundry core rather than being rebuilt. It also means two players moving different clues
+never collide, because they are writing to different documents.
+
+Dragging a clue writes **one** update, when you let go — not one per pointer move — so a board
+stays usable over a network. Who is holding which card travels over the module socket instead of
+the database, and expires on its own if someone disconnects mid-drag.
 
 ## Development
 
-No build step — it is plain ESM, loaded directly by Foundry.
+Plain ESM, no build step.
 
 ```bash
-node test/run.mjs          # validates the manifest and data models against your Foundry install
-node tools/preview-server.mjs   # a workbench for the board's look, with no Foundry needed
+node test/run.mjs              # validates against your own Foundry install
+node tools/preview-server.mjs  # a workbench for the board, with no Foundry needed
 ```
 
-The test harness loads Foundry's own `common/` code, so the manifest is checked by the same schema
-the server uses at install time. It looks for Foundry at `E:/Foundry Virtual Tabletop/resources/app`;
+The test harness loads Foundry's own `common/` code, so the manifest and data models are checked by
+the same schemas the server uses. It looks for Foundry at `E:/Foundry Virtual Tabletop/resources/app`;
 override with `FOUNDRY_APP=/path/to/resources/app`.
 
-With the preview server running: `/tools/preview/case.html` is a full board, `/cards.html` the card
-gallery, `/strings.html` the connection layer. Each page exposes an in-browser check suite
-(`runBoardRendererTests()`, `runBoardViewTests()`, `runStringLayerTests()`).
+With the preview server running, `/tools/preview/case.html` is a full board and exposes in-browser
+suites (`runInteractionTests()`, `runLinkingTests()`, `runTrayTests()`, `runDropTests()`,
+`runBoardRendererTests()`); `/cards.html` is the template gallery and `/strings.html` the connection
+layer.
+
+Releases are cut by pushing a `v*` tag. The workflow refuses to publish if the tag and
+`module.json` disagree.
 
 ## License
 
-This module is released under the [MIT License](LICENSE).
-
-The bundled fonts and textures carry their own licenses — the fonts are SIL Open Font License 1.1
-and the textures are CC0. Both are listed in [CREDITS.md](CREDITS.md).
+[MIT](LICENSE). The bundled fonts remain under the SIL Open Font License and the textures are CC0 —
+see [CREDITS.md](CREDITS.md).

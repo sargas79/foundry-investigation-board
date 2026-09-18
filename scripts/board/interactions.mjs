@@ -620,6 +620,25 @@ export default class BoardInteractions {
       return;
     }
 
+    // Keyboard equivalents for the pointer gestures, so the board can be worked without a mouse.
+    const card = event.target.closest?.(".ib-clue");
+    if ( card ) {
+      const page = this.getCase()?.pages.get(card.dataset.clueId);
+      if ( (event.key === "Enter") || (event.key === " ") ) {
+        event.preventDefault();
+        this.select(card.dataset.clueId);
+        if ( (event.key === "Enter") && page?.isOwner ) this.onEdit(page);
+        return;
+      }
+      // "l" starts a string from the focused card; the next Enter on another card finishes it.
+      if ( ((event.key === "l") || (event.key === "L")) && page?.isOwner ) {
+        event.preventDefault();
+        if ( this.#linking ) this.#completeLink(card.dataset.clueId);
+        else this.linkFrom(card.dataset.clueId);
+        return;
+      }
+    }
+
     if ( (event.key !== "Delete") && (event.key !== "Backspace") ) return;
 
     // Delete cuts a selected string outright — unlinking is not destructive, the clues remain.

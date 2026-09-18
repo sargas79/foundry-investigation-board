@@ -76,6 +76,9 @@ export default class BoardView {
     this.#bind(this.viewport, "auxclick", event => {
       if ( event.button === 1 ) event.preventDefault();
     });
+    this.#bind(this.viewport, "keydown", this.#onKeyDown.bind(this));
+    // Reachable by keyboard, so the pan and zoom keys below can be used at all.
+    if ( !this.viewport.hasAttribute("tabindex") ) this.viewport.tabIndex = 0;
     this.#apply();
     return this;
   }
@@ -276,6 +279,31 @@ export default class BoardView {
     this.#panning = null;
     releasePointer(this.viewport, event.pointerId);
     this.viewport.classList.remove("panning");
+  }
+
+  /**
+   * Pan and zoom from the keyboard, so the board is usable without a mouse.
+   *
+   * Only acts when the board itself has focus — never while a card is focused or text is being
+   * typed, where the arrow keys belong to the caret.
+   * @param {KeyboardEvent} event
+   */
+  #onKeyDown(event) {
+    if ( event.target !== this.viewport ) return;
+    if ( event.ctrlKey || event.metaKey || event.altKey ) return;
+
+    const step = event.shiftKey ? 160 : 60;
+    switch ( event.key ) {
+      case "ArrowLeft": this.panBy(step, 0); break;
+      case "ArrowRight": this.panBy(-step, 0); break;
+      case "ArrowUp": this.panBy(0, step); break;
+      case "ArrowDown": this.panBy(0, -step); break;
+      case "+": case "=": this.zoomBy(BoardView.ZOOM_STEP); break;
+      case "-": case "_": this.zoomBy(1 / BoardView.ZOOM_STEP); break;
+      case "0": this.reset(); break;
+      default: return;
+    }
+    event.preventDefault();
   }
 
   /* -------------------------------------------- */
