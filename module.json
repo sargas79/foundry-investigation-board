@@ -21,7 +21,8 @@
     "styles/investigation-board.css",
     "styles/clue-cards.css",
     "styles/strings.css",
-    "styles/dialogs.css"
+    "styles/dialogs.css",
+    "styles/tray.css"
   ],
   "languages": [
     {

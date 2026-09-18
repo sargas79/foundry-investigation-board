@@ -20,4 +20,13 @@
         <i class="fa-solid fa-file-export"></i>
         <span>{{localize "INVESTIGATION_BOARD.TOOL.ExportCase"}}</span>
     </button>
+
+    <button type="button" class="ib-tool ib-tool-tray {{#if trayOpen}}active{{/if}}"
+            data-action="toggleTray" {{#unless hasCase}}disabled{{/unless}}>
+        <i class="fa-solid fa-box-archive"></i>
+        <span>{{localize "INVESTIGATION_BOARD.TOOL.Discarded"}}</span>
+        {{#if dismissed.length}}
+            <span class="ib-tool-badge">{{dismissed.length}}</span>
+        {{/if}}
+    </button>
 </nav>

@@ -144,6 +144,57 @@ export function topZ(journal) {
 /* -------------------------------------------- */
 
 /**
+ * Take a clue off the board and put it in the discarded tray.
+ *
+ * Dismissal is the only removal players get: the clue and its connections are all still there, so
+ * a lead written off too early can be brought back with everything it was tied to intact. Only the
+ * GM can destroy a clue outright.
+ *
+ * @param {JournalEntryPage} page
+ * @returns {Promise<JournalEntryPage>}
+ */
+export function dismissClue(page) {
+  return page.update({
+    system: {
+      dismissed: true,
+      dismissedBy: game.user.id,
+      dismissedAt: Date.now()
+    }
+  });
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Put a dismissed clue back on the board, where it was and still tied to whatever it was tied to.
+ * @param {JournalEntryPage} page
+ * @returns {Promise<JournalEntryPage>}
+ */
+export function recoverClue(page) {
+  return page.update({
+    system: {
+      dismissed: false,
+      dismissedBy: null,
+      dismissedAt: null
+    }
+  });
+}
+
+/* -------------------------------------------- */
+
+/**
+ * The clues in a case's discarded tray, most recently dismissed first.
+ * @param {JournalEntry} journal
+ * @returns {JournalEntryPage[]}
+ */
+export function getDismissed(journal) {
+  return getClues(journal, {dismissed: true})
+    .sort((a, b) => (b.system.dismissedAt ?? 0) - (a.system.dismissedAt ?? 0));
+}
+
+/* -------------------------------------------- */
+
+/**
  * Read a case's board-level flags with sensible fallbacks.
  * @param {JournalEntry} journal
  * @returns {{status: string, statusLabel: string, progress: number, classification: string,

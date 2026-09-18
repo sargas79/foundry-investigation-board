@@ -4,7 +4,18 @@ import BoardRenderer from "../board/board-renderer.mjs";
 import BoardInteractions from "../board/interactions.mjs";
 import DropHandler from "../board/drop-handler.mjs";
 import ClueDialog from "./clue-dialog.mjs";
-import {caseState, clueBounds, freeSpotNear, getCases, getClues, isCase, topZ} from "../data/case.mjs";
+import {
+  caseState,
+  clueBounds,
+  dismissClue,
+  freeSpotNear,
+  getCases,
+  getClues,
+  getDismissed,
+  isCase,
+  recoverClue,
+  topZ
+} from "../data/case.mjs";
 
 const {ApplicationV2, HandlebarsApplicationMixin} = foundry.applications.api;
 
@@ -42,7 +53,11 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       toggleMaximize: InvestigationBoard.#onToggleMaximize,
       selectCase: InvestigationBoard.#onSelectCase,
       pinEvidence: InvestigationBoard.#onPinEvidence,
-      createLead: InvestigationBoard.#onCreateLead
+      createLead: InvestigationBoard.#onCreateLead,
+      toggleTray: InvestigationBoard.#onToggleTray,
+      dismissClue: InvestigationBoard.#onDismissClue,
+      recoverClue: InvestigationBoard.#onRecoverClue,
+      deleteClue: InvestigationBoard.#onDeleteClue
     }
   };
 
@@ -51,6 +66,7 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
     sidebar: {template: modulePath("templates/sidebar.hbs")},
     header: {template: modulePath("templates/header.hbs")},
     board: {template: modulePath("templates/board.hbs")},
+    tray: {template: modulePath("templates/tray.hbs")},
     toolbar: {template: modulePath("templates/toolbar.hbs")},
     inspector: {template: modulePath("templates/inspector.hbs")}
   };
@@ -109,6 +125,9 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
    */
   #pendingInlineEdit = null;
 
+  /** Whether the discarded tray drawer is showing. */
+  #trayOpen = false;
+
   /** The board's pan/zoom controller, once rendered. */
   get view() {
     return this.#view;
@@ -146,8 +165,38 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
         name: j.name,
         active: j.id === this.#caseId,
         ...caseState(j)
-      }))
+      })),
+      trayOpen: this.#trayOpen,
+      dismissed: currentCase ? getDismissed(currentCase).map(page => ({
+        id: page.id,
+        name: page.name,
+        image: page.system.image,
+        template: page.system.template,
+        dismissedLabel: this.#dismissedLabel(page)
+      })) : []
     });
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * A short "discarded by X, when" line for a tray entry.
+   * @param {JournalEntryPage} page
+   * @returns {string}
+   */
+  #dismissedLabel(page) {
+    const who = game.users.get(page.system.dismissedBy)?.name;
+    let when = null;
+    // timeSince leans on the world clock; a label is never worth failing a render over.
+    try {
+      if ( page.system.dismissedAt ) when = foundry.utils.timeSince(new Date(page.system.dismissedAt));
+    }
+    catch {
+      when = null;
+    }
+    if ( who && when ) return game.i18n.format("INVESTIGATION_BOARD.DismissedBy", {who, when});
+    if ( who ) return game.i18n.format("INVESTIGATION_BOARD.DismissedByOnly", {who});
+    return game.i18n.localize("INVESTIGATION_BOARD.DismissedUnknown");
   }
 
   /* -------------------------------------------- */
@@ -216,7 +265,8 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       view: this.#view,
       renderer: this.#renderer,
       getCase: () => this.currentCase,
-      onEdit: page => ClueDialog.edit(page)
+      onEdit: page => ClueDialog.edit(page),
+      onDismiss: page => dismissClue(page)
     }).attach();
     this.#drops = new DropHandler({
       viewport,
@@ -323,6 +373,8 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
         await this.#renderer.upsertClue(page);
         this.#consumePendingInlineEdit();
       }
+      // A clue moving to or from the tray changes what the drawer and its badge show.
+      await this.render({parts: ["tray", "toolbar"]});
     }
     else if ( page.type === PAGE_TYPES.CONNECTION ) {
       if ( action === "delete" ) this.#renderer.removeConnection(page.id);
@@ -428,6 +480,100 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
 
     // The card is drawn by the create hook; editing begins as soon as it exists.
     if ( page ) this.#pendingInlineEdit = page.id;
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Open or close the discarded tray.
+   * @this {InvestigationBoard}
+   */
+  static async #onToggleTray() {
+    this.#trayOpen = !this.#trayOpen;
+    await this.render({parts: ["tray", "toolbar"]});
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Take a clue off the board. Its connections are kept, so recovering it restores everything it
+   * was tied to.
+   * @this {InvestigationBoard}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static async #onDismissClue(_event, target) {
+    const page = this.#clueFrom(target);
+    if ( !page ) return;
+    if ( this.#interactions?.selected === page.id ) this.#interactions.select(null);
+    await dismissClue(page);
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Put a dismissed clue back on the board.
+   * @this {InvestigationBoard}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static async #onRecoverClue(_event, target) {
+    const page = this.#clueFrom(target);
+    if ( !page ) return;
+    await recoverClue(page);
+    await this.render({parts: ["tray", "toolbar"]});
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Destroy a clue and the strings attached to it. GM only — players dismiss instead.
+   * @this {InvestigationBoard}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static async #onDeleteClue(_event, target) {
+    if ( !game.user.isGM ) {
+      ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.DeleteIsGMOnly", {localize: true});
+      return;
+    }
+    const page = this.#clueFrom(target);
+    if ( !page ) return;
+
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: {title: "INVESTIGATION_BOARD.DeleteForever"},
+      content: `<p>${game.i18n.format("INVESTIGATION_BOARD.DeleteConfirm", {name: page.name})}</p>`,
+      modal: true
+    });
+    if ( !confirmed ) return;
+
+    // The clue and every string touching it go in one operation, so no dangling string can
+    // survive even momentarily.
+    const journal = page.parent;
+    const connections = journal.pages.filter(p => {
+      return (p.type === PAGE_TYPES.CONNECTION) && p.system.touches?.(page.id);
+    });
+    await journal.deleteEmbeddedDocuments("JournalEntryPage",
+      [page.id, ...connections.map(p => p.id)]);
+    await this.render({parts: ["tray", "toolbar"]});
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * The clue page a tray or card control refers to.
+   * @param {HTMLElement} target
+   * @returns {JournalEntryPage|null}
+   */
+  #clueFrom(target) {
+    const clueId = target.dataset.clueId ?? target.closest("[data-clue-id]")?.dataset.clueId;
+    if ( !clueId ) return null;
+    const page = this.currentCase?.pages.get(clueId);
+    if ( !page?.isOwner ) {
+      ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.NoPermission", {localize: true});
+      return null;
+    }
+    return page;
   }
 
   /* -------------------------------------------- */

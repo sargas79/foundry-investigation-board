@@ -1,0 +1,55 @@
+{{!-- The discarded tray: clues taken off the board, recoverable with everything they were tied to. --}}
+<section class="ib-tray {{#if trayOpen}}open{{/if}}" aria-hidden="{{#if trayOpen}}false{{else}}true{{/if}}">
+    <header class="ib-tray-header">
+        <h2 class="ib-panel-label">{{localize "INVESTIGATION_BOARD.Discarded"}}</h2>
+        <button type="button" class="ib-icon-button ib-tray-close" data-action="toggleTray"
+                data-tooltip="INVESTIGATION_BOARD.CloseTray"
+                aria-label="{{localize 'INVESTIGATION_BOARD.CloseTray'}}">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </header>
+
+    <div class="ib-tray-items">
+        {{#each dismissed}}
+            <article class="ib-discarded" data-clue-id="{{this.id}}">
+                <div class="ib-discarded-thumb" data-template="{{this.template}}">
+                    {{#if this.image}}
+                        <img src="{{this.image}}" alt="">
+                    {{else}}
+                        <i class="fa-solid fa-file-lines"></i>
+                    {{/if}}
+                </div>
+                <div class="ib-discarded-detail">
+                    <h3 class="ib-discarded-name">{{this.name}}</h3>
+                    <p class="ib-discarded-meta">{{this.dismissedLabel}}</p>
+                </div>
+                <div class="ib-discarded-actions">
+                    <button type="button" class="ib-icon-button" data-action="recoverClue"
+                            data-clue-id="{{this.id}}"
+                            data-tooltip="INVESTIGATION_BOARD.Recover"
+                            aria-label="{{localize 'INVESTIGATION_BOARD.Recover'}}">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </button>
+                    {{#if ../isGM}}
+                        <button type="button" class="ib-icon-button ib-danger" data-action="deleteClue"
+                                data-clue-id="{{this.id}}"
+                                data-tooltip="INVESTIGATION_BOARD.DeleteForever"
+                                aria-label="{{localize 'INVESTIGATION_BOARD.DeleteForever'}}">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    {{/if}}
+                </div>
+            </article>
+        {{else}}
+            <p class="ib-empty">{{localize "INVESTIGATION_BOARD.NothingDiscarded"}}</p>
+        {{/each}}
+    </div>
+
+    {{#if isGM}}
+        {{#if dismissed.length}}
+            <footer class="ib-tray-footer">
+                <p class="hint">{{localize "INVESTIGATION_BOARD.DeleteIsGMOnly"}}</p>
+            </footer>
+        {{/if}}
+    {{/if}}
+</section>

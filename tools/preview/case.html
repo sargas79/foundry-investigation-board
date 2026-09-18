@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/styles/investigation-board.css">
   <link rel="stylesheet" href="/styles/clue-cards.css">
   <link rel="stylesheet" href="/styles/strings.css">
+  <link rel="stylesheet" href="/styles/tray.css">
   <style>
     html, body { height: 100%; margin: 0; background: #0b0f13; }
     body { display: grid; grid-template-rows: 1fr; padding: 12px; box-sizing: border-box; }
@@ -40,6 +41,15 @@
           </div>
         </div>
       </section>
+      <section class="ib-tray" data-application-part="tray" id="tray">
+        <header class="ib-tray-header">
+          <h2 class="ib-panel-label">Discarded Clues</h2>
+          <button type="button" class="ib-icon-button ib-tray-close">&#10005;</button>
+        </header>
+        <div class="ib-tray-items" id="tray-items"></div>
+        <footer class="ib-tray-footer"><p class="hint">Only the GM can delete a clue permanently.</p></footer>
+      </section>
+
       <aside class="ib-inspector" data-application-part="inspector">
         <h2 class="ib-panel-label">Selected Clue</h2>
         <div class="ib-inspector-body"><p class="ib-empty">Select a clue on the board to inspect it.</p></div>
@@ -88,7 +98,14 @@
     window.fromUuid = async uuid => window.__world[uuid] ?? null;
     window.ui = {notifications: {warn: m => (window.__warnings ??= []).push(m),
                                  info: () => {}, error: () => {}}};
-    window.game = {i18n: {localize: k => STRINGS[k] ?? k}};
+    window.game = {
+      i18n: {
+        localize: k => STRINGS[k] ?? k,
+        format: (k, d) => `${STRINGS[k] ?? k} ${JSON.stringify(d)}`
+      },
+      user: {id: "u1", isGM: false},
+      users: {get: id => ({id, name: id === "u1" ? "Diego" : "Someone"})}
+    };
     Math.clamp ??= (n, min, max) => Math.min(Math.max(n, min), max);
 
     const TEMPLATES = {
@@ -243,7 +260,37 @@
     report();
     view.onChange(report);
 
+    /** Redraw the tray from the case, mirroring what templates/tray.hbs produces. */
+    window.renderTray = (open = true) => {
+      const tray = document.getElementById("tray");
+      const items = document.getElementById("tray-items");
+      const dismissed = caseApi.getDismissed(journal);
+      items.innerHTML = dismissed.length ? dismissed.map(p => `
+        <article class="ib-discarded" data-clue-id="${p.id}">
+          <div class="ib-discarded-thumb" data-template="${p.system.template}">
+            ${p.system.image ? `<img src="${p.system.image}" alt="">` : "&#9776;"}
+          </div>
+          <div class="ib-discarded-detail">
+            <h3 class="ib-discarded-name">${p.name}</h3>
+            <p class="ib-discarded-meta">Set aside by Diego, just now</p>
+          </div>
+          <div class="ib-discarded-actions">
+            <button class="ib-icon-button">&#8634;</button>
+            <button class="ib-icon-button ib-danger">&#10006;</button>
+          </div>
+        </article>`).join("") : `<p class="ib-empty">Nothing has been set aside.</p>`;
+      tray.classList.toggle("open", open);
+      return dismissed.length;
+    };
+
     Object.assign(window, {view, renderer, interactions, drops, journal, caseApi, makePage, report, CLUE, CONN});
+
+    const {runTrayTests} = await import("/tools/preview/tray.spec.mjs");
+    window.runTrayTests = async () => {
+      const out = await runTrayTests({renderer, journal, caseApi, interactions, viewport});
+      report();
+      return out;
+    };
 
     const {runDropTests} = await import("/tools/preview/drop-handler.spec.mjs");
     window.runDropTests = async () => {

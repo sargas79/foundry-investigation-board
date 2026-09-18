@@ -22,14 +22,16 @@ export default class BoardInteractions {
    * @param {() => JournalEntry|null} config.getCase   The case currently displayed.
    * @param {(clueId: string|null) => void} [config.onSelect]
    * @param {(page: JournalEntryPage) => void} [config.onEdit]
+   * @param {(page: JournalEntryPage) => void} [config.onDismiss]
    */
-  constructor({viewport, view, renderer, getCase, onSelect, onEdit}) {
+  constructor({viewport, view, renderer, getCase, onSelect, onEdit, onDismiss}) {
     this.viewport = viewport;
     this.view = view;
     this.renderer = renderer;
     this.getCase = getCase;
     this.onSelect = onSelect ?? (() => {});
     this.onEdit = onEdit ?? (() => {});
+    this.onDismiss = onDismiss ?? (() => {});
   }
 
   /** Bound listeners, retained for teardown. */
@@ -65,6 +67,7 @@ export default class BoardInteractions {
     this.#bind(this.viewport, "pointerup", this.#onPointerUp.bind(this));
     this.#bind(this.viewport, "pointercancel", this.#onPointerCancel.bind(this));
     this.#bind(this.viewport, "dblclick", this.#onDoubleClick.bind(this));
+    this.#bind(this.viewport, "contextmenu", this.#onContextMenu.bind(this));
     this.#bind(this.viewport, "keydown", this.#onKeyDown.bind(this));
     return this;
   }
@@ -72,6 +75,7 @@ export default class BoardInteractions {
   /** Remove every listener and finish any gesture in flight, saving text already typed. */
   destroy() {
     this.#cancelDrag();
+    this.#closeCardMenu();
     if ( this.#editing ) this.commitInlineEdit();
     for ( const [el, type, fn, opts] of this.#listeners ) el.removeEventListener(type, fn, opts);
     this.#listeners = [];
@@ -385,13 +389,126 @@ export default class BoardInteractions {
 
   /** @param {KeyboardEvent} event */
   #onKeyDown(event) {
+    // Never intercept keys meant for text being typed on a card.
+    if ( this.#editing || event.target.closest("[contenteditable='true'], input, textarea") ) return;
+
     if ( event.key === "Escape" ) {
       if ( this.#drag ) {
         event.stopPropagation();
         this.#cancelDrag();
       }
       else if ( this.#selected ) this.select(null);
+      return;
     }
+
+    // Delete dismisses the selected clue — it never destroys it. Only the GM can do that, from
+    // the discarded tray.
+    if ( ((event.key === "Delete") || (event.key === "Backspace")) && this.#selected ) {
+      const page = this.getCase()?.pages.get(this.#selected);
+      if ( !page?.isOwner ) return;
+      event.preventDefault();
+      this.onDismiss(page);
+    }
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Offer the actions available on a card.
+   * @param {MouseEvent} event
+   */
+  #onContextMenu(event) {
+    const card = event.target.closest(".ib-clue");
+    if ( !card ) return;
+    event.preventDefault();
+
+    const page = this.getCase()?.pages.get(card.dataset.clueId);
+    if ( !page ) return;
+    this.select(page.id);
+    if ( !page.isOwner ) return;
+
+    this.#showCardMenu(event.clientX, event.clientY, page);
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Show a small menu at a screen position for a clue.
+   *
+   * Hand-rolled rather than using core's ContextMenu, which expects to own a list of elements up
+   * front — the cards here come and go as the case changes.
+   *
+   * @param {number} x
+   * @param {number} y
+   * @param {JournalEntryPage} page
+   */
+  #showCardMenu(x, y, page) {
+    this.#closeCardMenu();
+
+    const menu = document.createElement("nav");
+    menu.className = "ib-card-menu";
+    menu.style.left = `${x}px`;
+    menu.style.top = `${y}px`;
+
+    const entries = [
+      {icon: "fa-solid fa-pen", label: "INVESTIGATION_BOARD.EditClue", run: () => this.onEdit(page)},
+      {icon: "fa-solid fa-i-cursor", label: "INVESTIGATION_BOARD.RenameInPlace",
+        run: () => this.beginInlineEdit(page.id, "title")},
+      {icon: "fa-solid fa-box-archive", label: "INVESTIGATION_BOARD.Dismiss",
+        run: () => this.onDismiss(page)}
+    ];
+    if ( page.system.linkedUuid ) {
+      entries.splice(2, 0, {icon: "fa-solid fa-link", label: "INVESTIGATION_BOARD.OpenLinked",
+        run: () => this.#openLinked(page)});
+    }
+
+    for ( const entry of entries ) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.innerHTML = `<i class="${entry.icon}"></i><span>${game.i18n.localize(entry.label)}</span>`;
+      button.addEventListener("click", () => {
+        this.#closeCardMenu();
+        entry.run();
+      });
+      menu.append(button);
+    }
+
+    document.body.append(menu);
+    this.#menu = menu;
+
+    // Keep the menu on screen when opened near an edge.
+    const rect = menu.getBoundingClientRect();
+    if ( rect.right > window.innerWidth ) menu.style.left = `${x - rect.width}px`;
+    if ( rect.bottom > window.innerHeight ) menu.style.top = `${y - rect.height}px`;
+
+    // Any press elsewhere, or Escape, closes it.
+    const dismiss = event => {
+      // Node#contains throws on a non-Node, which a synthetic event dispatched at window supplies.
+      // Anything that is not inside the menu closes it.
+      if ( (event.target instanceof Node) && menu.contains(event.target) ) return;
+      this.#closeCardMenu();
+    };
+    this.#menuDismiss = dismiss;
+    window.addEventListener("pointerdown", dismiss, {capture: true});
+    window.addEventListener("keydown", this.#menuKeydown = e => {
+      if ( e.key === "Escape" ) this.#closeCardMenu();
+    }, {capture: true});
+  }
+
+  /** The open card menu, if any. */
+  #menu = null;
+  #menuDismiss = null;
+  #menuKeydown = null;
+
+  /** Close the card menu if one is open. */
+  #closeCardMenu() {
+    if ( !this.#menu ) return;
+    this.#menu.remove();
+    this.#menu = null;
+    if ( this.#menuDismiss ) window.removeEventListener("pointerdown", this.#menuDismiss, {capture: true});
+    if ( this.#menuKeydown ) window.removeEventListener("keydown", this.#menuKeydown, {capture: true});
+    this.#menuDismiss = null;
+    this.#menuKeydown = null;
   }
 
   /* -------------------------------------------- */

@@ -1,0 +1,230 @@
+/* =========================================================================
+   The discarded tray, and the card context menu.
+
+   The tray slides in over the right of the cork rather than taking layout
+   space, so opening it never reflows the board or moves the clues.
+   ========================================================================= */
+
+/*
+ * The part element and .ib-tray are the same node: a Handlebars part's root element is what
+ * ApplicationV2 tags with data-application-part. So this is one rule, not two.
+ *
+ * The tray shares the board's grid cell and slides in over the right of the cork, so opening it
+ * never reflows the board or moves the clues.
+ */
+.investigation-board-app .ib-tray {
+  grid-area: board;
+  align-self: stretch;
+  justify-self: end;
+  z-index: 3;
+
+  display: flex;
+  flex-direction: column;
+  width: 288px;
+  /* Inset from the frame so the wood still shows around it. */
+  margin: 22px 22px 22px 0;
+  border: 1px solid var(--ib-border);
+  border-radius: var(--ib-radius);
+  background: rgb(31 37 43 / 97%);
+  box-shadow: -8px 0 26px rgb(0 0 0 / 45%);
+
+  /* Tucked off to the right, and transparent to the pointer, until opened. */
+  transform: translateX(calc(100% + 30px));
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform 180ms ease, opacity 140ms ease, visibility 180ms;
+}
+
+.investigation-board-app .ib-tray.open {
+  transform: translateX(0);
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.investigation-board-app .ib-tray-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 12px 8px;
+  border-bottom: 1px solid var(--ib-border);
+}
+
+.investigation-board-app .ib-tray-header .ib-panel-label {
+  margin: 0;
+  flex: 1;
+}
+
+.investigation-board-app .ib-tray-close {
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+}
+
+.investigation-board-app .ib-tray-items {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.investigation-board-app .ib-tray-footer {
+  padding: 8px 12px;
+  border-top: 1px solid var(--ib-border);
+}
+
+.investigation-board-app .ib-tray-footer .hint {
+  margin: 0;
+  font-size: 10px;
+  color: var(--ib-text-muted);
+}
+
+/* --- A discarded clue ---------------------------------------------------- */
+
+.investigation-board-app .ib-discarded {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 7px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: var(--ib-panel);
+}
+
+.investigation-board-app .ib-discarded:hover {
+  border-color: var(--ib-border);
+  background: var(--ib-panel-raised);
+}
+
+.investigation-board-app .ib-discarded-thumb {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 3px;
+  /* Greyed out: these are off the board, not part of the case any more. */
+  background: #4a4a4a;
+  color: rgb(255 255 255 / 45%);
+  filter: grayscale(0.85);
+}
+
+.investigation-board-app .ib-discarded-thumb[data-template="sticky"] {
+  background: #b9a95d;
+}
+
+.investigation-board-app .ib-discarded-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.investigation-board-app .ib-discarded-name {
+  margin: 0;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ib-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.investigation-board-app .ib-discarded-meta {
+  margin: 1px 0 0;
+  font-size: 10px;
+  color: var(--ib-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.investigation-board-app .ib-discarded-actions {
+  display: flex;
+  gap: 3px;
+}
+
+.investigation-board-app .ib-discarded-actions .ib-icon-button {
+  width: 27px;
+  height: 27px;
+  border-radius: 5px;
+}
+
+.investigation-board-app .ib-icon-button.ib-danger:hover {
+  border-color: #8d2f2c;
+  background: #8d2f2c;
+  color: #fff;
+}
+
+/* --- Tray button badge --------------------------------------------------- */
+
+.investigation-board-app .ib-tool-tray {
+  position: relative;
+}
+
+.investigation-board-app .ib-tool-tray.active {
+  background: var(--ib-panel-raised);
+  color: var(--ib-accent);
+}
+
+.investigation-board-app .ib-tool-badge {
+  position: absolute;
+  top: 3px;
+  right: 12px;
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--ib-accent);
+  color: #241a02;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+/* --- Card context menu --------------------------------------------------- */
+
+/* Appended to the body, so it sits outside the board's own scope. */
+.ib-card-menu {
+  position: fixed;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  min-width: 172px;
+  padding: 4px;
+  border: 1px solid #39424c;
+  border-radius: 6px;
+  background: rgb(31 37 43 / 98%);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 55%);
+  font-family: var(--font-sans, system-ui, sans-serif);
+}
+
+.ib-card-menu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 9px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #e6eaee;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ib-card-menu button:hover {
+  background: #2b333b;
+}
+
+.ib-card-menu button i {
+  width: 14px;
+  font-size: 11px;
+  color: #8c98a4;
+}
