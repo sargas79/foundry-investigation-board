@@ -1,0 +1,36 @@
+<div class="ib-share">
+
+    {{#if needsGM}}
+        {{#if gmOnline}}
+            <p class="notification info">{{localize "INVESTIGATION_BOARD.ShareViaGM"}}</p>
+        {{else}}
+            <p class="notification warning">{{localize "INVESTIGATION_BOARD.ShareNeedsGM"}}</p>
+        {{/if}}
+    {{/if}}
+
+    <div class="form-group">
+        <label class="ib-whole-party">
+            <input type="checkbox" name="wholeParty" {{#if wholeParty}}checked{{/if}}>
+            <span>{{localize "INVESTIGATION_BOARD.WholeParty"}}</span>
+        </label>
+        <p class="hint">{{localize "INVESTIGATION_BOARD.WholePartyHint"}}</p>
+    </div>
+
+    <fieldset class="ib-player-list" {{#if wholeParty}}disabled{{/if}}>
+        <legend>{{localize "INVESTIGATION_BOARD.SharedWith"}}</legend>
+        {{#each players}}
+            <label class="ib-player-row {{#if this.locked}}locked{{/if}}">
+                <input type="checkbox" name="player" value="{{this.id}}"
+                       {{#if this.shared}}checked{{/if}} {{#if this.locked}}checked disabled{{/if}}>
+                <span class="ib-player-dot" style="--ib-swatch: {{this.color}}"></span>
+                <span class="ib-player-name">{{this.name}}</span>
+                {{#if this.locked}}
+                    <span class="ib-player-note">{{localize "INVESTIGATION_BOARD.CaseOwner"}}</span>
+                {{/if}}
+            </label>
+        {{else}}
+            <p class="ib-empty">{{localize "INVESTIGATION_BOARD.NoPlayers"}}</p>
+        {{/each}}
+    </fieldset>
+
+</div>

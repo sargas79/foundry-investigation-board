@@ -183,6 +183,39 @@ export function recoverClue(page) {
 /* -------------------------------------------- */
 
 /**
+ * Close a case, moving it to the archived group.
+ *
+ * Archiving is to a case what dismissing is to a clue: the player's way of setting something
+ * aside without destroying it. Only a GM can delete a case outright.
+ *
+ * @param {JournalEntry} journal
+ * @param {boolean} [archived=true]
+ * @returns {Promise<JournalEntry>}
+ */
+export function archiveCase(journal, archived = true) {
+  return journal.setFlag(MODULE_ID, CASE_FLAGS.ARCHIVED, archived);
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Whether a user may permanently delete a case.
+ *
+ * Owner is enough for Foundry (`delete: "OWNER"` on the JournalEntry), which is exactly why this
+ * guard exists: players archive, the GM deletes.
+ *
+ * @param {JournalEntry} journal
+ * @param {User} user
+ * @returns {boolean}
+ */
+export function canDeleteCase(journal, user) {
+  if ( !isCase(journal) ) return true;
+  return !!user?.isGM;
+}
+
+/* -------------------------------------------- */
+
+/**
  * The connection joining two clues, if there is one.
  *
  * A string has no direction — A tied to B is the same as B tied to A — so this matches either way

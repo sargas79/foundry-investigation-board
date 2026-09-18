@@ -37,6 +37,22 @@
 
     <div class="ib-header-actions">
         {{#if hasCase}}
+            {{#if canShare}}
+                <button type="button" class="ib-icon-button" data-action="shareCase"
+                        data-case-id="{{currentCase.id}}"
+                        data-tooltip="INVESTIGATION_BOARD.DIALOG.Share"
+                        aria-label="{{localize 'INVESTIGATION_BOARD.DIALOG.Share'}}">
+                    <i class="fa-solid fa-user-group"></i>
+                </button>
+            {{/if}}
+            {{#if currentCase.isOwner}}
+                <button type="button" class="ib-icon-button" data-action="archiveCase"
+                        data-case-id="{{currentCase.id}}"
+                        data-tooltip="{{#if state.archived}}{{localize 'INVESTIGATION_BOARD.Reopen'}}{{else}}{{localize 'INVESTIGATION_BOARD.Archive'}}{{/if}}"
+                        aria-label="{{#if state.archived}}{{localize 'INVESTIGATION_BOARD.Reopen'}}{{else}}{{localize 'INVESTIGATION_BOARD.Archive'}}{{/if}}">
+                    <i class="fa-solid {{#if state.archived}}fa-box-open{{else}}fa-box-archive{{/if}}"></i>
+                </button>
+            {{/if}}
             <button type="button" class="ib-icon-button" data-action="configureCase"
                     data-case-id="{{currentCase.id}}"
                     data-tooltip="INVESTIGATION_BOARD.CaseDetails"

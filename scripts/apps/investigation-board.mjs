@@ -5,10 +5,15 @@ import BoardInteractions from "../board/interactions.mjs";
 import DropHandler from "../board/drop-handler.mjs";
 import ClueDialog from "./clue-dialog.mjs";
 import CaseConfig from "./case-config.mjs";
-import {createCase} from "../data/case-create.mjs";
+import ShareDialog from "./share-dialog.mjs";
+import {canCreateDirectly, createCase} from "../data/case-create.mjs";
+import {canManageSharing} from "../data/sharing.mjs";
+import {buildImport, exportCase, exportFilename, validateExport} from "../data/transfer.mjs";
+import {announce, holderOf, watchPresence} from "../presence.mjs";
 import {CATEGORIES, RELIABILITY} from "../constants.mjs";
 import {EMPTY_FILTER, applyFilter, isActive} from "../board/filter.mjs";
 import {
+  archiveCase,
   canConnect,
   caseState,
   clueBounds,
@@ -73,7 +78,11 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       focusConnection: InvestigationBoard.#onFocusConnection,
       cutConnection: InvestigationBoard.#onCutConnection,
       toggleFilter: InvestigationBoard.#onToggleFilter,
-      clearFilter: InvestigationBoard.#onClearFilter
+      clearFilter: InvestigationBoard.#onClearFilter,
+      shareCase: InvestigationBoard.#onShareCase,
+      archiveCase: InvestigationBoard.#onArchiveCase,
+      exportCase: InvestigationBoard.#onExportCase,
+      importCase: InvestigationBoard.#onImportCase
     }
   };
 
@@ -189,6 +198,7 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       currentCase,
       hasCase: !!currentCase,
       state: currentCase ? caseState(currentCase) : null,
+      canShare: currentCase ? canManageSharing(currentCase, game.user) : false,
       ...this.#sidebarContext(),
       trayOpen: this.#trayOpen,
       linkMode: !!this.#interactions?.linkMode,
@@ -241,6 +251,29 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       categories: localized(CATEGORIES),
       reliabilities: localized(RELIABILITY)
     };
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Show who else has hold of a card.
+   *
+   * Only a class and a label change, so this never disturbs a drag of your own in progress.
+   */
+  #paintPresence() {
+    if ( !this.#renderer ) return;
+    for ( const [clueId, el] of this.#renderer.cards ) {
+      const holder = holderOf(clueId);
+      el.classList.toggle("held", !!holder);
+      if ( holder ) {
+        el.style.setProperty("--ib-holder", holder.color);
+        el.dataset.heldBy = holder.name;
+      }
+      else {
+        el.style.removeProperty("--ib-holder");
+        delete el.dataset.heldBy;
+      }
+    }
   }
 
   /* -------------------------------------------- */
@@ -540,8 +573,9 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
     await this.#renderer.render(currentCase);
 
     this.#consumePendingInlineEdit();
-    // Cards are redrawn on every render, so the filter has to be re-applied over them.
+    // Cards are redrawn on every render, so both overlays have to be re-applied over them.
     this.#applyFilterToBoard();
+    this.#paintPresence();
 
     if ( !currentCase || this.#framed.has(currentCase.id) ) return;
     this.#framed.add(currentCase.id);
@@ -589,8 +623,12 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       onDismiss: page => dismissClue(page),
       onLink: (fromId, toId) => this.#linkClues(fromId, toId),
       onUnlink: connectionId => this.#unlinkClues(connectionId),
-      onLinkModeChange: () => this.render({parts: ["toolbar"]})
+      onLinkModeChange: () => this.render({parts: ["toolbar"]}),
+      onGrab: clueId => announce(clueId, this.#caseId)
     }).attach();
+
+    // Someone else picking up or letting go of a card only changes a badge, never the layout.
+    watchPresence(() => this.#paintPresence());
     this.#drops = new DropHandler({
       viewport,
       view: this.#view,
@@ -803,6 +841,109 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
 
     const journal = await createCase(result);
     if ( journal ) await this.showCase(journal.id);
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Save the current case to a file.
+   * @this {InvestigationBoard}
+   */
+  static #onExportCase() {
+    const journal = this.currentCase;
+    if ( !journal ) return;
+    const data = exportCase(journal);
+    foundry.utils.saveDataToFile(
+      JSON.stringify(data, null, 2), "application/json", exportFilename(journal)
+    );
+    ui.notifications.info(game.i18n.format("INVESTIGATION_BOARD.NOTIFY.Exported",
+      {count: data.clues.length}));
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Load a case from a file.
+   * @this {InvestigationBoard}
+   * @returns {Promise<void>}
+   */
+  static async #onImportCase() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "application/json,.json";
+
+    const file = await new Promise(resolve => {
+      input.addEventListener("change", () => resolve(input.files?.[0] ?? null), {once: true});
+      input.addEventListener("cancel", () => resolve(null), {once: true});
+      input.click();
+    });
+    if ( !file ) return;
+
+    let parsed;
+    try {
+      parsed = JSON.parse(await file.text());
+    }
+    catch {
+      ui.notifications.error("INVESTIGATION_BOARD.NOTIFY.ImportNotJSON", {localize: true});
+      return;
+    }
+
+    const check = validateExport(parsed);
+    if ( !check.ok ) {
+      ui.notifications.error(check.reason, {localize: true});
+      return;
+    }
+
+    const {journal, pages} = buildImport(check.data, game.user.id);
+    if ( !canCreateDirectly() ) {
+      ui.notifications.error("INVESTIGATION_BOARD.NOTIFY.ImportNeedsPermission", {localize: true});
+      return;
+    }
+
+    const created = await JournalEntry.create(journal);
+    if ( !created ) return;
+    await created.createEmbeddedDocuments("JournalEntryPage", pages, {keepId: true});
+    await this.showCase(created.id);
+    ui.notifications.info(game.i18n.format("INVESTIGATION_BOARD.NOTIFY.Imported",
+      {name: created.name}));
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Choose who can work on a case.
+   * @this {InvestigationBoard}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static #onShareCase(_event, target) {
+    const journal = game.journal.get(target.dataset.caseId ?? this.#caseId);
+    if ( !journal ) return;
+    if ( !canManageSharing(journal, game.user) ) {
+      ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.NotYoursToShare", {localize: true});
+      return;
+    }
+    ShareDialog.open(journal);
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Close a case, or reopen it. Players archive; only the GM deletes.
+   * @this {InvestigationBoard}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   * @returns {Promise<void>}
+   */
+  static async #onArchiveCase(_event, target) {
+    const journal = game.journal.get(target.dataset.caseId ?? this.#caseId);
+    if ( !journal?.isOwner ) {
+      ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.NoPermission", {localize: true});
+      return;
+    }
+    const nowArchived = !caseState(journal).archived;
+    await archiveCase(journal, nowArchived);
+    await this.render();
   }
 
   /* -------------------------------------------- */

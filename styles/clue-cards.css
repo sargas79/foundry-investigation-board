@@ -63,6 +63,33 @@
   pointer-events: none;
 }
 
+/* --- Held by someone else ------------------------------------------------ */
+
+/* A card another player has hold of. Only an outline and a name, so their drag never moves
+   anything of yours or disturbs the layout. */
+.investigation-board-app .ib-clue.held {
+  outline: 2px solid var(--ib-holder, #6fb3d6);
+  outline-offset: 2px;
+}
+
+.investigation-board-app .ib-clue.held::before {
+  content: attr(data-held-by);
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  translate: -50% 0;
+  z-index: 3;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: var(--ib-holder, #6fb3d6);
+  color: #10161b;
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 /* --- Editing text in place ---------------------------------------------- */
 
 .investigation-board-app .ib-clue [contenteditable="true"] {

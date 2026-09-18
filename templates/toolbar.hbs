@@ -20,9 +20,14 @@
         <i class="fa-solid fa-filter"></i>
         <span>{{localize "INVESTIGATION_BOARD.TOOL.Filter"}}</span>
     </button>
-    <button type="button" class="ib-tool" data-action="exportCase" disabled>
+    <button type="button" class="ib-tool" data-action="exportCase" {{#unless hasCase}}disabled{{/unless}}>
         <i class="fa-solid fa-file-export"></i>
         <span>{{localize "INVESTIGATION_BOARD.TOOL.ExportCase"}}</span>
+    </button>
+
+    <button type="button" class="ib-tool" data-action="importCase">
+        <i class="fa-solid fa-file-import"></i>
+        <span>{{localize "INVESTIGATION_BOARD.TOOL.ImportCase"}}</span>
     </button>
 
     <button type="button" class="ib-tool ib-tool-tray {{#if trayOpen}}active{{/if}}"

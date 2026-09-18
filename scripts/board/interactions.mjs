@@ -27,9 +27,10 @@ export default class BoardInteractions {
    * @param {(fromId: string, toId: string) => void} [config.onLink]
    * @param {(connectionId: string) => void} [config.onUnlink]
    * @param {(active: boolean) => void} [config.onLinkModeChange]
+   * @param {(clueId: string|null) => void} [config.onGrab]   Told which clue is held, for presence.
    */
   constructor({viewport, view, renderer, getCase, onSelect, onEdit, onDismiss,
-    onLink, onUnlink, onLinkModeChange}) {
+    onLink, onUnlink, onLinkModeChange, onGrab}) {
     this.viewport = viewport;
     this.view = view;
     this.renderer = renderer;
@@ -40,6 +41,7 @@ export default class BoardInteractions {
     this.onLink = onLink ?? (() => {});
     this.onUnlink = onUnlink ?? (() => {});
     this.onLinkModeChange = onLinkModeChange ?? (() => {});
+    this.onGrab = onGrab ?? (() => {});
   }
 
   /** Bound listeners, retained for teardown. */
@@ -266,6 +268,7 @@ export default class BoardInteractions {
       if ( Math.hypot(dx, dy) < BoardInteractions.DRAG_THRESHOLD ) return;
       drag.moved = true;
       drag.card.classList.add("dragging");
+      this.onGrab(drag.clueId);
       // Bring the card to the front as soon as it actually moves. Applied locally now and
       // written with the position on release, so a nudge costs one update rather than two.
       drag.z = topZ(this.getCase()) + 1;
@@ -300,6 +303,7 @@ export default class BoardInteractions {
     this.#drag = null;
     releasePointer(this.viewport, event.pointerId);
     drag.card.classList.remove("dragging");
+    if ( drag.moved ) this.onGrab(null);
 
     if ( !drag.moved ) return;
 
@@ -327,6 +331,7 @@ export default class BoardInteractions {
     this.#drag = null;
     releasePointer(this.viewport, drag.pointerId);
     drag.card.classList.remove("dragging");
+    if ( drag.moved ) this.onGrab(null);
     if ( drag.moved ) {
       drag.card.style.zIndex = String(this.getCase()?.pages.get(drag.clueId)?.system.z ?? 0);
       this.renderer.moveGhost(drag.clueId, drag.originX, drag.originY);

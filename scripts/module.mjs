@@ -1,6 +1,8 @@
 import {MODULE_ID, PAGE_TYPES, modulePath} from "./constants.mjs";
-import {canDeletePage} from "./data/case.mjs";
+import {canDeleteCase, canDeletePage} from "./data/case.mjs";
 import {CREATE_CASE_QUERY, handleCreateCaseQuery} from "./data/case-create.mjs";
+import {SHARE_QUERY, handleShareQuery} from "./data/sharing.mjs";
+import {PRESENCE_EVENT, receivePresence} from "./presence.mjs";
 import ClueData from "./data/clue-data.mjs";
 import ConnectionData from "./data/connection-data.mjs";
 import InvestigationBoard from "./apps/investigation-board.mjs";
@@ -54,6 +56,8 @@ Hooks.once("init", () => {
 
   // A player without JOURNAL_CREATE asks a GM's client to make the case for them.
   CONFIG.queries[CREATE_CASE_QUERY] = handleCreateCaseQuery;
+  // Only a GM may change a document's ownership, so sharing is relayed the same way.
+  CONFIG.queries[SHARE_QUERY] = handleShareQuery;
 
   foundry.applications.handlebars.loadTemplates([
     modulePath("templates/sidebar.hbs"),
@@ -74,6 +78,9 @@ Hooks.once("init", () => {
 /* -------------------------------------------- */
 
 Hooks.once("ready", () => {
+  // Presence travels over the socket: it is momentary, and writing it would put a database
+  // round-trip in the middle of every drag.
+  game.socket.on(`module.${MODULE_ID}`, receivePresence);
   console.log(`${MODULE_ID} | Investigation Board ready`);
 });
 
@@ -103,6 +110,18 @@ Hooks.once("ready", () => {
 Hooks.on("preDeleteJournalEntryPage", page => {
   if ( canDeletePage(page, game.user) ) return true;
   ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.DeleteIsGMOnly", {localize: true});
+  return false;
+});
+
+/**
+ * The same rule for whole cases: players archive, only the GM deletes.
+ *
+ * Foundry grants an Owner delete rights on a JournalEntry, so without this a player could destroy
+ * a shared case from the journal sidebar with one click and no undo.
+ */
+Hooks.on("preDeleteJournalEntry", journal => {
+  if ( canDeleteCase(journal, game.user) ) return true;
+  ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.CaseDeleteIsGMOnly", {localize: true});
   return false;
 });
 
