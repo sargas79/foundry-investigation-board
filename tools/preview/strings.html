@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Investigation Board — strings</title>
+  <link rel="stylesheet" href="/styles/fonts.css">
+  <link rel="stylesheet" href="/styles/investigation-board.css">
+  <link rel="stylesheet" href="/styles/clue-cards.css">
+  <link rel="stylesheet" href="/styles/strings.css">
+  <style>
+    html, body { margin: 0; background: #0b0f13; }
+    .stage {
+      box-sizing: border-box; min-height: 780px; padding: 30px;
+      background-color: #c08f52; background-image: url("/assets/textures/cork.svg");
+      background-size: 320px; box-shadow: inset 0 0 60px rgb(80 45 10 / 40%);
+    }
+    .investigation-board-app .ib-board-world { position: relative; inset: auto; height: 720px; }
+    .investigation-board-app .ib-clue-layer { position: absolute; inset: 0; }
+    .investigation-board-app .ib-string-layer { position: absolute; inset: 0; width: 100%; height: 100%; }
+    /* Debug marker drawn at each computed anchor, to confirm it lands on the pin head. */
+    .anchor-probe { position: absolute; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px;
+                    background: #00e5ff; border-radius: 50%; z-index: 99; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <div class="investigation-board-app investigation-board">
+    <div class="stage">
+      <div class="ib-board-world">
+        <svg class="ib-string-layer" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="ib-clue-layer" id="layer"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import {createClueElement} from "/scripts/board/clue-element.mjs";
+    import StringLayer, {pinAnchor} from "/scripts/board/string-layer.mjs";
+
+    window.game = {i18n: {localize: k => ({
+      "INVESTIGATION_BOARD.CATEGORY.Person": "Person of Interest",
+      "INVESTIGATION_BOARD.CATEGORY.Physical": "Physical Evidence",
+      "INVESTIGATION_BOARD.CATEGORY.Document": "Document",
+      "INVESTIGATION_BOARD.CATEGORY.Location": "Location",
+      "INVESTIGATION_BOARD.CATEGORY.Lead": "Lead",
+      "INVESTIGATION_BOARD.CATEGORY.Other": "Other",
+      "INVESTIGATION_BOARD.RELIABILITY.Verified": "Verified",
+      "INVESTIGATION_BOARD.RELIABILITY.Unverified": "Unverified",
+      "INVESTIGATION_BOARD.RELIABILITY.Corroborated": "Corroborated",
+      "INVESTIGATION_BOARD.RELIABILITY.Questionable": "Questionable"
+    })[k] ?? k}};
+
+    const TEMPLATES = {
+      polaroid: {hasImage: true, hasBody: false}, mugshot: {hasImage: true, hasBody: true},
+      profile: {hasImage: true, hasBody: true}, document: {hasImage: false, hasBody: true},
+      letter: {hasImage: false, hasBody: true}, sticky: {hasImage: false, hasBody: true},
+      map: {hasImage: true, hasBody: false}
+    };
+    const portrait = `data:image/svg+xml,${encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320"><rect width="240" height="320" fill="#6e6e6e"/><circle cx="120" cy="118" r="54" fill="#9a9a9a"/><path d="M30 320c0-62 40-104 90-104s90 42 90 104z" fill="#9a9a9a"/></svg>`)}`;
+
+    const page = (id, name, system) => ({
+      id, name,
+      system: {
+        template: "document", image: null, body: "", pinColor: "red", redacted: false,
+        category: "other", reliability: "unverified", x: 0, y: 0, rotation: 0, width: 200,
+        z: 0, linkedUuid: null, ...system,
+        get templateConfig() { return TEMPLATES[this.template]; }
+      }
+    });
+
+    // Deliberately varied rotations, so a wrong anchor rotation shows up immediately.
+    const CLUES = [
+      page("a", "Mara Vale", {template: "polaroid", image: portrait, pinColor: "red",
+        category: "person", reliability: "verified", x: 60, y: 70, rotation: -8, width: 170}),
+      page("b", "Forensic Report", {template: "document", pinColor: "white", category: "document",
+        reliability: "verified", x: 420, y: 60, rotation: 6, width: 210,
+        body: "<p>Partial print on the clasp. Match probability 0.82.</p>"}),
+      page("c", "Ashwood Lane", {template: "map", image: portrait, pinColor: "black",
+        category: "location", reliability: "corroborated", x: 790, y: 110, rotation: -3, width: 200}),
+      page("d", "Follow the money", {template: "sticky", pinColor: "yellow", category: "lead",
+        reliability: "unverified", x: 180, y: 420, rotation: 10, width: 180,
+        body: "<p>Pawn shop receipts, week of the 12th</p>"}),
+      page("e", "Witness", {template: "profile", image: portrait, pinColor: "green",
+        category: "person", reliability: "questionable", x: 560, y: 430, rotation: 0, width: 240,
+        body: "<p>Grey coat near the bridge, just before midnight.</p>"}),
+      page("f", "The watch", {template: "polaroid", image: portrait, pinColor: "blue",
+        category: "physical", reliability: "verified", x: 890, y: 430, rotation: -12, width: 150})
+    ];
+
+    const CONNECTIONS = [
+      {id: "s1", from: "a", to: "b", color: "red", style: "solid", label: ""},
+      {id: "s2", from: "b", to: "c", color: "white", style: "dashed", label: "same night"},
+      {id: "s3", from: "a", to: "d", color: "yellow", style: "solid", label: ""},
+      {id: "s4", from: "d", to: "e", color: "green", style: "dotted", label: "alibi?"},
+      {id: "s5", from: "e", to: "f", color: "blue", style: "solid", label: ""},
+      {id: "s6", from: "a", to: "f", color: "red", style: "solid", label: "2:14"},
+      {id: "s7", from: "c", to: "e", color: "black", style: "dashed", label: ""}
+    ];
+
+    const layer = document.getElementById("layer");
+    const byId = new Map();
+    for ( const p of CLUES ) {
+      layer.append(createClueElement(p, p.system.body));
+      byId.set(p.id, p.system);
+    }
+
+    const strings = new StringLayer(document.querySelector(".ib-string-layer"));
+    const drawAll = () => {
+      for ( const c of CONNECTIONS ) {
+        strings.draw(c.id, pinAnchor(byId.get(c.from)), pinAnchor(byId.get(c.to)),
+          {color: c.color, style: c.style, label: c.label});
+      }
+    };
+    drawAll();
+
+    // Drop a probe dot at every computed anchor so a mis-placed attachment is obvious.
+    for ( const p of CLUES ) {
+      const a = pinAnchor(p.system);
+      const dot = document.createElement("div");
+      dot.className = "anchor-probe";
+      dot.style.left = `${a.x}px`;
+      dot.style.top = `${a.y}px`;
+      layer.append(dot);
+    }
+
+    Object.assign(window, {strings, byId, CONNECTIONS, CLUES, pinAnchor, drawAll});
+
+    const {runStringLayerTests} = await import("/tools/preview/string-layer.spec.mjs");
+    window.runStringLayerTests = () => runStringLayerTests({
+      layer: strings, clues: byId, connections: CONNECTIONS, redraw: drawAll
+    });
+  </script>
+</body>
+</html>

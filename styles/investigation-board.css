@@ -283,9 +283,19 @@
   pointer-events: none;
 }
 
+/*
+ * The layer spans the whole board, so it must stay transparent to pointer events — otherwise it
+ * covers the strings underneath and nothing but a card could ever be clicked. The cards themselves
+ * opt back in.
+ */
 .investigation-board-app .ib-clue-layer {
   position: absolute;
   inset: 0;
+  pointer-events: none;
+}
+
+.investigation-board-app .ib-clue {
+  pointer-events: auto;
 }
 
 .investigation-board-app .ib-board-placeholder {
