@@ -53,6 +53,15 @@
                     <i class="fa-solid {{#if state.archived}}fa-box-open{{else}}fa-box-archive{{/if}}"></i>
                 </button>
             {{/if}}
+            {{!-- Players close a case; only the GM can destroy one. --}}
+            {{#if isGM}}
+                <button type="button" class="ib-icon-button ib-danger" data-action="deleteCase"
+                        data-case-id="{{currentCase.id}}"
+                        data-tooltip="INVESTIGATION_BOARD.DeleteCase"
+                        aria-label="{{localize 'INVESTIGATION_BOARD.DeleteCase'}}">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            {{/if}}
             <button type="button" class="ib-icon-button" data-action="configureCase"
                     data-case-id="{{currentCase.id}}"
                     data-tooltip="INVESTIGATION_BOARD.CaseDetails"

@@ -228,6 +228,14 @@
   background: rgb(255 255 255 / 8%);
 }
 
+/* Destructive controls only colour themselves on hover, so a row of them is not alarming. */
+.investigation-board-app .ib-case-cog.ib-danger:hover,
+.investigation-board-app .ib-icon-button.ib-danger:hover {
+  border-color: #8d2f2c;
+  background: #8d2f2c;
+  color: #fff;
+}
+
 /* --- Sidebar footer ------------------------------------------------------ */
 
 .investigation-board-app .ib-sidebar-footer {

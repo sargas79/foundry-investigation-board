@@ -37,6 +37,15 @@
                             <i class="fa-solid fa-ellipsis-vertical"></i>
                         </button>
                     {{/if}}
+                    {{!-- Reachable without opening the case first, for clearing out old ones. --}}
+                    {{#if ../../isGM}}
+                        <button type="button" class="ib-case-cog ib-danger" data-action="deleteCase"
+                                data-case-id="{{this.id}}"
+                                data-tooltip="INVESTIGATION_BOARD.DeleteCase"
+                                aria-label="{{localize 'INVESTIGATION_BOARD.DeleteCase'}}">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    {{/if}}
                 </div>
             {{/each}}
         {{else}}

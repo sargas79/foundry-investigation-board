@@ -24,6 +24,7 @@ const {default: testSharing} = await import("./sharing.test.mjs");
 const {default: testTransfer} = await import("./transfer.test.mjs");
 const {default: testI18n} = await import("./i18n.test.mjs");
 const {default: testBindOnce} = await import("./bind-once.test.mjs");
+const {default: testDeleteCase} = await import("./delete-case.test.mjs");
 
 await testManifest();
 await testDataModels();
@@ -34,5 +35,6 @@ await testSharing();
 await testTransfer();
 await testI18n();
 await testBindOnce();
+await testDeleteCase();
 
 report();

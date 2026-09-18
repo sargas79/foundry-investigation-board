@@ -39,6 +39,10 @@ start from, so a line of enquiry reads as one colour across the board.
 **Set clues aside** with Delete or the right-click menu. They go to the **Discarded** tray and come
 back with every string they were tied to still attached — dismissing is never destructive.
 
+**Close a case** with the box icon in the header; it moves to Archived and can be reopened. A GM
+also gets a trash icon, in the header and on each row of the sidebar, which destroys the case and
+everything on it after a confirmation that says how many clues go with it.
+
 **Filter** the board to find things. Non-matching clues *dim* rather than disappear, so the layout
 never moves: a board is a spatial memory, and "the watch is bottom-right, next to the map" should
 stay true.
@@ -74,7 +78,8 @@ a case or lock out the only people who could repair it.
 | View only | **Observer** |
 | Create or import a case | Needs **Create Journal Entries** — the **Trusted Player** rank has it by default |
 | Share an existing case | **GM or Assistant GM** |
-| Delete a clue or a case permanently | **GM only** — players set aside and archive instead |
+| Delete a clue permanently | **GM only**, from the Discarded tray — players set aside instead |
+| Delete a case permanently | **GM only**, from the header or the sidebar — players close instead |
 
 **Recommended setup: give your players the Trusted Player rank.** They can then create cases, share
 them with the party at creation, and import cases, all without a GM online. Editing clues never

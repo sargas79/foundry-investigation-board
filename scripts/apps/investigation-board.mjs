@@ -15,6 +15,7 @@ import {EMPTY_FILTER, applyFilter, isActive} from "../board/filter.mjs";
 import {
   archiveCase,
   canConnect,
+  canDeleteCase,
   caseState,
   clueBounds,
   dismissClue,
@@ -81,6 +82,7 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       clearFilter: InvestigationBoard.#onClearFilter,
       shareCase: InvestigationBoard.#onShareCase,
       archiveCase: InvestigationBoard.#onArchiveCase,
+      deleteCase: InvestigationBoard.#onDeleteCase,
       exportCase: InvestigationBoard.#onExportCase,
       importCase: InvestigationBoard.#onImportCase
     }
@@ -979,6 +981,42 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
     }
     const nowArchived = !caseState(journal).archived;
     await archiveCase(journal, nowArchived);
+    await this.render();
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Destroy a case and everything on its board. GM only — players close a case instead.
+   * @this {InvestigationBoard}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   * @returns {Promise<void>}
+   */
+  static async #onDeleteCase(_event, target) {
+    const journal = game.journal.get(target.dataset.caseId ?? this.#caseId);
+    if ( !journal ) return;
+    if ( !canDeleteCase(journal, game.user) ) {
+      ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.CaseDeleteIsGMOnly", {localize: true});
+      return;
+    }
+
+    // The clue count is the part a GM cannot see from the journal sidebar, where a case looks
+    // like any other entry — so the confirmation says what actually goes with it.
+    const clues = getClues(journal).length + getDismissed(journal).length;
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: {title: "INVESTIGATION_BOARD.DeleteCase"},
+      content: `<p>${game.i18n.format("INVESTIGATION_BOARD.DeleteCaseConfirm",
+        {name: journal.name, clues})}</p>`,
+      modal: true
+    });
+    if ( !confirmed ) return;
+
+    // The clue and connection pages are embedded, so they go with the entry; nothing to cascade.
+    await journal.delete();
+    this.#framed.delete(journal.id);
+    this.#viewStates.delete(journal.id);
+    if ( this.#caseId === journal.id ) this.#caseId = getCases()[0]?.id ?? null;
     await this.render();
   }
 
