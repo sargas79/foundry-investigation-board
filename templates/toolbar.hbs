@@ -8,7 +8,9 @@
         <i class="fa-solid fa-note-sticky"></i>
         <span>{{localize "INVESTIGATION_BOARD.TOOL.CreateLead"}}</span>
     </button>
-    <button type="button" class="ib-tool" data-action="drawConnection" disabled>
+    <button type="button" class="ib-tool {{#if linkMode}}active{{/if}}"
+            data-action="drawConnection" {{#unless hasCase}}disabled{{/unless}}
+            aria-pressed="{{#if linkMode}}true{{else}}false{{/if}}">
         <i class="fa-solid fa-pen"></i>
         <span>{{localize "INVESTIGATION_BOARD.TOOL.DrawConnection"}}</span>
     </button>

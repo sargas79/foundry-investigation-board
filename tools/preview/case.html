@@ -141,12 +141,26 @@
         id, name, visible: true,
         flags: {[MODULE_ID]: {isCase: true, status: "active", progress: 68}},
         getFlag(scope, key) { return this.flags?.[scope]?.[key]; },
+        // Mirrors the bits of EmbeddedCollection the board code actually uses.
         pages: {
           get: pid => map.get(pid),
           filter: fn => [...map.values()].filter(fn),
+          find: fn => [...map.values()].find(fn),
+          some: fn => [...map.values()].some(fn),
+          map: fn => [...map.values()].map(fn),
+          get size() { return map.size; },
           get contents() { return [...map.values()]; },
+          [Symbol.iterator]() { return map.values(); },
           add(p) { p.parent = journal; map.set(p.id, p); },
-          delete: pid => map.delete(pid)
+          delete: pid => map.delete(pid),
+          /** Restore the collection to a known set — lets each suite start from the same board. */
+          reset(fresh) {
+            map.clear();
+            for ( const p of fresh ) {
+              p.parent = journal;
+              map.set(p.id, p);
+            }
+          }
         }
       };
       for ( const p of pages ) p.parent = journal;
@@ -156,7 +170,8 @@
     const CLUE = `${MODULE_ID}.clue`;
     const CONN = `${MODULE_ID}.connection`;
 
-    const pages = [
+    /** The board every suite starts from. Rebuilt on demand so suites cannot pollute each other. */
+    const buildPages = () => [
       makePage("a", CLUE, "Mara Vale", {template: "polaroid", image: portrait, pinColor: "red",
         category: "person", reliability: "verified", x: 90, y: 90, rotation: -6, width: 175, z: 1}),
       makePage("b", CLUE, "Forensic Report", {template: "document", pinColor: "white",
@@ -184,6 +199,7 @@
       makePage("s6", CONN, "link", {from: "a", to: "does-not-exist", color: "red"})
     ];
 
+    let pages = buildPages();
     const journal = makeJournal("case1", "The Ashwood Murders", pages);
     window.game.journal = {get: id => (id === journal.id ? journal : null),
                            filter: fn => [journal].filter(fn)};
@@ -210,15 +226,38 @@
 
     // Stand-in for document updates, so drags and edits can be asserted without a server.
     window.__updates = [];
-    for ( const p of pages ) {
-      p.isOwner = true;
-      p.update = async function(changes) {
+    const wirePage = page => {
+      page.isOwner = true;
+      page.update = async function(changes) {
         window.__updates.push({id: this.id, changes: structuredClone(changes)});
         if ( changes.name !== undefined ) this.name = changes.name;
         Object.assign(this.system, changes.system ?? {});
         await renderer.upsertClue(this);
       };
-    }
+      return page;
+    };
+    pages.forEach(wirePage);
+
+    /**
+     * Put the board back to its starting state.
+     *
+     * Suites are destructive by nature — cutting strings, dismissing clues — so each one resets
+     * first and none of them depend on the order they run in.
+     */
+    window.resetFixture = async () => {
+      pages = buildPages().map(wirePage);
+      journal.pages.reset(pages);
+      window.__updates = [];
+      window.__created = [];
+      window.__deleted = [];
+      window.__linkAttempts = [];
+      interactions.setLinkMode(false);
+      interactions.select(null);
+      interactions.selectString(null);
+      renderer.clear();
+      await renderer.render(journal);
+      view.reset();
+    };
 
     // Stand-in for createEmbeddedDocuments so drops can be asserted without a server.
     journal.isOwner = true;
@@ -240,11 +279,37 @@
 
     const drops = new DropHandler({viewport, view, getCase: () => journal}).attach();
 
+    // Stand-in for deleteEmbeddedDocuments, used by unlinking.
+    journal.deleteEmbeddedDocuments = async function(type, ids) {
+      for ( const id of ids ) {
+        window.__deleted.push(id);
+        this.pages.delete(id);
+        renderer.removeConnection(id);
+        renderer.removeClue(id);
+      }
+      return ids;
+    };
+    window.__deleted = [];
+
     const interactions = new BoardInteractions({
       viewport, view, renderer,
       getCase: () => journal,
-      onEdit: page => { window.__edited = page.id; }
+      onEdit: page => { window.__edited = page.id; },
+      onLink: async (fromId, toId) => {
+        const {canConnect} = caseApi;
+        const check = canConnect(journal, fromId, toId);
+        window.__linkAttempts.push({fromId, toId, ok: check.ok, reason: check.reason});
+        if ( !check.ok ) return;
+        const page = makePage(`link-${window.__linkAttempts.length}`, CONN, "link", {
+          from: fromId, to: toId,
+          color: journal.pages.get(fromId)?.system.pinColor ?? "red"
+        });
+        journal.pages.add(page);
+        renderer.upsertConnection(page);
+      },
+      onUnlink: async id => { await journal.deleteEmbeddedDocuments("JournalEntryPage", [id]); }
     }).attach();
+    window.__linkAttempts = [];
 
     await renderer.render(journal);
     const bounds = caseApi.clueBounds(caseApi.getClues(journal));
@@ -285,8 +350,17 @@
 
     Object.assign(window, {view, renderer, interactions, drops, journal, caseApi, makePage, report, CLUE, CONN});
 
+    const {runLinkingTests} = await import("/tools/preview/linking.spec.mjs");
+    window.runLinkingTests = async () => {
+      await window.resetFixture();
+      const out = await runLinkingTests({interactions, journal, view, viewport, caseApi});
+      report();
+      return out;
+    };
+
     const {runTrayTests} = await import("/tools/preview/tray.spec.mjs");
     window.runTrayTests = async () => {
+      await window.resetFixture();
       const out = await runTrayTests({renderer, journal, caseApi, interactions, viewport});
       report();
       return out;
@@ -294,6 +368,7 @@
 
     const {runDropTests} = await import("/tools/preview/drop-handler.spec.mjs");
     window.runDropTests = async () => {
+      await window.resetFixture();
       const out = await runDropTests({viewport, view});
       report();
       return out;
@@ -301,6 +376,7 @@
 
     const {runInteractionTests} = await import("/tools/preview/interactions.spec.mjs");
     window.runInteractionTests = async () => {
+      await window.resetFixture();
       const out = await runInteractionTests({interactions, renderer, journal, view, viewport});
       report();
       return out;
@@ -308,6 +384,7 @@
 
     const {runBoardRendererTests} = await import("/tools/preview/board-renderer.spec.mjs");
     window.runBoardRendererTests = async () => {
+      await window.resetFixture();
       const out = await runBoardRendererTests({renderer, journal, makePage, CLUE, CONN});
       report();
       return out;

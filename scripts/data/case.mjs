@@ -183,6 +183,43 @@ export function recoverClue(page) {
 /* -------------------------------------------- */
 
 /**
+ * The connection joining two clues, if there is one.
+ *
+ * A string has no direction — A tied to B is the same as B tied to A — so this matches either way
+ * round. Used to stop the same pair being linked twice.
+ *
+ * @param {JournalEntry} journal
+ * @param {string} a
+ * @param {string} b
+ * @returns {JournalEntryPage|undefined}
+ */
+export function findConnection(journal, a, b) {
+  return journal?.pages.find(p => {
+    if ( p.type !== PAGE_TYPES.CONNECTION ) return false;
+    const {from, to} = p.system;
+    return ((from === a) && (to === b)) || ((from === b) && (to === a));
+  });
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Whether two clues can be tied together.
+ * @param {JournalEntry} journal
+ * @param {string} a
+ * @param {string} b
+ * @returns {{ok: boolean, reason?: string}}
+ */
+export function canConnect(journal, a, b) {
+  if ( !a || !b ) return {ok: false, reason: "INVESTIGATION_BOARD.NOTIFY.LinkIncomplete"};
+  if ( a === b ) return {ok: false, reason: "INVESTIGATION_BOARD.NOTIFY.LinkToSelf"};
+  if ( findConnection(journal, a, b) ) return {ok: false, reason: "INVESTIGATION_BOARD.NOTIFY.LinkExists"};
+  return {ok: true};
+}
+
+/* -------------------------------------------- */
+
+/**
  * Whether a user may permanently destroy a page of this module's.
  *
  * Only the GM may destroy a clue; players set clues aside instead, which keeps the clue and its

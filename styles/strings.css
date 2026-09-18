@@ -73,6 +73,29 @@
   user-select: none;
 }
 
+/* --- Linking ------------------------------------------------------------- */
+
+/* While the tool is on, the whole board invites a click on a card. */
+.investigation-board-app .ib-board-viewport.linking {
+  cursor: crosshair;
+}
+
+.investigation-board-app .ib-board-viewport.linking .ib-clue {
+  cursor: crosshair;
+}
+
+/* The clue a string is being drawn from. */
+.investigation-board-app .ib-clue.link-source {
+  outline: 2px dashed var(--ib-accent);
+  outline-offset: 3px;
+}
+
+/* The pin is the grab handle for the drag-to-link shortcut. */
+.investigation-board-app .ib-pin {
+  pointer-events: auto;
+  cursor: crosshair;
+}
+
 /* --- The string being drawn while linking -------------------------------- */
 
 .investigation-board-app .ib-string-pending {

@@ -5,6 +5,7 @@ import BoardInteractions from "../board/interactions.mjs";
 import DropHandler from "../board/drop-handler.mjs";
 import ClueDialog from "./clue-dialog.mjs";
 import {
+  canConnect,
   caseState,
   clueBounds,
   dismissClue,
@@ -54,6 +55,7 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       selectCase: InvestigationBoard.#onSelectCase,
       pinEvidence: InvestigationBoard.#onPinEvidence,
       createLead: InvestigationBoard.#onCreateLead,
+      drawConnection: InvestigationBoard.#onDrawConnection,
       toggleTray: InvestigationBoard.#onToggleTray,
       dismissClue: InvestigationBoard.#onDismissClue,
       recoverClue: InvestigationBoard.#onRecoverClue,
@@ -167,6 +169,7 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
         ...caseState(j)
       })),
       trayOpen: this.#trayOpen,
+      linkMode: !!this.#interactions?.linkMode,
       dismissed: currentCase ? getDismissed(currentCase).map(page => ({
         id: page.id,
         name: page.name,
@@ -266,7 +269,10 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       renderer: this.#renderer,
       getCase: () => this.currentCase,
       onEdit: page => ClueDialog.edit(page),
-      onDismiss: page => dismissClue(page)
+      onDismiss: page => dismissClue(page),
+      onLink: (fromId, toId) => this.#linkClues(fromId, toId),
+      onUnlink: connectionId => this.#unlinkClues(connectionId),
+      onLinkModeChange: () => this.render({parts: ["toolbar"]})
     }).attach();
     this.#drops = new DropHandler({
       viewport,
@@ -485,6 +491,18 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
   /* -------------------------------------------- */
 
   /**
+   * Turn the linking tool on or off. It stays on between links, so several pairs can be tied
+   * together in a row without going back to the toolbar.
+   * @this {InvestigationBoard}
+   */
+  static #onDrawConnection() {
+    if ( !this.#writableCase() ) return;
+    this.#interactions?.setLinkMode();
+  }
+
+  /* -------------------------------------------- */
+
+  /**
    * Open or close the discarded tray.
    * @this {InvestigationBoard}
    */
@@ -556,6 +574,57 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
     await journal.deleteEmbeddedDocuments("JournalEntryPage",
       [page.id, ...connections.map(p => p.id)]);
     await this.render({parts: ["tray", "toolbar"]});
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Tie two clues together with a string.
+   * @param {string} fromId
+   * @param {string} toId
+   * @returns {Promise<void>}
+   */
+  async #linkClues(fromId, toId) {
+    const journal = this.#writableCase();
+    if ( !journal ) return;
+
+    const check = canConnect(journal, fromId, toId);
+    if ( !check.ok ) {
+      ui.notifications.warn(check.reason, {localize: true});
+      return;
+    }
+
+    const from = journal.pages.get(fromId);
+    await journal.createEmbeddedDocuments("JournalEntryPage", [{
+      name: game.i18n.format("INVESTIGATION_BOARD.ConnectionName", {
+        from: from?.name ?? "?",
+        to: journal.pages.get(toId)?.name ?? "?"
+      }),
+      type: PAGE_TYPES.CONNECTION,
+      system: {
+        from: fromId,
+        to: toId,
+        // The string takes the colour of the pin it starts from, so a line of enquiry reads
+        // as one colour across the board.
+        color: from?.system.pinColor ?? "red",
+        style: "solid",
+        label: ""
+      }
+    }]);
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Cut a string. The clues at either end are untouched — unlinking is not destructive, so it
+   * needs no confirmation and is available to any owner.
+   * @param {string} connectionId
+   * @returns {Promise<void>}
+   */
+  async #unlinkClues(connectionId) {
+    const journal = this.#writableCase();
+    if ( !journal?.pages.get(connectionId) ) return;
+    await journal.deleteEmbeddedDocuments("JournalEntryPage", [connectionId]);
   }
 
   /* -------------------------------------------- */

@@ -1,5 +1,6 @@
 import {topZ} from "../data/case.mjs";
 import {capturePointer, releasePointer} from "./pointer-capture.mjs";
+import {pinAnchor} from "./string-layer.mjs";
 
 /**
  * Pointer and keyboard handling for the clue cards on the board.
@@ -23,8 +24,12 @@ export default class BoardInteractions {
    * @param {(clueId: string|null) => void} [config.onSelect]
    * @param {(page: JournalEntryPage) => void} [config.onEdit]
    * @param {(page: JournalEntryPage) => void} [config.onDismiss]
+   * @param {(fromId: string, toId: string) => void} [config.onLink]
+   * @param {(connectionId: string) => void} [config.onUnlink]
+   * @param {(active: boolean) => void} [config.onLinkModeChange]
    */
-  constructor({viewport, view, renderer, getCase, onSelect, onEdit, onDismiss}) {
+  constructor({viewport, view, renderer, getCase, onSelect, onEdit, onDismiss,
+    onLink, onUnlink, onLinkModeChange}) {
     this.viewport = viewport;
     this.view = view;
     this.renderer = renderer;
@@ -32,6 +37,9 @@ export default class BoardInteractions {
     this.onSelect = onSelect ?? (() => {});
     this.onEdit = onEdit ?? (() => {});
     this.onDismiss = onDismiss ?? (() => {});
+    this.onLink = onLink ?? (() => {});
+    this.onUnlink = onUnlink ?? (() => {});
+    this.onLinkModeChange = onLinkModeChange ?? (() => {});
   }
 
   /** Bound listeners, retained for teardown. */
@@ -46,6 +54,20 @@ export default class BoardInteractions {
   /** The clue being edited in place, or null. */
   #editing = null;
 
+  /** Whether the toolbar's linking tool is switched on. */
+  #linkMode = false;
+
+  /**
+   * A link being drawn, or null.
+   * `viaPin` distinguishes the drag-from-the-pin shortcut from the click-click tool: the shortcut
+   * finishes on pointer-up, the tool on the next click.
+   * @type {{fromId: string, viaPin: boolean, pointerId?: number}|null}
+   */
+  #linking = null;
+
+  /** The id of the currently selected connection. */
+  #selectedString = null;
+
   /** The id of the currently selected clue. */
   get selected() {
     return this.#selected;
@@ -54,6 +76,46 @@ export default class BoardInteractions {
   /** Whether a card is currently being dragged. */
   get isDragging() {
     return !!this.#drag?.moved;
+  }
+
+  /** Whether the linking tool is on. */
+  get linkMode() {
+    return this.#linkMode;
+  }
+
+  /** Whether a string is part-drawn, waiting for its second clue. */
+  get isLinking() {
+    return !!this.#linking;
+  }
+
+  /** The id of the currently selected connection, if any. */
+  get selectedString() {
+    return this.#selectedString;
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Turn the linking tool on or off.
+   * @param {boolean} [active]   Omit to toggle.
+   */
+  setLinkMode(active = !this.#linkMode) {
+    this.#linkMode = active;
+    if ( !active ) this.#cancelLink();
+    this.viewport.classList.toggle("linking", active);
+    this.onLinkModeChange(active);
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Select a connection, clearing any clue selection.
+   * @param {string|null} connectionId
+   */
+  selectString(connectionId) {
+    this.#selectedString = connectionId;
+    this.renderer.strings.select(connectionId);
+    if ( connectionId ) this.select(null);
   }
 
   /* -------------------------------------------- */
@@ -112,8 +174,17 @@ export default class BoardInteractions {
 
     const card = event.target.closest(".ib-clue");
     if ( !card ) {
-      // A press on bare cork clears the selection; BoardView handles the panning itself.
-      if ( !event.target.closest(".ib-string-hit") ) this.select(null);
+      const string = event.target.closest(".ib-string-hit");
+      if ( string ) {
+        // Selecting a string is how it gets cut, so it takes priority over panning.
+        event.preventDefault();
+        this.selectString(string.parentElement?.dataset.connectionId ?? null);
+        return;
+      }
+      // A press on bare cork clears both selections and abandons a half-drawn string.
+      this.select(null);
+      this.selectString(null);
+      if ( this.#linking ) this.#cancelLink();
       return;
     }
 
@@ -121,7 +192,22 @@ export default class BoardInteractions {
     const page = this.getCase()?.pages.get(clueId);
     if ( !page ) return;
 
+    // --- Linking ----------------------------------------------------------
+    // Dragging from the pin links without entering the tool; the tool links by two clicks.
+    const fromPin = !!event.target.closest(".ib-pin");
+    if ( this.#linking ) {
+      event.preventDefault();
+      this.#completeLink(clueId);
+      return;
+    }
+    if ( (this.#linkMode || fromPin) && page.isOwner ) {
+      event.preventDefault();
+      this.#beginLink(clueId, fromPin, event.pointerId);
+      return;
+    }
+
     this.select(clueId);
+    this.selectString(null);
 
     // The link marker is the way back to whatever the clue was made from.
     if ( event.target.closest(".ib-clue-link") ) {
@@ -151,6 +237,14 @@ export default class BoardInteractions {
 
   /** @param {PointerEvent} event */
   #onPointerMove(event) {
+    // A string being drawn follows the pointer wherever it goes.
+    if ( this.#linking ) {
+      const from = this.#anchorOf(this.#linking.fromId);
+      const to = this.view.screenToBoard(event.clientX, event.clientY);
+      if ( from ) this.renderer.strings.drawPending(from, to);
+      return;
+    }
+
     const drag = this.#drag;
     if ( !drag || (event.pointerId !== drag.pointerId) ) return;
 
@@ -178,6 +272,16 @@ export default class BoardInteractions {
 
   /** @param {PointerEvent} event */
   async #onPointerUp(event) {
+    // A pin-drag finishes wherever it is released; the click-click tool waits for another click.
+    const linking = this.#linking;
+    if ( linking?.viaPin && (event.pointerId === linking.pointerId) ) {
+      releasePointer(this.viewport, event.pointerId);
+      const target = this.#clueAt(event.clientX, event.clientY, linking.fromId);
+      if ( target ) this.#completeLink(target);
+      else this.#cancelLink();
+      return;
+    }
+
     const drag = this.#drag;
     if ( !drag || (event.pointerId !== drag.pointerId) ) return;
     // Clear the gesture before anything that could throw, so a failure can never strand the
@@ -217,6 +321,103 @@ export default class BoardInteractions {
       this.renderer.moveGhost(drag.clueId, drag.originX, drag.originY);
       this.renderer.clearGhost(drag.clueId);
     }
+  }
+
+  /* -------------------------------------------- */
+  /*  Linking                                     */
+  /* -------------------------------------------- */
+
+  /**
+   * Start drawing a string from a clue.
+   * @param {string} fromId
+   * @param {boolean} viaPin      Started by dragging the pin rather than by the toolbar tool.
+   * @param {number} pointerId
+   */
+  #beginLink(fromId, viaPin, pointerId) {
+    this.#linking = {fromId, viaPin, pointerId};
+    this.viewport.classList.add("linking");
+    this.renderer.cards.get(fromId)?.classList.add("link-source");
+    if ( viaPin ) capturePointer(this.viewport, pointerId);
+
+    // Show the string immediately, anchored at the source, so the gesture reads before any move.
+    const from = this.#anchorOf(fromId);
+    if ( from ) this.renderer.strings.drawPending(from, from);
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Finish a string at the given clue.
+   * @param {string} toId
+   */
+  #completeLink(toId) {
+    const link = this.#linking;
+    if ( !link ) return;
+    const {fromId} = link;
+    this.#cancelLink();
+    if ( fromId === toId ) return;
+    this.onLink(fromId, toId);
+  }
+
+  /* -------------------------------------------- */
+
+  /** Abandon a half-drawn string. */
+  #cancelLink() {
+    if ( !this.#linking ) return;
+    this.renderer.cards.get(this.#linking.fromId)?.classList.remove("link-source");
+    if ( this.#linking.viaPin ) releasePointer(this.viewport, this.#linking.pointerId);
+    this.#linking = null;
+    this.renderer.strings.drawPending(null, null);
+    // The toolbar tool stays on for linking several pairs in a row; the pin shortcut does not.
+    if ( !this.#linkMode ) this.viewport.classList.remove("linking");
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * The clue under a screen point, if any.
+   *
+   * Hit-tested against the cards' own rectangles rather than with `elementFromPoint`, which
+   * answers null for anything outside the visible viewport and can be shadowed by whatever the
+   * compositor has on top. The topmost card wins, matching what the user sees.
+   *
+   * @param {number} clientX
+   * @param {number} clientY
+   * @param {string} [exclude]   A clue to ignore, normally the one the string started from.
+   * @returns {string|null}
+   */
+  #clueAt(clientX, clientY, exclude) {
+    let best = null;
+    let bestZ = -Infinity;
+    for ( const [id, el] of this.renderer.cards ) {
+      if ( id === exclude ) continue;
+      const rect = el.getBoundingClientRect();
+      const inside = (clientX >= rect.left) && (clientX <= rect.right)
+        && (clientY >= rect.top) && (clientY <= rect.bottom);
+      if ( !inside ) continue;
+      const z = Number(el.style.zIndex) || 0;
+      if ( z >= bestZ ) {
+        bestZ = z;
+        best = id;
+      }
+    }
+    return best;
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Where a clue's string attaches, honouring a drag in progress.
+   * @param {string} clueId
+   * @returns {{x: number, y: number}|null}
+   */
+  #anchorOf(clueId) {
+    const page = this.getCase()?.pages.get(clueId);
+    if ( !page ) return null;
+    return pinAnchor({
+      x: page.system.x, y: page.system.y,
+      width: page.system.width, rotation: page.system.rotation
+    });
   }
 
   /* -------------------------------------------- */
@@ -393,17 +594,30 @@ export default class BoardInteractions {
     if ( this.#editing || event.target.closest("[contenteditable='true'], input, textarea") ) return;
 
     if ( event.key === "Escape" ) {
-      if ( this.#drag ) {
-        event.stopPropagation();
-        this.#cancelDrag();
-      }
+      event.stopPropagation();
+      // Unwind one step at a time, most transient first.
+      if ( this.#linking ) this.#cancelLink();
+      else if ( this.#drag ) this.#cancelDrag();
+      else if ( this.#linkMode ) this.setLinkMode(false);
+      else if ( this.#selectedString ) this.selectString(null);
       else if ( this.#selected ) this.select(null);
       return;
     }
 
-    // Delete dismisses the selected clue — it never destroys it. Only the GM can do that, from
-    // the discarded tray.
-    if ( ((event.key === "Delete") || (event.key === "Backspace")) && this.#selected ) {
+    if ( (event.key !== "Delete") && (event.key !== "Backspace") ) return;
+
+    // Delete cuts a selected string outright — unlinking is not destructive, the clues remain.
+    if ( this.#selectedString ) {
+      event.preventDefault();
+      const id = this.#selectedString;
+      this.selectString(null);
+      this.onUnlink(id);
+      return;
+    }
+
+    // On a clue, Delete sets it aside; it never destroys it. Only the GM can do that, from the
+    // discarded tray.
+    if ( this.#selected ) {
       const page = this.getCase()?.pages.get(this.#selected);
       if ( !page?.isOwner ) return;
       event.preventDefault();
@@ -418,6 +632,25 @@ export default class BoardInteractions {
    * @param {MouseEvent} event
    */
   #onContextMenu(event) {
+    // A string first: it sits under the cards, so a hit here means the pointer is on the twine.
+    const string = event.target.closest(".ib-string-hit");
+    if ( string ) {
+      const connectionId = string.parentElement?.dataset.connectionId;
+      if ( !connectionId ) return;
+      event.preventDefault();
+      this.selectString(connectionId);
+      if ( !this.getCase()?.isOwner ) return;
+      this.#showMenu(event.clientX, event.clientY, [{
+        icon: "fa-solid fa-scissors",
+        label: "INVESTIGATION_BOARD.CutString",
+        run: () => {
+          this.selectString(null);
+          this.onUnlink(connectionId);
+        }
+      }]);
+      return;
+    }
+
     const card = event.target.closest(".ib-clue");
     if ( !card ) return;
     event.preventDefault();
@@ -443,17 +676,12 @@ export default class BoardInteractions {
    * @param {JournalEntryPage} page
    */
   #showCardMenu(x, y, page) {
-    this.#closeCardMenu();
-
-    const menu = document.createElement("nav");
-    menu.className = "ib-card-menu";
-    menu.style.left = `${x}px`;
-    menu.style.top = `${y}px`;
-
     const entries = [
       {icon: "fa-solid fa-pen", label: "INVESTIGATION_BOARD.EditClue", run: () => this.onEdit(page)},
       {icon: "fa-solid fa-i-cursor", label: "INVESTIGATION_BOARD.RenameInPlace",
         run: () => this.beginInlineEdit(page.id, "title")},
+      {icon: "fa-solid fa-link-slash", label: "INVESTIGATION_BOARD.LinkFromHere",
+        run: () => this.#beginLink(page.id, false, -1)},
       {icon: "fa-solid fa-box-archive", label: "INVESTIGATION_BOARD.Dismiss",
         run: () => this.onDismiss(page)}
     ];
@@ -461,6 +689,24 @@ export default class BoardInteractions {
       entries.splice(2, 0, {icon: "fa-solid fa-link", label: "INVESTIGATION_BOARD.OpenLinked",
         run: () => this.#openLinked(page)});
     }
+    this.#showMenu(x, y, entries);
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Show a menu of actions at a screen position.
+   * @param {number} x
+   * @param {number} y
+   * @param {Array<{icon: string, label: string, run: () => void}>} entries
+   */
+  #showMenu(x, y, entries) {
+    this.#closeCardMenu();
+
+    const menu = document.createElement("nav");
+    menu.className = "ib-card-menu";
+    menu.style.left = `${x}px`;
+    menu.style.top = `${y}px`;
 
     for ( const entry of entries ) {
       const button = document.createElement("button");
