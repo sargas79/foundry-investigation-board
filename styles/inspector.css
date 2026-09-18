@@ -1,0 +1,188 @@
+/* =========================================================================
+   The Selected Clue panel.
+   ========================================================================= */
+
+.investigation-board-app .ib-inspector-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.investigation-board-app .ib-clue-name-input {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid var(--ib-border);
+  border-radius: 5px;
+  background: var(--ib-panel-raised);
+  color: var(--ib-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.investigation-board-app .ib-clue-name-input:disabled {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ib-text);
+}
+
+/* --- Category / reliability --------------------------------------------- */
+
+.investigation-board-app .ib-inspector-meta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px 10px;
+  margin: 0;
+  padding: 10px;
+  border-radius: 6px;
+  background: var(--ib-panel-raised);
+}
+
+.investigation-board-app .ib-inspector-meta dt {
+  font-size: 10px;
+  color: var(--ib-text-muted);
+  white-space: nowrap;
+}
+
+.investigation-board-app .ib-inspector-meta dd {
+  margin: 0;
+  min-width: 0;
+}
+
+.investigation-board-app .ib-inspector-meta select {
+  width: 100%;
+  height: 24px;
+  padding: 0 4px;
+  border: 1px solid var(--ib-border);
+  border-radius: 4px;
+  background: var(--ib-panel);
+  color: var(--ib-text);
+  font-size: 11px;
+}
+
+/* --- Action buttons ------------------------------------------------------ */
+
+.investigation-board-app .ib-inspector-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.investigation-board-app .ib-inspector-actions button,
+.investigation-board-app .ib-linked-doc,
+.investigation-board-app .ib-dismiss-clue {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 6px;
+  border: 1px solid var(--ib-border);
+  border-radius: 5px;
+  background: var(--ib-panel-raised);
+  color: var(--ib-text);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.investigation-board-app .ib-inspector-actions button:hover,
+.investigation-board-app .ib-linked-doc:hover {
+  border-color: var(--ib-accent);
+}
+
+.investigation-board-app .ib-linked-doc,
+.investigation-board-app .ib-dismiss-clue {
+  width: 100%;
+}
+
+.investigation-board-app .ib-dismiss-clue:hover {
+  border-color: #8d2f2c;
+  background: #8d2f2c;
+  color: #fff;
+}
+
+/* --- Sections ------------------------------------------------------------ */
+
+.investigation-board-app .ib-inspector-section .ib-panel-label {
+  margin-bottom: 6px;
+}
+
+.investigation-board-app .ib-connection-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 5px;
+  border-radius: 4px;
+}
+
+.investigation-board-app .ib-connection-row:hover {
+  background: var(--ib-panel-raised);
+}
+
+/* The string's own colour, so a row can be matched to the twine on the board. */
+.investigation-board-app .ib-connection-swatch {
+  width: 4px;
+  height: 16px;
+  flex: 0 0 auto;
+  border-radius: 2px;
+  background: var(--ib-swatch, var(--ib-pin-red));
+}
+
+.investigation-board-app .ib-connection-name {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--ib-text);
+  font-size: 11.5px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.investigation-board-app .ib-connection-name:hover {
+  color: var(--ib-accent);
+}
+
+.investigation-board-app .ib-connection-row .ib-icon-button {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  border-radius: 4px;
+  opacity: 0;
+}
+
+.investigation-board-app .ib-connection-row:hover .ib-icon-button {
+  opacity: 1;
+}
+
+/* --- Notes --------------------------------------------------------------- */
+
+.investigation-board-app .ib-note {
+  padding: 7px 9px;
+  margin-bottom: 5px;
+  border-left: 2px solid var(--ib-border);
+  border-radius: 0 4px 4px 0;
+  background: var(--ib-panel-raised);
+}
+
+.investigation-board-app .ib-note-text {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--ib-text);
+  white-space: pre-wrap;
+}
+
+.investigation-board-app .ib-note-by {
+  margin: 4px 0 0;
+  font-size: 9.5px;
+  color: var(--ib-text-muted);
+}
+
+.investigation-board-app .ib-inspector-footer {
+  margin-top: auto;
+  padding-top: 4px;
+}

@@ -22,7 +22,9 @@
     "styles/clue-cards.css",
     "styles/strings.css",
     "styles/dialogs.css",
-    "styles/tray.css"
+    "styles/tray.css",
+    "styles/inspector.css",
+    "styles/filter.css"
   ],
   "languages": [
     {
@@ -34,9 +36,13 @@
   "documentTypes": {
     "JournalEntryPage": {
       "clue": {
-        "htmlFields": ["body"],
+        "htmlFields": [
+          "body"
+        ],
         "filePathFields": {
-          "image": ["IMAGE"]
+          "image": [
+            "IMAGE"
+          ]
         }
       },
       "connection": {}

@@ -109,6 +109,17 @@ export default class BoardInteractions {
   /* -------------------------------------------- */
 
   /**
+   * Start drawing a string from a clue, as the inspector's Link button does.
+   * @param {string} clueId
+   */
+  linkFrom(clueId) {
+    if ( !this.renderer.cards.has(clueId) ) return;
+    this.#beginLink(clueId, false, -1);
+  }
+
+  /* -------------------------------------------- */
+
+  /**
    * Select a connection, clearing any clue selection.
    * @param {string|null} connectionId
    */

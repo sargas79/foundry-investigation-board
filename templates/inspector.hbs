@@ -1,8 +1,96 @@
-{{!-- Selected clue details. Made interactive in milestone 5 (#31) and milestone 4 (#25). --}}
 <aside class="ib-inspector">
     <h2 class="ib-panel-label">{{localize "INVESTIGATION_BOARD.SelectedClue"}}</h2>
 
-    <div class="ib-inspector-body">
-        <p class="ib-empty">{{localize "INVESTIGATION_BOARD.NoClueSelected"}}</p>
-    </div>
+    {{#if clue}}
+        <div class="ib-inspector-body">
+            <div class="ib-field">
+                <input type="text" class="ib-clue-name-input" name="name" value="{{clue.name}}"
+                       {{#unless clue.editable}}disabled{{/unless}}
+                       aria-label="{{localize 'INVESTIGATION_BOARD.TitleLabel'}}">
+            </div>
+
+            <dl class="ib-inspector-meta">
+                <dt>{{localize "INVESTIGATION_BOARD.CategoryLabel"}}</dt>
+                <dd>
+                    <select name="category" {{#unless clue.editable}}disabled{{/unless}}>
+                        {{selectOptions categories selected=clue.category valueAttr="value" labelAttr="label"}}
+                    </select>
+                </dd>
+                <dt>{{localize "INVESTIGATION_BOARD.ReliabilityLabel"}}</dt>
+                <dd>
+                    <select name="reliability" {{#unless clue.editable}}disabled{{/unless}}>
+                        {{selectOptions reliabilities selected=clue.reliability valueAttr="value" labelAttr="label"}}
+                    </select>
+                </dd>
+            </dl>
+
+            {{#if clue.editable}}
+                <div class="ib-inspector-actions">
+                    <button type="button" data-action="linkFromSelected">
+                        <i class="fa-solid fa-link"></i>
+                        <span>{{localize "INVESTIGATION_BOARD.LinkClue"}}</span>
+                    </button>
+                    <button type="button" data-action="addNote">
+                        <i class="fa-solid fa-note-sticky"></i>
+                        <span>{{localize "INVESTIGATION_BOARD.AddNote"}}</span>
+                    </button>
+                </div>
+            {{/if}}
+
+            {{#if clue.linkedUuid}}
+                <button type="button" class="ib-linked-doc" data-action="openLinked">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    <span>{{localize "INVESTIGATION_BOARD.OpenLinked"}}</span>
+                </button>
+            {{/if}}
+
+            {{!-- #25: the clue's strings, each with its own cut button. --}}
+            <section class="ib-inspector-section">
+                <h3 class="ib-panel-label">{{localize "INVESTIGATION_BOARD.Connections"}}</h3>
+                {{#each connections}}
+                    <div class="ib-connection-row" data-connection-id="{{this.id}}">
+                        <span class="ib-connection-swatch" style="--ib-swatch: var(--ib-pin-{{this.color}})"></span>
+                        <button type="button" class="ib-connection-name" data-action="focusConnection"
+                                data-connection-id="{{this.id}}">{{this.otherName}}</button>
+                        {{#if ../clue.editable}}
+                            <button type="button" class="ib-icon-button ib-danger" data-action="cutConnection"
+                                    data-connection-id="{{this.id}}"
+                                    data-tooltip="INVESTIGATION_BOARD.CutString"
+                                    aria-label="{{localize 'INVESTIGATION_BOARD.CutString'}}">
+                                <i class="fa-solid fa-scissors"></i>
+                            </button>
+                        {{/if}}
+                    </div>
+                {{else}}
+                    <p class="ib-empty">{{localize "INVESTIGATION_BOARD.NoConnections"}}</p>
+                {{/each}}
+            </section>
+
+            {{#if clue.notes.length}}
+                <section class="ib-inspector-section">
+                    <h3 class="ib-panel-label">{{localize "INVESTIGATION_BOARD.Notes"}}</h3>
+                    {{#each clue.notes}}
+                        <article class="ib-note">
+                            <p class="ib-note-text">{{this.text}}</p>
+                            <p class="ib-note-by">{{this.byline}}</p>
+                        </article>
+                    {{/each}}
+                </section>
+            {{/if}}
+
+            {{#if clue.editable}}
+                <footer class="ib-inspector-footer">
+                    <button type="button" class="ib-dismiss-clue" data-action="dismissClue"
+                            data-clue-id="{{clue.id}}">
+                        <i class="fa-solid fa-box-archive"></i>
+                        <span>{{localize "INVESTIGATION_BOARD.Dismiss"}}</span>
+                    </button>
+                </footer>
+            {{/if}}
+        </div>
+    {{else}}
+        <div class="ib-inspector-body">
+            <p class="ib-empty">{{localize "INVESTIGATION_BOARD.NoClueSelected"}}</p>
+        </div>
+    {{/if}}
 </aside>

@@ -1,0 +1,51 @@
+{{!-- Filter popover. Non-matching clues dim rather than disappear, so the board keeps its shape. --}}
+<section class="ib-filter {{#if filterOpen}}open{{/if}}"
+         aria-hidden="{{#if filterOpen}}false{{else}}true{{/if}}">
+    <header class="ib-filter-header">
+        <h2 class="ib-panel-label">{{localize "INVESTIGATION_BOARD.TOOL.Filter"}}</h2>
+        <button type="button" class="ib-icon-button" data-action="toggleFilter"
+                data-tooltip="INVESTIGATION_BOARD.Close"
+                aria-label="{{localize 'INVESTIGATION_BOARD.Close'}}">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </header>
+
+    <div class="ib-filter-fields">
+        <label class="ib-filter-field">
+            <span>{{localize "INVESTIGATION_BOARD.SearchLabel"}}</span>
+            <input type="search" name="text" value="{{filter.text}}"
+                   placeholder="{{localize 'INVESTIGATION_BOARD.SearchPlaceholder'}}">
+        </label>
+
+        <label class="ib-filter-field">
+            <span>{{localize "INVESTIGATION_BOARD.CategoryLabel"}}</span>
+            <select name="category">
+                <option value="">{{localize "INVESTIGATION_BOARD.AnyCategory"}}</option>
+                {{selectOptions categories selected=filter.category valueAttr="value" labelAttr="label"}}
+            </select>
+        </label>
+
+        <label class="ib-filter-field">
+            <span>{{localize "INVESTIGATION_BOARD.ReliabilityLabel"}}</span>
+            <select name="reliability">
+                <option value="">{{localize "INVESTIGATION_BOARD.AnyReliability"}}</option>
+                {{selectOptions reliabilities selected=filter.reliability valueAttr="value" labelAttr="label"}}
+            </select>
+        </label>
+
+        <label class="ib-filter-field">
+            <span>{{localize "INVESTIGATION_BOARD.AuthorLabel"}}</span>
+            <select name="author">
+                <option value="">{{localize "INVESTIGATION_BOARD.AnyAuthor"}}</option>
+                {{selectOptions authors selected=filter.author valueAttr="value" labelAttr="label"}}
+            </select>
+        </label>
+    </div>
+
+    <footer class="ib-filter-footer">
+        <span class="ib-filter-count">{{filterSummary}}</span>
+        <button type="button" class="ib-filter-clear" data-action="clearFilter">
+            {{localize "INVESTIGATION_BOARD.ClearFilter"}}
+        </button>
+    </footer>
+</section>

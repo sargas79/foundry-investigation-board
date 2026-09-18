@@ -13,18 +13,39 @@ export const CREATE_CASE_QUERY = `${MODULE_ID}.createCase`;
  */
 
 /**
+ * How widely a new case is shared.
+ *
+ * These map to the `default` ownership level, which is the one piece of sharing a player can set
+ * for themselves. The server's ownership sanitizer refuses a non-GM changing `default` on an
+ * *update*, but explicitly permits it on **creation** — so a Trusted Player can start a case the
+ * whole party can work on without a GM being involved at all. Changing it afterwards still needs
+ * a GM, which is why the choice is offered up front.
+ * @type {Record<string, () => number>}
+ */
+export const VISIBILITY = {
+  private: () => CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE,
+  partyRead: () => CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+  party: () => CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+};
+
+/* -------------------------------------------- */
+
+/**
  * Build the data for a new case.
  * @param {object} options
  * @param {string} options.name
  * @param {string} [options.classification]
- * @param {string} options.ownerId   The user the case belongs to.
+ * @param {string} options.ownerId          The user the case belongs to.
+ * @param {string} [options.visibility]     A key of {@link VISIBILITY}.
  * @returns {object}
  */
-export function caseData({name, classification = "", ownerId}) {
+export function caseData({name, classification = "", ownerId, visibility = "private"}) {
+  const defaultLevel = (VISIBILITY[visibility] ?? VISIBILITY.private)();
   return {
     name,
     ownership: {
-      default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE,
+      default: defaultLevel,
+      // The creator is always an owner, whatever everyone else gets.
       [ownerId]: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
     },
     flags: {
@@ -74,9 +95,11 @@ export function findActiveGM() {
  * @param {string} [options.classification]
  * @returns {Promise<JournalEntry|null>}
  */
-export async function createCase({name, classification = ""}) {
-  const data = caseData({name, classification, ownerId: game.user.id});
+export async function createCase({name, classification = "", visibility = "private"}) {
+  const data = caseData({name, classification, ownerId: game.user.id, visibility});
 
+  // The ordinary path: anyone with JOURNAL_CREATE — Trusted Player and above by default — makes
+  // their own case, sharing included, with no GM needed.
   if ( canCreateDirectly() ) return JournalEntry.create(data);
 
   const gm = findActiveGM();
@@ -85,7 +108,9 @@ export async function createCase({name, classification = ""}) {
     return null;
   }
 
-  const result = await gm.query(CREATE_CASE_QUERY, {name, classification, ownerId: game.user.id});
+  const result = await gm.query(CREATE_CASE_QUERY, {
+    name, classification, visibility, ownerId: game.user.id
+  });
   if ( !result?.uuid ) {
     ui.notifications.error("INVESTIGATION_BOARD.NOTIFY.CreateFailed", {localize: true});
     return null;
@@ -100,7 +125,7 @@ export async function createCase({name, classification = ""}) {
  * @param {{name: string, classification: string, ownerId: string}} request
  * @returns {Promise<{uuid: string}|{error: string}>}
  */
-export async function handleCreateCaseQuery({name, classification, ownerId}) {
+export async function handleCreateCaseQuery({name, classification, ownerId, visibility}) {
   // The asking player is the only one this may be created for, and the name is theirs to choose,
   // but it still has to be a real user and a usable name.
   const owner = game.users.get(ownerId);
@@ -109,6 +134,7 @@ export async function handleCreateCaseQuery({name, classification, ownerId}) {
   const journal = await JournalEntry.create(caseData({
     name: String(name ?? "").trim().slice(0, 200) || game.i18n.localize("INVESTIGATION_BOARD.UntitledCase"),
     classification: String(classification ?? "").trim().slice(0, 100),
+    visibility: visibility in VISIBILITY ? visibility : "private",
     ownerId
   }));
   return journal ? {uuid: journal.uuid} : {error: "create-failed"};

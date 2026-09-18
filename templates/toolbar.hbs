@@ -14,7 +14,9 @@
         <i class="fa-solid fa-pen"></i>
         <span>{{localize "INVESTIGATION_BOARD.TOOL.DrawConnection"}}</span>
     </button>
-    <button type="button" class="ib-tool" data-action="filter" disabled>
+    <button type="button" class="ib-tool {{#if filterActive}}active{{/if}}"
+            data-action="toggleFilter" {{#unless hasCase}}disabled{{/unless}}
+            aria-pressed="{{#if filterOpen}}true{{else}}false{{/if}}">
         <i class="fa-solid fa-filter"></i>
         <span>{{localize "INVESTIGATION_BOARD.TOOL.Filter"}}</span>
     </button>

@@ -6,6 +6,8 @@ import DropHandler from "../board/drop-handler.mjs";
 import ClueDialog from "./clue-dialog.mjs";
 import CaseConfig from "./case-config.mjs";
 import {createCase} from "../data/case-create.mjs";
+import {CATEGORIES, RELIABILITY} from "../constants.mjs";
+import {EMPTY_FILTER, applyFilter, isActive} from "../board/filter.mjs";
 import {
   canConnect,
   caseState,
@@ -14,6 +16,7 @@ import {
   freeSpotNear,
   getCases,
   getClues,
+  getConnectionsFor,
   getDismissed,
   isCase,
   recoverClue,
@@ -63,7 +66,14 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       toggleTray: InvestigationBoard.#onToggleTray,
       dismissClue: InvestigationBoard.#onDismissClue,
       recoverClue: InvestigationBoard.#onRecoverClue,
-      deleteClue: InvestigationBoard.#onDeleteClue
+      deleteClue: InvestigationBoard.#onDeleteClue,
+      linkFromSelected: InvestigationBoard.#onLinkFromSelected,
+      addNote: InvestigationBoard.#onAddNote,
+      openLinked: InvestigationBoard.#onOpenLinked,
+      focusConnection: InvestigationBoard.#onFocusConnection,
+      cutConnection: InvestigationBoard.#onCutConnection,
+      toggleFilter: InvestigationBoard.#onToggleFilter,
+      clearFilter: InvestigationBoard.#onClearFilter
     }
   };
 
@@ -73,6 +83,7 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
     header: {template: modulePath("templates/header.hbs")},
     board: {template: modulePath("templates/board.hbs")},
     tray: {template: modulePath("templates/tray.hbs")},
+    filter: {template: modulePath("templates/filter.hbs")},
     toolbar: {template: modulePath("templates/toolbar.hbs")},
     inspector: {template: modulePath("templates/inspector.hbs")}
   };
@@ -137,6 +148,15 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
   /** How the case list is grouped: "all", "status" or "classification". */
   #grouping = "all";
 
+  /** The clue the inspector is showing. */
+  #selectedClue = null;
+
+  /** Whether the filter popover is showing. */
+  #filterOpen = false;
+
+  /** The active filter. */
+  #filter = {...EMPTY_FILTER};
+
   /** The board's pan/zoom controller, once rendered. */
   get view() {
     return this.#view;
@@ -172,6 +192,8 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       ...this.#sidebarContext(),
       trayOpen: this.#trayOpen,
       linkMode: !!this.#interactions?.linkMode,
+      ...this.#inspectorContext(),
+      ...this.#filterContext(),
       dismissed: currentCase ? getDismissed(currentCase).map(page => ({
         id: page.id,
         name: page.name,
@@ -180,6 +202,129 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
         dismissedLabel: this.#dismissedLabel(page)
       })) : []
     });
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * The filter popover's state, and who has touched clues in this case.
+   * @returns {object}
+   */
+  #filterContext() {
+    const journal = this.currentCase;
+    const localized = record => Object.entries(record).map(([value, label]) => ({
+      value,
+      label: game.i18n.localize(label)
+    }));
+
+    // Only offer authors who have actually touched a clue here; a world's full user list is
+    // mostly noise for one case.
+    const authorIds = new Set(getClues(journal).map(p => p._stats?.lastModifiedBy).filter(Boolean));
+    const authors = [...authorIds].map(id => ({
+      value: id,
+      label: game.users.get(id)?.name ?? game.i18n.localize("INVESTIGATION_BOARD.SomeoneElse")
+    }));
+
+    let filterSummary = "";
+    if ( journal && isActive(this.#filter) ) {
+      const {clues, total} = applyFilter(journal, this.#filter);
+      filterSummary = game.i18n.format("INVESTIGATION_BOARD.FilterCount",
+        {shown: clues.size, total});
+    }
+
+    return {
+      filterOpen: this.#filterOpen,
+      filter: this.#filter,
+      filterActive: isActive(this.#filter),
+      filterSummary,
+      authors,
+      categories: localized(CATEGORIES),
+      reliabilities: localized(RELIABILITY)
+    };
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Dim whatever the filter excludes, leaving every card where it is.
+   */
+  #applyFilterToBoard() {
+    if ( !this.#renderer ) return;
+    const journal = this.currentCase;
+
+    if ( !journal || !isActive(this.#filter) ) {
+      for ( const el of this.#renderer.cards.values() ) el.classList.remove("dimmed");
+      this.#renderer.strings.setFiltered(null);
+      return;
+    }
+
+    const {clues, connections} = applyFilter(journal, this.#filter);
+    for ( const [id, el] of this.#renderer.cards ) el.classList.toggle("dimmed", !clues.has(id));
+    this.#renderer.strings.setFiltered(connections);
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * The selected clue's details, its strings and its notes.
+   * @returns {object}
+   */
+  #inspectorContext() {
+    const localized = record => Object.entries(record).map(([value, label]) => ({
+      value,
+      label: game.i18n.localize(label)
+    }));
+    const base = {
+      categories: localized(CATEGORIES),
+      reliabilities: localized(RELIABILITY)
+    };
+
+    const journal = this.currentCase;
+    const page = this.#selectedClue ? journal?.pages.get(this.#selectedClue) : null;
+    if ( !page ) return {...base, clue: null, connections: []};
+
+    return {
+      ...base,
+      clue: {
+        id: page.id,
+        name: page.name,
+        category: page.system.category,
+        reliability: page.system.reliability,
+        linkedUuid: page.system.linkedUuid,
+        editable: page.isOwner,
+        notes: (page.system.notes ?? []).map(note => ({
+          text: note.text,
+          byline: this.#noteByline(note)
+        }))
+      },
+      connections: getConnectionsFor(journal, page.id).map(connection => ({
+        id: connection.id,
+        color: connection.system.color,
+        label: connection.system.label,
+        otherName: journal.pages.get(connection.system.other(page.id))?.name
+          ?? game.i18n.localize("INVESTIGATION_BOARD.MissingClue")
+      }))
+    };
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * "Name, 5 minutes ago" for a clue note.
+   * @param {{author: string, time: number}} note
+   * @returns {string}
+   */
+  #noteByline(note) {
+    const who = game.users.get(note.author)?.name
+      ?? game.i18n.localize("INVESTIGATION_BOARD.SomeoneElse");
+    let when = null;
+    try {
+      if ( note.time ) when = foundry.utils.timeSince(new Date(note.time));
+    }
+    catch {
+      when = null;
+    }
+    return when ? `${who} — ${when}` : who;
   }
 
   /* -------------------------------------------- */
@@ -289,9 +434,72 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
     }
 
     this.#bindProgress();
+    this.#bindInspectorFields();
+    this.#bindFilterFields();
 
     this.#attachBoardView();
     await this.#drawCase();
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Wire the filter's fields.
+   *
+   * The text box filters as you type — the board responding live is the whole point — while the
+   * selects apply on change. Neither writes anything: a filter is one player's view, not state
+   * the others should see.
+   */
+  #bindFilterFields() {
+    const panel = this.element.querySelector('[data-application-part="filter"]');
+    if ( !panel ) return;
+
+    const update = async (field, value, rerenderChrome) => {
+      this.#filter = {...this.#filter, [field]: value};
+      this.#applyFilterToBoard();
+      if ( rerenderChrome ) await this.render({parts: ["filter", "toolbar"]});
+      else {
+        // Keep the count and the tool's badge honest without rebuilding the field being typed in.
+        const summary = panel.querySelector(".ib-filter-count");
+        if ( summary ) summary.textContent = this.#filterContext().filterSummary;
+        this.element.querySelector('[data-action="toggleFilter"]')
+          ?.classList.toggle("active", isActive(this.#filter));
+      }
+    };
+
+    const text = panel.querySelector('[name="text"]');
+    if ( text ) text.addEventListener("input", event => update("text", event.target.value, false));
+
+    for ( const select of panel.querySelectorAll("select[name]") ) {
+      select.addEventListener("change", event => update(event.target.name, event.target.value, true));
+    }
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Save the inspector's name, category and reliability as they are changed.
+   *
+   * Written on "change" rather than every keystroke, so renaming a clue is one update rather than
+   * one per character.
+   */
+  #bindInspectorFields() {
+    const panel = this.element.querySelector('[data-application-part="inspector"]');
+    if ( !panel ) return;
+
+    const save = async (field, value) => {
+      const page = this.currentCase?.pages.get(this.#selectedClue);
+      if ( !page?.isOwner ) return;
+      if ( field === "name" ) {
+        const name = value.trim() || game.i18n.localize("INVESTIGATION_BOARD.UntitledClue");
+        if ( name !== page.name ) await page.update({name});
+      }
+      else if ( value !== page.system[field] ) await page.update({system: {[field]: value}});
+    };
+
+    for ( const input of panel.querySelectorAll("[name]") ) {
+      input.addEventListener("change", event => save(event.target.name, event.target.value));
+    }
   }
 
   /* -------------------------------------------- */
@@ -332,6 +540,8 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
     await this.#renderer.render(currentCase);
 
     this.#consumePendingInlineEdit();
+    // Cards are redrawn on every render, so the filter has to be re-applied over them.
+    this.#applyFilterToBoard();
 
     if ( !currentCase || this.#framed.has(currentCase.id) ) return;
     this.#framed.add(currentCase.id);
@@ -371,6 +581,10 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       view: this.#view,
       renderer: this.#renderer,
       getCase: () => this.currentCase,
+      onSelect: async clueId => {
+        this.#selectedClue = clueId;
+        await this.render({parts: ["inspector"]});
+      },
       onEdit: page => ClueDialog.edit(page),
       onDismiss: page => dismissClue(page),
       onLink: (fromId, toId) => this.#linkClues(fromId, toId),
@@ -550,23 +764,44 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
    * @returns {Promise<void>}
    */
   static async #onCreateCase() {
-    const name = await foundry.applications.api.DialogV2.prompt({
+    const loc = key => game.i18n.localize(`INVESTIGATION_BOARD.${key}`);
+    // Sharing is offered here because this is the only moment a player can set it: the server
+    // permits a non-GM to set default ownership on creation, but not to change it afterwards.
+    const result = await foundry.applications.api.DialogV2.prompt({
       window: {title: "INVESTIGATION_BOARD.NewCase"},
-      content: `<div class="form-group"><label for="ib-new-case-name">${
-        game.i18n.localize("INVESTIGATION_BOARD.CaseNameLabel")}</label>
-        <div class="form-fields"><input type="text" id="ib-new-case-name" name="name" autofocus
-          placeholder="${game.i18n.localize("INVESTIGATION_BOARD.CaseNamePlaceholder")}"></div></div>`,
+      content: `
+        <div class="form-group">
+          <label for="ib-new-case-name">${loc("CaseNameLabel")}</label>
+          <div class="form-fields">
+            <input type="text" id="ib-new-case-name" name="name" autofocus
+                   placeholder="${loc("CaseNamePlaceholder")}">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="ib-new-case-visibility">${loc("VisibilityLabel")}</label>
+          <div class="form-fields">
+            <select id="ib-new-case-visibility" name="visibility">
+              <option value="party">${loc("VISIBILITY.Party")}</option>
+              <option value="partyRead">${loc("VISIBILITY.PartyRead")}</option>
+              <option value="private">${loc("VISIBILITY.Private")}</option>
+            </select>
+          </div>
+          <p class="hint">${loc("VisibilityHint")}</p>
+        </div>`,
       ok: {
         label: "INVESTIGATION_BOARD.Create",
         icon: "fa-solid fa-folder-plus",
-        callback: (_event, button) => button.form.elements.name.value.trim()
+        callback: (_event, button) => ({
+          name: button.form.elements.name.value.trim(),
+          visibility: button.form.elements.visibility.value
+        })
       },
       modal: true,
       rejectClose: false
     });
-    if ( !name ) return;
+    if ( !result?.name ) return;
 
-    const journal = await createCase({name});
+    const journal = await createCase(result);
     if ( journal ) await this.showCase(journal.id);
   }
 
@@ -654,6 +889,29 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
   /* -------------------------------------------- */
 
   /**
+   * Open or close the filter popover.
+   * @this {InvestigationBoard}
+   */
+  static async #onToggleFilter() {
+    this.#filterOpen = !this.#filterOpen;
+    await this.render({parts: ["filter", "toolbar"]});
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Drop the filter and bring the whole board back.
+   * @this {InvestigationBoard}
+   */
+  static async #onClearFilter() {
+    this.#filter = {...EMPTY_FILTER};
+    this.#applyFilterToBoard();
+    await this.render({parts: ["filter", "toolbar"]});
+  }
+
+  /* -------------------------------------------- */
+
+  /**
    * Open or close the discarded tray.
    * @this {InvestigationBoard}
    */
@@ -725,6 +983,95 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
     await journal.deleteEmbeddedDocuments("JournalEntryPage",
       [page.id, ...connections.map(p => p.id)]);
     await this.render({parts: ["tray", "toolbar"]});
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Start a string from the clue in the inspector.
+   * @this {InvestigationBoard}
+   */
+  static #onLinkFromSelected() {
+    if ( this.#selectedClue ) this.#interactions?.linkFrom(this.#selectedClue);
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Add a dated note to the selected clue — the running commentary a case accumulates.
+   * @this {InvestigationBoard}
+   * @returns {Promise<void>}
+   */
+  static async #onAddNote() {
+    const page = this.currentCase?.pages.get(this.#selectedClue);
+    if ( !page?.isOwner ) return;
+
+    const text = await foundry.applications.api.DialogV2.prompt({
+      window: {title: "INVESTIGATION_BOARD.AddNote"},
+      content: `<div class="form-group stacked"><textarea name="note" rows="4" autofocus
+                  placeholder="${game.i18n.localize("INVESTIGATION_BOARD.NotePlaceholder")}"></textarea></div>`,
+      ok: {
+        label: "INVESTIGATION_BOARD.AddNote",
+        icon: "fa-solid fa-plus",
+        callback: (_event, button) => button.form.elements.note.value.trim()
+      },
+      modal: true,
+      rejectClose: false
+    });
+    if ( !text ) return;
+
+    // Appended to a copy: writing the whole array back is how an ArrayField takes an addition.
+    await page.update({
+      system: {
+        notes: [...page.system.notes, {author: game.user.id, text, time: Date.now()}]
+      }
+    });
+    await this.render({parts: ["inspector"]});
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Open the document the selected clue was made from.
+   * @this {InvestigationBoard}
+   * @returns {Promise<void>}
+   */
+  static async #onOpenLinked() {
+    const page = this.currentCase?.pages.get(this.#selectedClue);
+    const uuid = page?.system.linkedUuid;
+    if ( !uuid ) return;
+    const document = await fromUuid(uuid);
+    if ( !document ) {
+      ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.LinkBroken", {localize: true});
+      return;
+    }
+    document.sheet?.render({force: true});
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Highlight a string listed in the inspector, so it can be picked out among many.
+   * @this {InvestigationBoard}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static #onFocusConnection(_event, target) {
+    this.#interactions?.selectString(target.dataset.connectionId);
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Cut a string from the inspector's list.
+   * @this {InvestigationBoard}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   * @returns {Promise<void>}
+   */
+  static async #onCutConnection(_event, target) {
+    await this.#unlinkClues(target.dataset.connectionId);
+    await this.render({parts: ["inspector"]});
   }
 
   /* -------------------------------------------- */

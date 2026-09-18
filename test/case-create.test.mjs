@@ -13,7 +13,7 @@ export default async function testCaseCreate() {
 
   describe("caseData");
 
-  await check("makes the requesting user the sole owner", () => {
+  await check("makes the requesting user the sole owner by default", () => {
     const data = caseData({name: "The Ashwood Murders", ownerId: "player1"});
     assert(data.ownership.default === CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE,
       `default ownership was ${data.ownership.default}`);
@@ -29,6 +29,28 @@ export default async function testCaseCreate() {
     assert(flags.status === "active", `status was ${flags.status}`);
     assert(flags.progress === 0, `progress was ${flags.progress}`);
     assert(flags.archived === false, "a new case should not be archived");
+  });
+
+  // The one piece of sharing a player can set for themselves. The server refuses a non-GM
+  // changing `default` on update, but permits it on creation — so a Trusted Player can start a
+  // party-wide case with no GM involved.
+  await check("sets default ownership from the chosen visibility", () => {
+    const levels = CONST.DOCUMENT_OWNERSHIP_LEVELS;
+    const of = visibility => caseData({name: "X", ownerId: "p", visibility}).ownership;
+
+    assert(of("party").default === levels.OWNER, "the party should be able to work on it");
+    assert(of("partyRead").default === levels.OBSERVER, "the party should be able to watch it");
+    assert(of("private").default === levels.NONE, "a private case should be hidden");
+    assert(of(undefined).default === levels.NONE, "an unspecified case should default to private");
+    assert(of("nonsense").default === levels.NONE, "an unknown visibility should fall back to private");
+  });
+
+  await check("the creator owns the case whatever the visibility", () => {
+    for ( const visibility of ["party", "partyRead", "private"] ) {
+      const ownership = caseData({name: "X", ownerId: "p", visibility}).ownership;
+      assert(ownership.p === CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER,
+        `the creator was not an owner under "${visibility}"`);
+    }
   });
 
   await check("carries a classification when given one", () => {
