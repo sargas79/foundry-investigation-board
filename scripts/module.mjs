@@ -73,6 +73,25 @@ Hooks.once("ready", () => {
 });
 
 /* -------------------------------------------- */
+/*  Document synchronisation                    */
+/* -------------------------------------------- */
+
+/**
+ * Keep an open board in step with the documents behind it.
+ *
+ * These fire on every client, which is what makes the board collaborative: one player moving a clue
+ * writes one document update, and everyone else's board patches that single card in place. A full
+ * re-render here would interrupt whatever the other players were doing.
+ */
+Hooks.on("createJournalEntryPage", page => board?.onPageChange(page, "upsert"));
+Hooks.on("updateJournalEntryPage", page => board?.onPageChange(page, "upsert"));
+Hooks.on("deleteJournalEntryPage", page => board?.onPageChange(page, "delete"));
+
+Hooks.on("updateJournalEntry", journal => board?.onCaseChange(journal, "update"));
+Hooks.on("deleteJournalEntry", journal => board?.onCaseChange(journal, "delete"));
+Hooks.on("createJournalEntry", journal => board?.onCaseChange(journal, "update"));
+
+/* -------------------------------------------- */
 /*  Fonts                                       */
 /* -------------------------------------------- */
 

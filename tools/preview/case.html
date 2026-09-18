@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Investigation Board — case rendering</title>
+  <link rel="stylesheet" href="/styles/fonts.css">
+  <link rel="stylesheet" href="/styles/investigation-board.css">
+  <link rel="stylesheet" href="/styles/clue-cards.css">
+  <link rel="stylesheet" href="/styles/strings.css">
+  <style>
+    html, body { height: 100%; margin: 0; background: #0b0f13; }
+    body { display: grid; grid-template-rows: 1fr; padding: 12px; box-sizing: border-box; }
+    .investigation-board-app { display: flex; flex-direction: column; min-height: 0; }
+    .window-content { flex: 1; min-height: 0; }
+    .probe { position: fixed; right: 16px; bottom: 12px; z-index: 10;
+             font: 11px/1.5 ui-monospace, monospace; color: #8c98a4;
+             background: rgb(18 23 28 / 94%); border: 1px solid #39424c;
+             border-radius: 6px; padding: 6px 9px; white-space: pre; }
+  </style>
+</head>
+<body>
+  <div class="investigation-board-app investigation-board">
+    <section class="window-content investigation-board-content">
+      <aside class="ib-sidebar" data-application-part="sidebar">
+        <header class="ib-sidebar-header"><span class="ib-sidebar-title">Case Files</span></header>
+        <section class="ib-case-list"><h3 class="ib-case-list-label">Case Files</h3>
+          <button class="ib-case-row active">The Ashwood Murders</button></section>
+      </aside>
+      <header class="ib-header" data-application-part="header">
+        <div class="ib-header-titles"><h1 class="ib-case-title">The Ashwood Murders</h1>
+          <p class="ib-case-status">Status: <span class="ib-status-value" data-status="active">Active</span></p></div>
+        <div class="ib-progress"><div class="ib-progress-track"><div class="ib-progress-fill" style="width:68%"></div></div>
+          <span class="ib-progress-value">68%</span></div>
+      </header>
+      <section class="ib-board-frame" data-application-part="board">
+        <div class="ib-board-viewport">
+          <div class="ib-board-world">
+            <svg class="ib-string-layer" xmlns="http://www.w3.org/2000/svg"></svg>
+            <div class="ib-clue-layer"></div>
+          </div>
+        </div>
+      </section>
+      <aside class="ib-inspector" data-application-part="inspector">
+        <h2 class="ib-panel-label">Selected Clue</h2>
+        <div class="ib-inspector-body"><p class="ib-empty">Select a clue on the board to inspect it.</p></div>
+      </aside>
+    </section>
+  </div>
+  <div class="probe" id="probe">…</div>
+
+  <script type="module">
+    // --- Stand-ins for the parts of Foundry the render path touches ----------
+    const MODULE_ID = "investigation-board";
+    const STRINGS = {
+      "INVESTIGATION_BOARD.CATEGORY.Person": "Person of Interest",
+      "INVESTIGATION_BOARD.CATEGORY.Physical": "Physical Evidence",
+      "INVESTIGATION_BOARD.CATEGORY.Document": "Document",
+      "INVESTIGATION_BOARD.CATEGORY.Location": "Location",
+      "INVESTIGATION_BOARD.CATEGORY.Lead": "Lead",
+      "INVESTIGATION_BOARD.CATEGORY.Testimony": "Testimony",
+      "INVESTIGATION_BOARD.CATEGORY.Other": "Other",
+      "INVESTIGATION_BOARD.RELIABILITY.Verified": "Verified",
+      "INVESTIGATION_BOARD.RELIABILITY.Unverified": "Unverified",
+      "INVESTIGATION_BOARD.RELIABILITY.Corroborated": "Corroborated",
+      "INVESTIGATION_BOARD.RELIABILITY.Questionable": "Questionable",
+      "INVESTIGATION_BOARD.RELIABILITY.Debunked": "Debunked"
+    };
+    // enrichHTML is async in Foundry; keep it async here so the timing matches.
+    window.foundry = {applications: {ux: {TextEditor: {implementation: {
+      enrichHTML: async html => html
+    }}}}};
+    window.game = {i18n: {localize: k => STRINGS[k] ?? k}};
+    Math.clamp ??= (n, min, max) => Math.min(Math.max(n, min), max);
+
+    const TEMPLATES = {
+      polaroid: {hasImage: true, hasBody: false}, mugshot: {hasImage: true, hasBody: true},
+      profile: {hasImage: true, hasBody: true}, document: {hasImage: false, hasBody: true},
+      letter: {hasImage: false, hasBody: true}, sticky: {hasImage: false, hasBody: true},
+      map: {hasImage: true, hasBody: false}
+    };
+    const portrait = `data:image/svg+xml,${encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320"><rect width="240" height="320" fill="#6e6e6e"/><circle cx="120" cy="118" r="54" fill="#9a9a9a"/><path d="M30 320c0-62 40-104 90-104s90 42 90 104z" fill="#9a9a9a"/></svg>`)}`;
+
+    /** A stand-in JournalEntryPage. */
+    function makePage(id, type, name, system) {
+      const base = type === `${MODULE_ID}.clue`
+        ? {template: "document", image: null, body: "", pinColor: "red", redacted: false,
+           category: "other", reliability: "unverified", x: 0, y: 0, rotation: 0, width: 200,
+           z: 0, linkedUuid: null, dismissed: false}
+        : {from: "", to: "", color: "red", label: "", style: "solid"};
+      const sys = {...base, ...system};
+      if ( type === `${MODULE_ID}.clue` ) {
+        Object.defineProperty(sys, "templateConfig", {get() { return TEMPLATES[this.template]; }});
+      } else {
+        sys.touches = function(cid) { return (this.from === cid) || (this.to === cid); };
+        sys.other = function(cid) { return this.from === cid ? this.to : this.to === cid ? this.from : null; };
+      }
+      return {id, type, name, system: sys, visible: true, isOwner: true, parent: null};
+    }
+
+    /** A stand-in JournalEntry with a pages collection. */
+    function makeJournal(id, name, pages) {
+      const map = new Map(pages.map(p => [p.id, p]));
+      const journal = {
+        id, name, visible: true,
+        flags: {[MODULE_ID]: {isCase: true, status: "active", progress: 68}},
+        getFlag(scope, key) { return this.flags?.[scope]?.[key]; },
+        pages: {
+          get: pid => map.get(pid),
+          filter: fn => [...map.values()].filter(fn),
+          get contents() { return [...map.values()]; },
+          add(p) { p.parent = journal; map.set(p.id, p); },
+          delete: pid => map.delete(pid)
+        }
+      };
+      for ( const p of pages ) p.parent = journal;
+      return journal;
+    }
+
+    const CLUE = `${MODULE_ID}.clue`;
+    const CONN = `${MODULE_ID}.connection`;
+
+    const pages = [
+      makePage("a", CLUE, "Mara Vale", {template: "polaroid", image: portrait, pinColor: "red",
+        category: "person", reliability: "verified", x: 90, y: 90, rotation: -6, width: 175, z: 1}),
+      makePage("b", CLUE, "Forensic Report", {template: "document", pinColor: "white",
+        category: "document", reliability: "verified", x: 430, y: 70, rotation: 4, width: 215, z: 2,
+        body: "<p>Partial print on the clasp. Match probability 0.82.</p>"}),
+      makePage("c", CLUE, "Ashwood Lane", {template: "map", image: portrait, pinColor: "black",
+        category: "location", reliability: "corroborated", x: 780, y: 120, rotation: -2, width: 195, z: 1}),
+      makePage("d", CLUE, "Follow the money", {template: "sticky", pinColor: "yellow",
+        category: "lead", reliability: "unverified", x: 180, y: 430, rotation: 8, width: 180, z: 3,
+        body: "<p>Pawn shop receipts, week of the 12th</p>"}),
+      makePage("e", CLUE, "Witness", {template: "profile", image: portrait, pinColor: "green",
+        category: "testimony", reliability: "questionable", x: 540, y: 440, rotation: 0, width: 235, z: 1,
+        body: "<p>Grey coat near the bridge, just before midnight.</p>"}),
+      // A dismissed clue: must not appear on the board, and neither must its string.
+      makePage("z", CLUE, "Discarded lead", {template: "sticky", pinColor: "blue", x: 900, y: 430,
+        width: 160, dismissed: true, body: "<p>Ruled out.</p>"}),
+
+      makePage("s1", CONN, "link", {from: "a", to: "b", color: "red"}),
+      makePage("s2", CONN, "link", {from: "b", to: "c", color: "white", style: "dashed", label: "same night"}),
+      makePage("s3", CONN, "link", {from: "a", to: "d", color: "yellow"}),
+      makePage("s4", CONN, "link", {from: "d", to: "e", color: "green", style: "dotted", label: "alibi?"}),
+      // Attached to a dismissed clue: must be filtered out.
+      makePage("s5", CONN, "link", {from: "e", to: "z", color: "blue"}),
+      // Dangling: points at a clue that does not exist at all.
+      makePage("s6", CONN, "link", {from: "a", to: "does-not-exist", color: "red"})
+    ];
+
+    const journal = makeJournal("case1", "The Ashwood Murders", pages);
+    window.game.journal = {get: id => (id === journal.id ? journal : null),
+                           filter: fn => [journal].filter(fn)};
+
+    const {default: BoardView} = await import("/scripts/board/board-view.mjs");
+    const {default: BoardRenderer} = await import("/scripts/board/board-renderer.mjs");
+    const caseApi = await import("/scripts/data/case.mjs");
+
+    const viewport = document.querySelector(".ib-board-viewport");
+    const world = document.querySelector(".ib-board-world");
+    const view = new BoardView(viewport, world).attach();
+    const renderer = new BoardRenderer(
+      world.querySelector(".ib-clue-layer"),
+      world.querySelector(".ib-string-layer")
+    );
+
+    await renderer.render(journal);
+    const bounds = caseApi.clueBounds(caseApi.getClues(journal));
+    if ( bounds ) view.fit(bounds);
+
+    const probe = document.getElementById("probe");
+    const report = () => {
+      probe.textContent =
+        `cards   ${document.querySelectorAll(".ib-clue").length}\n` +
+        `strings ${document.querySelectorAll(".ib-string").length}\n` +
+        `scale   ${view.transform.scale.toFixed(3)}`;
+    };
+    report();
+    view.onChange(report);
+
+    Object.assign(window, {view, renderer, journal, caseApi, makePage, report, CLUE, CONN});
+
+    const {runBoardRendererTests} = await import("/tools/preview/board-renderer.spec.mjs");
+    window.runBoardRendererTests = async () => {
+      const out = await runBoardRendererTests({renderer, journal, makePage, CLUE, CONN});
+      report();
+      return out;
+    };
+  </script>
+</body>
+</html>

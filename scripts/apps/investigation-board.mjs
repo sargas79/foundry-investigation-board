@@ -1,5 +1,7 @@
-import {MODULE_ID, modulePath} from "../constants.mjs";
+import {MODULE_ID, PAGE_TYPES, modulePath} from "../constants.mjs";
 import BoardView from "../board/board-view.mjs";
+import BoardRenderer from "../board/board-renderer.mjs";
+import {caseState, clueBounds, getCases, getClues, isCase} from "../data/case.mjs";
 
 const {ApplicationV2, HandlebarsApplicationMixin} = foundry.applications.api;
 
@@ -73,9 +75,23 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
    */
   #viewStates = new Map();
 
+  /**
+   * Draws the current case onto the board and keeps it in step with the documents.
+   * @type {BoardRenderer|null}
+   */
+  #renderer = null;
+
+  /** Cases whose view has already been framed, so opening one doesn't re-fit on every render. */
+  #framed = new Set();
+
   /** The board's pan/zoom controller, once rendered. */
   get view() {
     return this.#view;
+  }
+
+  /** The board's renderer, once rendered. */
+  get renderer() {
+    return this.#renderer;
   }
 
   /**
@@ -99,8 +115,13 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       isGM: game.user.isGM,
       currentCase,
       hasCase: !!currentCase,
-      // Populated in milestone 5; the shell renders an empty sidebar until then.
-      cases: []
+      state: currentCase ? caseState(currentCase) : null,
+      cases: getCases().map(j => ({
+        id: j.id,
+        name: j.name,
+        active: j.id === this.#caseId,
+        ...caseState(j)
+      }))
     });
   }
 
@@ -111,6 +132,26 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
     super._onRender(context, options);
     this.element.classList.toggle("maximized", this.#maximized);
     this.#attachBoardView();
+    this.#drawCase();
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Draw the current case, framing it the first time it is opened.
+   * @returns {Promise<void>}
+   */
+  async #drawCase() {
+    if ( !this.#renderer ) return;
+    const currentCase = this.currentCase;
+    await this.#renderer.render(currentCase);
+
+    if ( !currentCase || this.#framed.has(currentCase.id) ) return;
+    this.#framed.add(currentCase.id);
+    // Only frame a case the user hasn't already positioned themselves.
+    if ( this.#viewStates.has(currentCase.id) ) return;
+    const bounds = clueBounds(getClues(currentCase));
+    if ( bounds ) this.#view?.fit(bounds);
   }
 
   /* -------------------------------------------- */
@@ -132,6 +173,11 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
     }
 
     this.#view = new BoardView(viewport, world).attach();
+    this.#renderer = new BoardRenderer(
+      world.querySelector(".ib-clue-layer"),
+      world.querySelector(".ib-string-layer")
+    );
+
     const saved = this.#caseId ? this.#viewStates.get(this.#caseId) : null;
     if ( saved ) this.#view.setTransform(saved);
     this.#view.onChange(() => this.#saveViewState());
@@ -150,7 +196,9 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
   _onClose(options) {
     this.#saveViewState();
     this.#view?.destroy();
+    this.#renderer?.clear();
     this.#view = null;
+    this.#renderer = null;
     super._onClose(options);
   }
 
@@ -164,11 +212,65 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
    * @returns {Promise<InvestigationBoard>}
    */
   async open(caseId) {
-    if ( caseId !== undefined ) this.#caseId = caseId;
+    if ( caseId === undefined ) this.#caseId ??= getCases()[0]?.id ?? null;
+    else this.#caseId = caseId;
     await this.render({force: true});
     if ( this.minimized ) await this.maximize();
     this.bringToFront();
     return this;
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Switch to a different case.
+   * @param {string|null} caseId
+   * @returns {Promise<void>}
+   */
+  async showCase(caseId) {
+    if ( caseId === this.#caseId ) return;
+    this.#saveViewState();
+    this.#caseId = caseId;
+    await this.render();
+  }
+
+  /* -------------------------------------------- */
+  /*  Document synchronisation                    */
+  /* -------------------------------------------- */
+
+  /**
+   * Apply a page change to the board without a full re-render, so a drag in progress and the
+   * current selection both survive another player's edit.
+   * @param {JournalEntryPage} page
+   * @param {"upsert"|"delete"} action
+   * @returns {Promise<void>}
+   */
+  async onPageChange(page, action) {
+    if ( !this.rendered || (page.parent?.id !== this.#caseId) || !this.#renderer ) return;
+    if ( page.type === PAGE_TYPES.CLUE ) {
+      if ( action === "delete" ) this.#renderer.removeClue(page.id);
+      else await this.#renderer.upsertClue(page);
+    }
+    else if ( page.type === PAGE_TYPES.CONNECTION ) {
+      if ( action === "delete" ) this.#renderer.removeConnection(page.id);
+      else this.#renderer.upsertConnection(page);
+    }
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * React to a case document itself changing — a rename, a status change, or its deletion.
+   * @param {JournalEntry} journal
+   * @param {"update"|"delete"} action
+   * @returns {Promise<void>}
+   */
+  async onCaseChange(journal, action) {
+    if ( !this.rendered || !isCase(journal) ) return;
+    if ( (action === "delete") && (journal.id === this.#caseId) ) {
+      this.#caseId = getCases()[0]?.id ?? null;
+    }
+    await this.render();
   }
 
   /* -------------------------------------------- */
