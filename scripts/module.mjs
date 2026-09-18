@@ -1,5 +1,6 @@
 import {MODULE_ID, PAGE_TYPES, modulePath} from "./constants.mjs";
 import {canDeletePage} from "./data/case.mjs";
+import {CREATE_CASE_QUERY, handleCreateCaseQuery} from "./data/case-create.mjs";
 import ClueData from "./data/clue-data.mjs";
 import ConnectionData from "./data/connection-data.mjs";
 import InvestigationBoard from "./apps/investigation-board.mjs";
@@ -50,6 +51,9 @@ Hooks.once("init", () => {
   registerFonts();
   registerSettings();
   registerKeybindings();
+
+  // A player without JOURNAL_CREATE asks a GM's client to make the case for them.
+  CONFIG.queries[CREATE_CASE_QUERY] = handleCreateCaseQuery;
 
   foundry.applications.handlebars.loadTemplates([
     modulePath("templates/sidebar.hbs"),

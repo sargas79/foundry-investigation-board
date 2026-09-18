@@ -12,33 +12,33 @@ export default async function testManifest() {
   describe("module.json");
 
   let mod;
-  check("passes BaseModule validation", () => {
+  await check("passes BaseModule validation", () => {
     mod = new BaseModule(data, {strict: true});
     assert(mod.id === "investigation-board", `id was ${mod?.id}`);
   });
 
-  check("targets V14 only", () => {
+  await check("targets V14 only", () => {
     assert(mod.compatibility.minimum === "14", `minimum was ${mod.compatibility.minimum}`);
     assert(mod.compatibility.verified.startsWith("14"), `verified was ${mod.compatibility.verified}`);
   });
 
-  check("declares both page sub-types", () => {
+  await check("declares both page sub-types", () => {
     const subtypes = mod.documentTypes.JournalEntryPage;
     assert(!!subtypes.clue, "clue sub-type missing");
     assert(!!subtypes.connection, "connection sub-type missing");
   });
 
-  check("marks the clue body for server-side HTML sanitization", () => {
+  await check("marks the clue body for server-side HTML sanitization", () => {
     const clue = mod.documentTypes.JournalEntryPage.clue;
     assert(clue.htmlFields?.includes("body"), "body is not declared as an htmlField");
     assert(!!clue.filePathFields?.image, "image is not declared as a filePathField");
   });
 
-  check("enables the socket for GM-relayed operations", () => {
+  await check("enables the socket for GM-relayed operations", () => {
     assert(mod.socket === true, "socket should be true");
   });
 
-  check("every declared file exists", () => {
+  await check("every declared file exists", () => {
     const root = new URL("../", import.meta.url);
     const files = [
       ...mod.esmodules,

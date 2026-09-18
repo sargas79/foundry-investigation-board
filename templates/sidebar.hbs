@@ -1,20 +1,53 @@
-{{!-- Case file list. Populated in milestone 5 (#28). --}}
 <aside class="ib-sidebar">
     <header class="ib-sidebar-header">
         <i class="fa-solid fa-folder-open"></i>
         <span class="ib-sidebar-title">{{localize "INVESTIGATION_BOARD.CaseFiles"}}</span>
-        <i class="fa-solid fa-chevron-down ib-sidebar-caret"></i>
+
+        {{!-- Bound to "change" in _onRender: a data-action would fire on click, not on choice. --}}
+        <select class="ib-group-by" name="grouping"
+                data-tooltip="INVESTIGATION_BOARD.GroupByTooltip"
+                aria-label="{{localize 'INVESTIGATION_BOARD.GroupByTooltip'}}">
+            {{#each groupings}}
+                <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+            {{/each}}
+        </select>
     </header>
 
     <section class="ib-case-list">
-        <h3 class="ib-case-list-label">{{localize "INVESTIGATION_BOARD.CaseFiles"}}</h3>
-        {{#each cases}}
-            <button type="button" class="ib-case-row {{#if this.active}}active{{/if}}"
-                    data-action="selectCase" data-case-id="{{this.id}}">
-                <span class="ib-case-name">{{this.name}}</span>
-            </button>
+        {{#each groups}}
+            <h3 class="ib-case-list-label">{{this.label}}</h3>
+            {{#each this.cases}}
+                <div class="ib-case-row {{#if this.active}}active{{/if}} {{#if this.archived}}archived{{/if}}"
+                     data-case-id="{{this.id}}">
+                    <button type="button" class="ib-case-open" data-action="selectCase"
+                            data-case-id="{{this.id}}">
+                        <span class="ib-case-dot" data-status="{{this.status}}"
+                              data-tooltip="{{localize this.statusLabel}}"></span>
+                        <span class="ib-case-name">{{this.name}}</span>
+                        {{#if this.classification}}
+                            <span class="ib-case-tag">{{this.classification}}</span>
+                        {{/if}}
+                    </button>
+
+                    {{#if this.isOwner}}
+                        <button type="button" class="ib-case-cog" data-action="configureCase"
+                                data-case-id="{{this.id}}"
+                                data-tooltip="INVESTIGATION_BOARD.CaseDetails"
+                                aria-label="{{localize 'INVESTIGATION_BOARD.CaseDetails'}}">
+                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                        </button>
+                    {{/if}}
+                </div>
+            {{/each}}
         {{else}}
             <p class="ib-empty">{{localize "INVESTIGATION_BOARD.NoCases"}}</p>
         {{/each}}
     </section>
+
+    <footer class="ib-sidebar-footer">
+        <button type="button" class="ib-new-case" data-action="createCase">
+            <i class="fa-solid fa-plus"></i>
+            <span>{{localize "INVESTIGATION_BOARD.NewCase"}}</span>
+        </button>
+    </footer>
 </aside>

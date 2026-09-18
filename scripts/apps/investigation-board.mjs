@@ -1,9 +1,11 @@
-import {MODULE_ID, PAGE_TYPES, modulePath} from "../constants.mjs";
+import {CASE_FLAGS, MODULE_ID, PAGE_TYPES, modulePath} from "../constants.mjs";
 import BoardView from "../board/board-view.mjs";
 import BoardRenderer from "../board/board-renderer.mjs";
 import BoardInteractions from "../board/interactions.mjs";
 import DropHandler from "../board/drop-handler.mjs";
 import ClueDialog from "./clue-dialog.mjs";
+import CaseConfig from "./case-config.mjs";
+import {createCase} from "../data/case-create.mjs";
 import {
   canConnect,
   caseState,
@@ -53,6 +55,8 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
     actions: {
       toggleMaximize: InvestigationBoard.#onToggleMaximize,
       selectCase: InvestigationBoard.#onSelectCase,
+      createCase: InvestigationBoard.#onCreateCase,
+      configureCase: InvestigationBoard.#onConfigureCase,
       pinEvidence: InvestigationBoard.#onPinEvidence,
       createLead: InvestigationBoard.#onCreateLead,
       drawConnection: InvestigationBoard.#onDrawConnection,
@@ -130,6 +134,9 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
   /** Whether the discarded tray drawer is showing. */
   #trayOpen = false;
 
+  /** How the case list is grouped: "all", "status" or "classification". */
+  #grouping = "all";
+
   /** The board's pan/zoom controller, once rendered. */
   get view() {
     return this.#view;
@@ -162,12 +169,7 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       currentCase,
       hasCase: !!currentCase,
       state: currentCase ? caseState(currentCase) : null,
-      cases: getCases().map(j => ({
-        id: j.id,
-        name: j.name,
-        active: j.id === this.#caseId,
-        ...caseState(j)
-      })),
+      ...this.#sidebarContext(),
       trayOpen: this.#trayOpen,
       linkMode: !!this.#interactions?.linkMode,
       dismissed: currentCase ? getDismissed(currentCase).map(page => ({
@@ -178,6 +180,69 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
         dismissedLabel: this.#dismissedLabel(page)
       })) : []
     });
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * The case list, grouped as the user asked.
+   *
+   * Archived cases are always pushed into their own group at the bottom whatever the grouping, so
+   * a finished case never sits between two live ones.
+   * @returns {{groups: object[], groupings: object[]}}
+   */
+  #sidebarContext() {
+    const cases = getCases({includeArchived: true}).map(j => ({
+      id: j.id,
+      name: j.name,
+      active: j.id === this.#caseId,
+      isOwner: j.isOwner,
+      ...caseState(j)
+    }));
+
+    const grouped = new Map();
+    const push = (key, label, entry) => {
+      if ( !grouped.has(key) ) grouped.set(key, {label, cases: []});
+      grouped.get(key).cases.push(entry);
+    };
+
+    for ( const entry of cases ) {
+      if ( entry.archived ) {
+        push("~archived", game.i18n.localize("INVESTIGATION_BOARD.Archived"), entry);
+        continue;
+      }
+      switch ( this.#grouping ) {
+        case "status":
+          push(entry.status, game.i18n.localize(entry.statusLabel), entry);
+          break;
+        case "classification":
+          push(entry.classification || "~none",
+            entry.classification || game.i18n.localize("INVESTIGATION_BOARD.Unclassified"), entry);
+          break;
+        default:
+          push("all", game.i18n.localize("INVESTIGATION_BOARD.CaseFiles"), entry);
+      }
+    }
+
+    // Archived last; everything else alphabetically by group, then by case name.
+    const groups = [...grouped.entries()]
+      .sort(([a], [b]) => {
+        if ( a.startsWith("~") !== b.startsWith("~") ) return a.startsWith("~") ? 1 : -1;
+        return a.localeCompare(b);
+      })
+      .map(([, group]) => {
+        group.cases.sort((x, y) => x.name.localeCompare(y.name));
+        return group;
+      });
+
+    return {
+      groups,
+      groupings: [
+        {value: "all", label: game.i18n.localize("INVESTIGATION_BOARD.GroupAll")},
+        {value: "status", label: game.i18n.localize("INVESTIGATION_BOARD.GroupStatus")},
+        {value: "classification", label: game.i18n.localize("INVESTIGATION_BOARD.GroupClassification")}
+      ].map(g => ({...g, selected: g.value === this.#grouping}))
+    };
   }
 
   /* -------------------------------------------- */
@@ -213,8 +278,46 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
   async _onRender(context, options) {
     await super._onRender(context, options);
     this.element.classList.toggle("maximized", this.#maximized);
+
+    // A select needs "change"; an action would fire on the click that opens it.
+    const grouping = this.element.querySelector(".ib-group-by");
+    if ( grouping ) {
+      grouping.addEventListener("change", async event => {
+        this.#grouping = event.target.value;
+        await this.render({parts: ["sidebar"]});
+      });
+    }
+
+    this.#bindProgress();
+
     this.#attachBoardView();
     await this.#drawCase();
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Let an owner set how far along the case is, straight from the header.
+   *
+   * Progress is the investigators' own judgement — nothing on the board computes it — so it reads
+   * and writes like any other opinion they record. The number follows the slider live, but only
+   * the released value is written, so dragging it does not spray updates at everyone else.
+   */
+  #bindProgress() {
+    const slider = this.element.querySelector(".ib-progress-input");
+    if ( !slider ) return;
+    const readout = this.element.querySelector(".ib-progress-value");
+
+    slider.addEventListener("input", () => {
+      slider.style.setProperty("--ib-progress", `${slider.value}%`);
+      if ( readout ) readout.textContent = `${slider.value}%`;
+    });
+
+    slider.addEventListener("change", async () => {
+      const journal = this.currentCase;
+      if ( !journal?.isOwner ) return;
+      await journal.setFlag(MODULE_ID, CASE_FLAGS.PROGRESS, Number(slider.value));
+    });
   }
 
   /* -------------------------------------------- */
@@ -438,6 +541,54 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
   static async #onSelectCase(_event, target) {
     await this.showCase(target.dataset.caseId);
   }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Start a new case file and open it.
+   * @this {InvestigationBoard}
+   * @returns {Promise<void>}
+   */
+  static async #onCreateCase() {
+    const name = await foundry.applications.api.DialogV2.prompt({
+      window: {title: "INVESTIGATION_BOARD.NewCase"},
+      content: `<div class="form-group"><label for="ib-new-case-name">${
+        game.i18n.localize("INVESTIGATION_BOARD.CaseNameLabel")}</label>
+        <div class="form-fields"><input type="text" id="ib-new-case-name" name="name" autofocus
+          placeholder="${game.i18n.localize("INVESTIGATION_BOARD.CaseNamePlaceholder")}"></div></div>`,
+      ok: {
+        label: "INVESTIGATION_BOARD.Create",
+        icon: "fa-solid fa-folder-plus",
+        callback: (_event, button) => button.form.elements.name.value.trim()
+      },
+      modal: true,
+      rejectClose: false
+    });
+    if ( !name ) return;
+
+    const journal = await createCase({name});
+    if ( journal ) await this.showCase(journal.id);
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Open a case's details.
+   * @this {InvestigationBoard}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static #onConfigureCase(_event, target) {
+    const journal = game.journal.get(target.dataset.caseId);
+    if ( !journal?.isOwner ) {
+      ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.NoPermission", {localize: true});
+      return;
+    }
+    CaseConfig.open(journal);
+  }
+
+  /* -------------------------------------------- */
+
 
   /* -------------------------------------------- */
 

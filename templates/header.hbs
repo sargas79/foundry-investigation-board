@@ -18,17 +18,36 @@
     </div>
 
     {{#if hasCase}}
-        <div class="ib-progress" data-tooltip="{{localize 'INVESTIGATION_BOARD.ProgressTooltip'}}">
-            <div class="ib-progress-track">
-                <div class="ib-progress-fill" style="width: {{state.progress}}%"></div>
-            </div>
+        <div class="ib-progress {{#if currentCase.isOwner}}editable{{/if}}"
+             data-tooltip="{{localize 'INVESTIGATION_BOARD.ProgressTooltip'}}">
+            {{!-- A real range input: keyboard-operable and draggable for free. --}}
+            {{#if currentCase.isOwner}}
+                <input type="range" class="ib-progress-input" min="0" max="100" step="1"
+                       value="{{state.progress}}"
+                       aria-label="{{localize 'INVESTIGATION_BOARD.ProgressLabel'}}"
+                       style="--ib-progress: {{state.progress}}%">
+            {{else}}
+                <div class="ib-progress-track">
+                    <div class="ib-progress-fill" style="width: {{state.progress}}%"></div>
+                </div>
+            {{/if}}
             <span class="ib-progress-value">{{state.progress}}%</span>
         </div>
     {{/if}}
 
-    <button type="button" class="ib-icon-button ib-settings" data-action="toggleMaximize"
-            data-tooltip="INVESTIGATION_BOARD.ToggleMaximize"
-            aria-label="{{localize 'INVESTIGATION_BOARD.ToggleMaximize'}}">
-        <i class="fa-solid fa-expand"></i>
-    </button>
+    <div class="ib-header-actions">
+        {{#if hasCase}}
+            <button type="button" class="ib-icon-button" data-action="configureCase"
+                    data-case-id="{{currentCase.id}}"
+                    data-tooltip="INVESTIGATION_BOARD.CaseDetails"
+                    aria-label="{{localize 'INVESTIGATION_BOARD.CaseDetails'}}">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+        {{/if}}
+        <button type="button" class="ib-icon-button" data-action="toggleMaximize"
+                data-tooltip="INVESTIGATION_BOARD.ToggleMaximize"
+                aria-label="{{localize 'INVESTIGATION_BOARD.ToggleMaximize'}}">
+            <i class="fa-solid fa-expand"></i>
+        </button>
+    </div>
 </header>

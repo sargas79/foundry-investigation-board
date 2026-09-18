@@ -55,10 +55,20 @@ export function describe(label) {
   console.log(`\n${label}`);
 }
 
-/** Run one check, catching and reporting any thrown assertion. */
-export function check(label, fn) {
+/**
+ * Run one check, catching and reporting any thrown assertion.
+ *
+ * Always `await` this. It awaits the body, so an async check that rejects is reported as a
+ * failure — without that, an async body's rejection escapes the try/catch entirely and the check
+ * reports PASS no matter what it found.
+ *
+ * @param {string} label
+ * @param {() => void|Promise<void>} fn
+ * @returns {Promise<void>}
+ */
+export async function check(label, fn) {
   try {
-    fn();
+    await fn();
     passes++;
     console.log(`  PASS  ${label}`);
   }
