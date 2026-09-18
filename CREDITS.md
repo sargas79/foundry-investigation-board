@@ -1,5 +1,9 @@
 # Credits and licenses
 
+The module's own code is released under the [MIT License](LICENSE). The bundled assets below keep
+their own licenses, which are not affected by that — the fonts in particular remain under the SIL
+Open Font License and must stay so, including in any fork.
+
 Every third-party asset bundled with Investigation Board, and its license.
 
 ## Fonts

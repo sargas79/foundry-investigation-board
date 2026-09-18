@@ -100,6 +100,9 @@ With the preview server running: `/tools/preview/case.html` is a full board, `/c
 gallery, `/strings.html` the connection layer. Each page exposes an in-browser check suite
 (`runBoardRendererTests()`, `runBoardViewTests()`, `runStringLayerTests()`).
 
-## Credits
+## License
 
-Fonts and textures are listed with their licenses in [CREDITS.md](CREDITS.md).
+This module is released under the [MIT License](LICENSE).
+
+The bundled fonts and textures carry their own licenses — the fonts are SIL Open Font License 1.1
+and the textures are CC0. Both are listed in [CREDITS.md](CREDITS.md).
