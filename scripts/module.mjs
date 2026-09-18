@@ -1,4 +1,5 @@
 import {MODULE_ID, PAGE_TYPES, modulePath} from "./constants.mjs";
+import {canDeletePage} from "./data/case.mjs";
 import ClueData from "./data/clue-data.mjs";
 import ConnectionData from "./data/connection-data.mjs";
 import InvestigationBoard from "./apps/investigation-board.mjs";
@@ -83,6 +84,24 @@ Hooks.once("ready", () => {
  * writes one document update, and everyone else's board patches that single card in place. A full
  * re-render here would interrupt whatever the other players were doing.
  */
+/**
+ * Only the GM may destroy a clue; players set clues aside instead.
+ *
+ * Connections are deliberately *not* guarded — unlinking two clues is an ordinary player action,
+ * and the clue documents themselves are what carry the case's content.
+ *
+ * This runs on the client attempting the delete, so it stops every path through the UI and any
+ * accident. It cannot stop a player who deliberately calls the API from the console: Foundry's
+ * permission model grants an Owner deletion rights, and taking those away would mean relaying
+ * every clue write through a GM, which would break playing with the GM offline. That trade is
+ * documented in the README.
+ */
+Hooks.on("preDeleteJournalEntryPage", page => {
+  if ( canDeletePage(page, game.user) ) return true;
+  ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.DeleteIsGMOnly", {localize: true});
+  return false;
+});
+
 Hooks.on("createJournalEntryPage", page => board?.onPageChange(page, "upsert"));
 Hooks.on("updateJournalEntryPage", page => board?.onPageChange(page, "upsert"));
 Hooks.on("deleteJournalEntryPage", page => board?.onPageChange(page, "delete"));

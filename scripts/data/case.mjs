@@ -183,6 +183,24 @@ export function recoverClue(page) {
 /* -------------------------------------------- */
 
 /**
+ * Whether a user may permanently destroy a page of this module's.
+ *
+ * Only the GM may destroy a clue; players set clues aside instead, which keeps the clue and its
+ * connections recoverable. Connections are deliberately unguarded — unlinking two clues is an
+ * ordinary player action.
+ *
+ * @param {JournalEntryPage} page
+ * @param {User} user
+ * @returns {boolean}
+ */
+export function canDeletePage(page, user) {
+  if ( page?.type !== PAGE_TYPES.CLUE ) return true;
+  return !!user?.isGM;
+}
+
+/* -------------------------------------------- */
+
+/**
  * The clues in a case's discarded tray, most recently dismissed first.
  * @param {JournalEntry} journal
  * @returns {JournalEntryPage[]}

@@ -19,7 +19,7 @@ function clue(x, y, width) {
  * depends on, and the bounds used to frame a case when it opens.
  */
 export default async function testCase() {
-  const {caseState, clueBounds} = await import("../scripts/data/case.mjs");
+  const {caseState, clueBounds, canDeletePage} = await import("../scripts/data/case.mjs");
 
   describe("caseState");
 
@@ -82,5 +82,34 @@ export default async function testCase() {
     assert(bounds.x === -300, `x was ${bounds.x}`);
     assert(bounds.width === 600, `width was ${bounds.width}`);
     assert(bounds.y < -120, "bounds should sit above the topmost clue's pin");
+  });
+
+  describe("canDeletePage");
+
+  const gm = {isGM: true};
+  const player = {isGM: false};
+  const cluePage = {type: "investigation-board.clue"};
+  const connectionPage = {type: "investigation-board.connection"};
+
+  check("only the GM may destroy a clue", () => {
+    assert(canDeletePage(cluePage, gm) === true, "the GM was refused");
+    assert(canDeletePage(cluePage, player) === false, "a player was allowed to destroy a clue");
+  });
+
+  // Unlinking two clues is an ordinary player action and must not be caught by the guard.
+  check("anyone may delete a connection", () => {
+    assert(canDeletePage(connectionPage, player) === true, "a player could not unlink");
+    assert(canDeletePage(connectionPage, gm) === true, "the GM could not unlink");
+  });
+
+  // The guard sits on a global hook, so it sees every page in the world, not just ours.
+  check("pages belonging to other modules are left alone", () => {
+    assert(canDeletePage({type: "text"}, player) === true, "a core text page was blocked");
+    assert(canDeletePage({type: "some.other"}, player) === true, "another module's page was blocked");
+  });
+
+  check("a missing page or user does not throw", () => {
+    assert(canDeletePage(undefined, player) === true, "undefined page should pass through");
+    assert(canDeletePage(cluePage, undefined) === false, "a clue with no user should be refused");
   });
 }

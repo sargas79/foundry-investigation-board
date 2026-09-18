@@ -57,6 +57,12 @@ Verified against the V14 source, and worth knowing before you hand cases to play
 | Share a case with another player | **GM or Assistant GM only** — Foundry forbids players changing ownership |
 | Permanently delete a clue or case | **GM only** (players archive and dismiss instead) |
 
+**On the GM-only delete:** the guard runs on the client attempting the delete, so it stops every
+path through the interface and any accident. It cannot stop a player who deliberately calls the API
+from the browser console — Foundry grants an Owner deletion rights, and revoking those would mean
+relaying every clue edit through a GM, which would break playing with the GM offline. Players get
+**Set aside** instead, which keeps the clue and all its connections recoverable.
+
 Two consequences worth planning around:
 
 - Clue editing needs **no GM online** — the board works with the GM away.
@@ -67,17 +73,20 @@ Two consequences worth planning around:
 
 ## Status
 
-Working in v0.0.1:
+Built so far (v0.0.1 shipped the first group; the rest is on `main`):
 
 - The board window: case sidebar, header, corkboard, floating toolbar, inspector panel
 - Pan (drag the cork or middle-drag) and zoom (wheel), remembered per case
 - All seven card templates — polaroid, mugshot, profile, document, letter, sticky note, map
 - Connection strings with sag, colour, dashed/dotted styles and labels
-- **Pin Evidence** creates clues
 - Live sync — another player's changes patch your board in place
+- **Pin Evidence** creates clues; **Create Lead** drops a sticky note you type straight into
+- Drag clues to move them, double-click to edit, right-click for actions
+- Drag an Actor, Item or Scene from the sidebar onto the cork to pin a linked clue
+- **Set aside** clues to the discarded tray and recover them, strings and all
 
-Not yet implemented (milestones 3–7): Create Lead, dragging clues, the dismiss/recover tray,
-drawing and cutting connections, the filter, case creation and sharing from the UI, export/import.
+Not yet implemented (milestones 4–7): drawing and cutting connections, the filter, the inspector
+panel's contents, creating and sharing cases from the interface, export/import.
 
 Progress is tracked in the
 [issues](https://github.com/sargas79/foundry-investigation-board/issues), grouped under one epic per
