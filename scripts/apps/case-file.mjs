@@ -134,8 +134,11 @@ export default class CaseFile extends HandlebarsApplicationMixin(ApplicationV2) 
    * @returns {string}
    */
   #byline(page) {
-    const who = game.users.get(page.system.author)?.name
-      ?? game.i18n.localize("INVESTIGATION_BOARD.SomeoneElse");
+    // The character first: at the table these pages are written by Mara, not by diego.
+    const who = page.system.authorName
+      || game.users.get(page.system.author)?.character?.name
+      || game.users.get(page.system.author)?.name
+      || game.i18n.localize("INVESTIGATION_BOARD.SomeoneElse");
     let when = null;
     try {
       if ( page.system.createdAt ) when = foundry.utils.timeSince(new Date(page.system.createdAt));

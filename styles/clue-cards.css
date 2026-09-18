@@ -195,9 +195,39 @@
 .investigation-board-app .ib-badge[data-reliability="questionable"] { background: #b07a1f; color: #fdf6e6; }
 .investigation-board-app .ib-badge[data-reliability="debunked"] { background: #8d2f2c; color: #fbeceb; }
 
+/* Who pinned it — the character, so a board can be traced back at a glance.
+   Takes the space between the badge and the link marker rather than a fixed cap, since the name
+   is the whole point of the stamp and a hard truncation makes it useless. */
+.investigation-board-app .ib-clue-author {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-left: 9px;
+  position: relative;
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgb(0 0 0 / 50%);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.investigation-board-app .ib-clue-author::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  margin-top: -2.5px;
+  border-radius: 50%;
+  background: var(--ib-author, rgb(0 0 0 / 35%));
+}
+
 /* Clickable: opens whatever document the clue was made from. */
 .investigation-board-app .ib-clue-link {
   margin-left: auto;
+  flex: 0 0 auto;
   padding: 2px;
   font-size: 10px;
   color: rgb(0 0 0 / 45%);

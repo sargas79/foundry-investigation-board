@@ -11,6 +11,7 @@ import {canCreateDirectly, createCase} from "../data/case-create.mjs";
 import {canManageSharing} from "../data/sharing.mjs";
 import {buildImport, exportCase, exportFilename, validateExport} from "../data/transfer.mjs";
 import {announce, clearPresence, holderOf, watchPresence} from "../presence.mjs";
+import {authorColor, authorName, authorStamp} from "../data/authorship.mjs";
 import {CATEGORIES, RELIABILITY} from "../constants.mjs";
 import {EMPTY_FILTER, applyFilter, isActive} from "../board/filter.mjs";
 import {
@@ -329,6 +330,9 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
         reliability: page.system.reliability,
         linkedUuid: page.system.linkedUuid,
         editable: page.isOwner,
+        author: authorName(page.system),
+        authorColor: authorColor(page.system),
+        pinnedAt: this.#pinnedAt(page),
         notes: (page.system.notes ?? []).map(note => ({
           text: note.text,
           byline: this.#noteByline(note)
@@ -342,6 +346,24 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
           ?? game.i18n.localize("INVESTIGATION_BOARD.MissingClue")
       }))
     };
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * When a clue was pinned, in words.
+   * @param {JournalEntryPage} page
+   * @returns {string|null}
+   */
+  #pinnedAt(page) {
+    try {
+      return page.system.createdAt
+        ? foundry.utils.timeSince(new Date(page.system.createdAt))
+        : null;
+    }
+    catch {
+      return null;
+    }
   }
 
   /* -------------------------------------------- */
@@ -1087,6 +1109,8 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       name: game.i18n.localize("INVESTIGATION_BOARD.NewLead"),
       type: PAGE_TYPES.CLUE,
       system: {
+        ...authorStamp(),
+        createdAt: Date.now(),
         template: "sticky",
         category: "lead",
         reliability: "unverified",

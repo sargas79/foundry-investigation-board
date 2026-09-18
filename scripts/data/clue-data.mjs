@@ -67,6 +67,14 @@ export default class ClueData extends foundry.abstract.TypeDataModel {
       }),
       z: new fields.NumberField({required: true, integer: true, nullable: false, initial: 0}),
 
+      // --- Who pinned it ----------------------------------------------------
+      // Recorded as both a reference and a snapshot: the uuid follows a rename, the name survives
+      // the actor being reassigned or deleted. See scripts/data/authorship.mjs.
+      createdBy: new fields.StringField({required: false, nullable: true, initial: null}),
+      createdByActor: new fields.DocumentUUIDField({required: false, nullable: true, initial: null}),
+      createdByName: new fields.StringField({required: false, blank: true, initial: ""}),
+      createdAt: new fields.NumberField({required: false, nullable: true, initial: null, integer: true}),
+
       // --- Links and annotations --------------------------------------------
       linkedUuid: new fields.DocumentUUIDField({required: false, nullable: true, initial: null}),
       notes: new fields.ArrayField(new fields.SchemaField({

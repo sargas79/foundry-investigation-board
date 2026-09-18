@@ -8,6 +8,7 @@ import {
   modulePath
 } from "../constants.mjs";
 import {freeSpotNear, topZ} from "../data/case.mjs";
+import {authorStamp} from "../data/authorship.mjs";
 
 const {ApplicationV2, HandlebarsApplicationMixin} = foundry.applications.api;
 
@@ -219,6 +220,9 @@ export default class ClueDialog extends HandlebarsApplicationMixin(ApplicationV2
       type: PAGE_TYPES.CLUE,
       system: {
         ...system,
+        // Stamped here rather than in the model, so an edit never rewrites who pinned it.
+        ...authorStamp(),
+        createdAt: Date.now(),
         x: spot.x,
         y: spot.y,
         z: topZ(this.journal) + 1,

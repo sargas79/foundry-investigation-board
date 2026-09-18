@@ -31,6 +31,8 @@ export default class ReportData extends foundry.abstract.TypeDataModel {
       body: new fields.HTMLField({required: false, initial: ""}),
 
       author: new fields.StringField({required: false, nullable: true, initial: null}),
+      /** The character's name as it was when this was written. See data/authorship.mjs. */
+      authorName: new fields.StringField({required: false, blank: true, initial: ""}),
       createdAt: new fields.NumberField({required: false, nullable: true, initial: null, integer: true}),
 
       /**

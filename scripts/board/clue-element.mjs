@@ -1,4 +1,5 @@
 import {CATEGORIES, RELIABILITY} from "../constants.mjs";
+import {authorColor, authorName} from "../data/authorship.mjs";
 
 /**
  * Builds and updates the DOM for a single clue card.
@@ -52,7 +53,11 @@ function clueContext(page, enrichedBody) {
     rotation: clue.rotation,
     width: clue.width,
     z: clue.z,
-    linked: !!clue.linkedUuid
+    linked: !!clue.linkedUuid,
+    // Who pinned it. Absent on clues made before this existed, so everything downstream has to
+    // read cleanly when it is null.
+    author: authorName(clue),
+    authorColor: authorColor(clue)
   };
 }
 
@@ -91,9 +96,11 @@ export function createClueElement(page, enrichedBody) {
   meta.className = "ib-clue-meta";
   const badge = document.createElement("span");
   badge.className = "ib-badge";
+  const author = document.createElement("span");
+  author.className = "ib-clue-author";
   const link = document.createElement("i");
   link.className = "ib-clue-link fa-solid fa-link";
-  meta.append(badge, link);
+  meta.append(badge, author, link);
   inner.append(meta);
 
   updateClueElement(el, page, enrichedBody);
@@ -153,6 +160,15 @@ export function updateClueElement(el, page, enrichedBody) {
   const badge = el.querySelector(".ib-badge");
   badge.textContent = clue.reliabilityLabel;
   badge.dataset.reliability = clue.reliability;
+
+  const author = el.querySelector(".ib-clue-author");
+  if ( clue.author ) {
+    author.textContent = clue.author;
+    author.title = game.i18n.format("INVESTIGATION_BOARD.PinnedBy", {who: clue.author});
+    if ( clue.authorColor ) author.style.setProperty("--ib-author", clue.authorColor);
+    author.hidden = false;
+  }
+  else author.hidden = true;
 
   el.querySelector(".ib-clue-link").hidden = !clue.linked;
   return el;

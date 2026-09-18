@@ -1,5 +1,6 @@
 import {MODULE_ID, PAGE_TYPES, modulePath} from "../constants.mjs";
 import {canEditReport, getFindings} from "../data/case.mjs";
+import {authorStamp} from "../data/authorship.mjs";
 
 const {ApplicationV2, HandlebarsApplicationMixin} = foundry.applications.api;
 
@@ -123,6 +124,8 @@ export default class ReportDialog extends HandlebarsApplicationMixin(Application
         caseNumber: isBrief ? (data.caseNumber?.trim() ?? "") : "",
         body: data.body ?? "",
         author: game.user.id,
+        // The character's name, so the file reads as the party wrote it.
+        authorName: authorStamp().createdByName,
         createdAt: Date.now(),
         sealed: [],
         sort: isBrief ? -1 : sort

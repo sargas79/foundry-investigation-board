@@ -186,3 +186,22 @@
   margin-top: auto;
   padding-top: 4px;
 }
+
+/* --- Who pinned it -------------------------------------------------------- */
+
+.investigation-board-app .ib-pinned-by {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 10.5px;
+  color: var(--ib-text-muted);
+}
+
+.investigation-board-app .ib-author-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--ib-author, var(--ib-text-muted));
+}

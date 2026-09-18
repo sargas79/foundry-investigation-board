@@ -29,6 +29,11 @@ that choice is offered up front.
 onto the cork. A dropped document is *linked*, not copied: rename an NPC and the clue still points
 at them, and the link marker on the card opens the original.
 
+Every clue records **the character who pinned it** — not the account name, so a board reads as the
+party wrote it. The name sits on the card and in the inspector, with the time it was pinned. Both
+the actor and the name as it stood are kept, so a rename follows through while a player swapping
+character mid-campaign doesn't silently rewrite who found what.
+
 **Jot a lead** with Create Lead — one click drops a sticky note with the caret already in it.
 
 **String clues together** with the Draw Connection tool (click one clue, then another; it stays on

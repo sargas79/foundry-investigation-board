@@ -1,5 +1,6 @@
 import {CLUE_DEFAULTS, PAGE_TYPES} from "../constants.mjs";
 import {freeSpotNear, topZ} from "../data/case.mjs";
+import {authorStamp} from "../data/authorship.mjs";
 
 /**
  * Turning something dropped on the cork into a clue.
@@ -101,6 +102,8 @@ export default class DropHandler {
       type: PAGE_TYPES.CLUE,
       system: {
         ...clue.system,
+        ...authorStamp(),
+        createdAt: Date.now(),
         x: spot.x,
         y: spot.y,
         z: topZ(journal) + 1,

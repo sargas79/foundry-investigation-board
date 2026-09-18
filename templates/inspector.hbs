@@ -9,6 +9,17 @@
                        aria-label="{{localize 'INVESTIGATION_BOARD.TitleLabel'}}">
             </div>
 
+            {{#if clue.author}}
+                <p class="ib-pinned-by">
+                    <span class="ib-author-dot" style="--ib-author: {{clue.authorColor}}"></span>
+                    {{#if clue.pinnedAt}}
+                        {{localize "INVESTIGATION_BOARD.PinnedByAt" who=clue.author when=clue.pinnedAt}}
+                    {{else}}
+                        {{localize "INVESTIGATION_BOARD.PinnedBy" who=clue.author}}
+                    {{/if}}
+                </p>
+            {{/if}}
+
             <dl class="ib-inspector-meta">
                 <dt>{{localize "INVESTIGATION_BOARD.CategoryLabel"}}</dt>
                 <dd>

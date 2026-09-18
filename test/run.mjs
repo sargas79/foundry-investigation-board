@@ -28,6 +28,7 @@ const {default: testDeleteCase} = await import("./delete-case.test.mjs");
 const {default: testTemplates} = await import("./templates.test.mjs");
 const {default: testCaseFile} = await import("./case-file.test.mjs");
 const {default: testRedaction} = await import("./redaction.test.mjs");
+const {default: testAuthorship} = await import("./authorship.test.mjs");
 
 await testManifest();
 await testDataModels();
@@ -40,6 +41,7 @@ await testI18n();
 await testBindOnce();
 await testDeleteCase();
 await testCaseFile();
+await testAuthorship();
 await testTemplates();
 await testRedaction();
 

@@ -47,7 +47,14 @@
       "INVESTIGATION_BOARD.RELIABILITY.Verified": "Verified",
       "INVESTIGATION_BOARD.RELIABILITY.Debunked": "Debunked"
     };
-    window.game = {i18n: {localize: k => STRINGS[k] ?? k}};
+    window.game = {
+      i18n: {
+        localize: k => STRINGS[k] ?? k,
+        format: (k, d) => `${STRINGS[k] ?? k} ${JSON.stringify(d ?? {})}`
+      },
+      users: {get: id => ({id, name: "diego", color: {css: "#c8322f"}})}
+    };
+    window.fromUuidSync = uuid => ({"Actor.mara": {name: "Mara Vale"}})[uuid] ?? null;
 
     const TEMPLATES = {
       polaroid: {hasImage: true, hasBody: false},
@@ -89,7 +96,8 @@
     const CARDS = [
       ["Polaroid", page("c1", "Mara Vale", {
         template: "polaroid", image: portrait, pinColor: "red", category: "person",
-        reliability: "verified", x: 40, y: 40, rotation: -2.5, width: 200, linkedUuid: "Actor.x"
+        reliability: "verified", x: 40, y: 40, rotation: -2.5, width: 200, linkedUuid: "Actor.x",
+        createdBy: "u1", createdByActor: "Actor.mara", createdByName: "Mara Vale"
       })],
       ["Mugshot", page("c2", "Vale, M. — 4471", {
         template: "mugshot", image: portrait, pinColor: "yellow", category: "person",
@@ -114,6 +122,7 @@
       ["Sticky (lead)", page("c6", "Follow the money", {
         template: "sticky", pinColor: "blue", category: "lead",
         reliability: "unverified", x: 330, y: 430, rotation: 3, width: 175,
+        createdBy: "u1", createdByName: "Silas Trent",
         body: "<p>Check the pawn shop receipts from the week of the 12th</p>"
       })],
       ["Map", page("c7", "Ashwood District", {

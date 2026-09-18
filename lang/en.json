@@ -201,5 +201,7 @@
   "INVESTIGATION_BOARD.NOTIFY.SealedTextLost": "The sealed text for that passage is missing and cannot be revealed.",
   "INVESTIGATION_BOARD.NOTIFY.NotYourFinding": "You can only change your own findings.",
   "INVESTIGATION_BOARD.ReportPageSheet": "Case File Page",
-  "TYPES.JournalEntryPage.investigation-board.report": "Case File Page"
+  "TYPES.JournalEntryPage.investigation-board.report": "Case File Page",
+  "INVESTIGATION_BOARD.PinnedBy": "Pinned by {who}",
+  "INVESTIGATION_BOARD.PinnedByAt": "Pinned by {who}, {when}"
 }
