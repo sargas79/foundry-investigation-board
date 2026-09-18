@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Investigation Board — board workbench</title>
+  <link rel="stylesheet" href="/styles/fonts.css">
+  <link rel="stylesheet" href="/styles/investigation-board.css">
+  <style>
+    /* Stand-ins for the Foundry window chrome the app normally renders inside. */
+    html, body { height: 100%; margin: 0; background: #0b0f13; }
+    body { display: grid; grid-template-rows: 1fr; padding: 12px; box-sizing: border-box; }
+    .investigation-board-app { display: flex; flex-direction: column; min-height: 0; }
+    .window-content { flex: 1; min-height: 0; }
+    .probe {
+      position: fixed; right: 18px; bottom: 14px; z-index: 10;
+      font: 11px/1.5 ui-monospace, monospace; color: #8c98a4;
+      background: rgb(18 23 28 / 92%); border: 1px solid #39424c;
+      border-radius: 6px; padding: 6px 9px; white-space: pre;
+    }
+    /* Placeholder cards so panning and zooming are observable before #11 lands. */
+    .stub {
+      position: absolute; width: 180px; padding: 10px;
+      background-color: #f3ece0; background-image: url("/assets/textures/paper.svg");
+      background-size: 256px; color: #2b2b2b; font: 13px/1.4 system-ui, sans-serif;
+      box-shadow: 0 5px 14px rgb(0 0 0 / 45%);
+    }
+    .stub.note { font-family: "Caveat", cursive; font-size: 20px; background-color: #f5e79e; }
+  </style>
+</head>
+<body>
+  <div class="investigation-board-app investigation-board">
+    <section class="window-content investigation-board-content">
+
+      <aside class="ib-sidebar" data-application-part="sidebar">
+        <header class="ib-sidebar-header">
+          <span class="ib-sidebar-title">Case Files</span>
+        </header>
+        <section class="ib-case-list">
+          <h3 class="ib-case-list-label">Case Files</h3>
+          <button type="button" class="ib-case-row active">The Ashwood Murders</button>
+          <button type="button" class="ib-case-row">Dockside Disappearance</button>
+          <button type="button" class="ib-case-row">Cold Case 1989</button>
+        </section>
+      </aside>
+
+      <header class="ib-header" data-application-part="header">
+        <div class="ib-header-titles">
+          <h1 class="ib-case-title">The Ashwood Murders</h1>
+          <p class="ib-case-status">Status: <span class="ib-status-value" data-status="active">Active</span></p>
+        </div>
+        <div class="ib-progress">
+          <div class="ib-progress-track"><div class="ib-progress-fill" style="width:68%"></div></div>
+          <span class="ib-progress-value">68%</span>
+        </div>
+        <button type="button" class="ib-icon-button"><i class="fa-solid fa-gear">⚙</i></button>
+      </header>
+
+      <section class="ib-board-frame" data-application-part="board">
+        <div class="ib-board-viewport">
+          <div class="ib-board-world">
+            <svg class="ib-string-layer" xmlns="http://www.w3.org/2000/svg"></svg>
+            <div class="ib-clue-layer">
+              <div class="stub" style="left:80px;  top:60px;">Mara Vale — last seen 11:40pm</div>
+              <div class="stub" style="left:360px; top:120px;">Forensic report 4471-B</div>
+              <div class="stub note" style="left:200px; top:300px;">Check the pawn shop receipts</div>
+              <div class="stub" style="left:620px; top:280px;">Broken watch, stopped 2:14</div>
+              <div class="stub" style="left:-120px; top:420px;">Off-origin card (pan left to find)</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <nav class="ib-toolbar" data-application-part="toolbar">
+        <button type="button" class="ib-tool"><i>📌</i><span>Pin Evidence</span></button>
+        <button type="button" class="ib-tool"><i>🗒</i><span>Create Lead</span></button>
+        <button type="button" class="ib-tool"><i>✏️</i><span>Draw Connection</span></button>
+        <button type="button" class="ib-tool"><i>⛃</i><span>Filter</span></button>
+        <button type="button" class="ib-tool"><i>⬆</i><span>Export Case</span></button>
+      </nav>
+
+      <aside class="ib-inspector" data-application-part="inspector">
+        <h2 class="ib-panel-label">Selected Clue</h2>
+        <div class="ib-inspector-body"><p class="ib-empty">Select a clue on the board to inspect it.</p></div>
+      </aside>
+
+    </section>
+  </div>
+
+  <div class="probe" id="probe">view</div>
+
+  <script type="module">
+    import BoardView from "/scripts/board/board-view.mjs";
+    import {runBoardViewTests} from "/tools/preview/board-view.spec.mjs";
+
+    const viewport = document.querySelector(".ib-board-viewport");
+    const world = document.querySelector(".ib-board-world");
+    const probe = document.getElementById("probe");
+
+    const view = new BoardView(viewport, world).attach();
+    // Exposed so the driving harness can assert against the live view.
+    window.boardView = view;
+
+    const render = t => {
+      probe.textContent =
+        `pan   ${t.x.toFixed(1)}, ${t.y.toFixed(1)}\nscale ${t.scale.toFixed(3)}`;
+    };
+    view.onChange(render);
+    render(view.transform);
+
+    // Run from the console, or from an automated driver, to check the view's maths.
+    window.runBoardViewTests = () => {
+      const out = runBoardViewTests(view, viewport);
+      window.__boardViewResults = out;
+      return out;
+    };
+  </script>
+</body>
+</html>

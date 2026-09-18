@@ -1,4 +1,5 @@
 import {MODULE_ID, modulePath} from "../constants.mjs";
+import BoardView from "../board/board-view.mjs";
 
 const {ApplicationV2, HandlebarsApplicationMixin} = foundry.applications.api;
 
@@ -60,6 +61,24 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
   #maximized = false;
 
   /**
+   * Pan/zoom controller for the corkboard surface.
+   * @type {BoardView|null}
+   */
+  #view = null;
+
+  /**
+   * Remembered pan/zoom per case, so switching away and back returns to the same spot.
+   * Client-side only — where a player is looking is not worth syncing.
+   * @type {Map<string, {x: number, y: number, scale: number}>}
+   */
+  #viewStates = new Map();
+
+  /** The board's pan/zoom controller, once rendered. */
+  get view() {
+    return this.#view;
+  }
+
+  /**
    * The case currently being viewed.
    * @type {JournalEntry|null}
    */
@@ -91,6 +110,48 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
   _onRender(context, options) {
     super._onRender(context, options);
     this.element.classList.toggle("maximized", this.#maximized);
+    this.#attachBoardView();
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * (Re)bind the pan/zoom controller after the board part renders, restoring the view this case
+   * was last left at.
+   */
+  #attachBoardView() {
+    const viewport = this.element.querySelector(".ib-board-viewport");
+    const world = this.element.querySelector(".ib-board-world");
+    if ( !viewport || !world ) return;
+
+    // The board part may have been replaced wholesale; rebind against the new nodes.
+    if ( this.#view ) {
+      if ( this.#view.viewport.isConnected ) return;
+      this.#saveViewState();
+      this.#view.destroy();
+    }
+
+    this.#view = new BoardView(viewport, world).attach();
+    const saved = this.#caseId ? this.#viewStates.get(this.#caseId) : null;
+    if ( saved ) this.#view.setTransform(saved);
+    this.#view.onChange(() => this.#saveViewState());
+  }
+
+  /* -------------------------------------------- */
+
+  /** Remember where the current case was left. */
+  #saveViewState() {
+    if ( this.#caseId && this.#view ) this.#viewStates.set(this.#caseId, this.#view.transform);
+  }
+
+  /* -------------------------------------------- */
+
+  /** @inheritDoc */
+  _onClose(options) {
+    this.#saveViewState();
+    this.#view?.destroy();
+    this.#view = null;
+    super._onClose(options);
   }
 
   /* -------------------------------------------- */
