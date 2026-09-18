@@ -1,0 +1,20 @@
+{{!-- Case file list. Populated in milestone 5 (#28). --}}
+<aside class="ib-sidebar">
+    <header class="ib-sidebar-header">
+        <i class="fa-solid fa-folder-open"></i>
+        <span class="ib-sidebar-title">{{localize "INVESTIGATION_BOARD.CaseFiles"}}</span>
+        <i class="fa-solid fa-chevron-down ib-sidebar-caret"></i>
+    </header>
+
+    <section class="ib-case-list">
+        <h3 class="ib-case-list-label">{{localize "INVESTIGATION_BOARD.CaseFiles"}}</h3>
+        {{#each cases}}
+            <button type="button" class="ib-case-row {{#if this.active}}active{{/if}}"
+                    data-action="selectCase" data-case-id="{{this.id}}">
+                <span class="ib-case-name">{{this.name}}</span>
+            </button>
+        {{else}}
+            <p class="ib-empty">{{localize "INVESTIGATION_BOARD.NoCases"}}</p>
+        {{/each}}
+    </section>
+</aside>

@@ -1,0 +1,16 @@
+{{!-- The corkboard surface. Clues and strings are rendered into it in milestone 2 (#13). --}}
+<section class="ib-board-frame">
+    <div class="ib-board-viewport">
+        <div class="ib-board-world">
+            <svg class="ib-string-layer" xmlns="http://www.w3.org/2000/svg"></svg>
+            <div class="ib-clue-layer"></div>
+        </div>
+
+        {{#unless hasCase}}
+            <div class="ib-board-placeholder">
+                <i class="fa-solid fa-thumbtack"></i>
+                <p>{{localize "INVESTIGATION_BOARD.EmptyBoardHint"}}</p>
+            </div>
+        {{/unless}}
+    </div>
+</section>

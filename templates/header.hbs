@@ -1,0 +1,31 @@
+{{!-- Case title, status and progress. Made interactive in milestone 5 (#29, #30). --}}
+<header class="ib-header">
+    <div class="ib-header-titles">
+        <h1 class="ib-case-title">
+            {{#if hasCase}}{{currentCase.name}}{{else}}{{localize "INVESTIGATION_BOARD.NoCaseOpen"}}{{/if}}
+        </h1>
+        {{#if hasCase}}
+            <p class="ib-case-status">
+                {{localize "INVESTIGATION_BOARD.StatusLabel"}}
+                <span class="ib-status-value" data-status="active">
+                    {{localize "INVESTIGATION_BOARD.STATUS.Active"}}
+                </span>
+            </p>
+        {{/if}}
+    </div>
+
+    {{#if hasCase}}
+        <div class="ib-progress">
+            <div class="ib-progress-track">
+                <div class="ib-progress-fill" style="width: 0%"></div>
+            </div>
+            <span class="ib-progress-value">0%</span>
+        </div>
+    {{/if}}
+
+    <button type="button" class="ib-icon-button ib-settings" data-action="toggleMaximize"
+            data-tooltip="INVESTIGATION_BOARD.ToggleMaximize"
+            aria-label="{{localize 'INVESTIGATION_BOARD.ToggleMaximize'}}">
+        <i class="fa-solid fa-gear"></i>
+    </button>
+</header>

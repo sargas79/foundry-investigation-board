@@ -1,0 +1,11 @@
+<section class="ib-connection-page-view">
+    <h2>{{page.name}}</h2>
+    <p class="ib-connection-summary">
+        <strong>{{fromName}}</strong>
+        <i class="fa-solid fa-arrows-left-right"></i>
+        <strong>{{toName}}</strong>
+    </p>
+    {{#if connection.label}}
+        <p class="ib-connection-label">{{connection.label}}</p>
+    {{/if}}
+</section>

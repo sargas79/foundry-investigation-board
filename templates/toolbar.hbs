@@ -1,0 +1,23 @@
+{{!-- Floating action bar. Each action is wired up in milestones 3-7. --}}
+<nav class="ib-toolbar" aria-label="{{localize 'INVESTIGATION_BOARD.ToolbarLabel'}}">
+    <button type="button" class="ib-tool" data-action="pinEvidence" disabled>
+        <i class="fa-solid fa-thumbtack"></i>
+        <span>{{localize "INVESTIGATION_BOARD.TOOL.PinEvidence"}}</span>
+    </button>
+    <button type="button" class="ib-tool" data-action="createLead" disabled>
+        <i class="fa-solid fa-note-sticky"></i>
+        <span>{{localize "INVESTIGATION_BOARD.TOOL.CreateLead"}}</span>
+    </button>
+    <button type="button" class="ib-tool" data-action="drawConnection" disabled>
+        <i class="fa-solid fa-pen"></i>
+        <span>{{localize "INVESTIGATION_BOARD.TOOL.DrawConnection"}}</span>
+    </button>
+    <button type="button" class="ib-tool" data-action="filter" disabled>
+        <i class="fa-solid fa-filter"></i>
+        <span>{{localize "INVESTIGATION_BOARD.TOOL.Filter"}}</span>
+    </button>
+    <button type="button" class="ib-tool" data-action="exportCase" disabled>
+        <i class="fa-solid fa-file-export"></i>
+        <span>{{localize "INVESTIGATION_BOARD.TOOL.ExportCase"}}</span>
+    </button>
+</nav>

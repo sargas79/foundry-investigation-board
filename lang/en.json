@@ -1,0 +1,72 @@
+{
+  "INVESTIGATION_BOARD.AppTitle": "Investigation Board",
+  "INVESTIGATION_BOARD.CaseFiles": "Case Files",
+  "INVESTIGATION_BOARD.NoCases": "No case files yet.",
+  "INVESTIGATION_BOARD.NoCaseOpen": "No Case Open",
+  "INVESTIGATION_BOARD.StatusLabel": "Status:",
+  "INVESTIGATION_BOARD.SelectedClue": "Selected Clue",
+  "INVESTIGATION_BOARD.NoClueSelected": "Select a clue on the board to inspect it.",
+  "INVESTIGATION_BOARD.EmptyBoardHint": "Open a case file to start pinning evidence.",
+  "INVESTIGATION_BOARD.ToolbarLabel": "Board actions",
+  "INVESTIGATION_BOARD.ToggleMaximize": "Expand / Restore",
+
+  "INVESTIGATION_BOARD.SceneControl": "Investigation Board",
+  "INVESTIGATION_BOARD.CluePageSheet": "Clue Page",
+  "INVESTIGATION_BOARD.ConnectionPageSheet": "Connection Page",
+  "INVESTIGATION_BOARD.MissingClue": "(missing clue)",
+
+  "INVESTIGATION_BOARD.TemplateLabel": "Card Style",
+  "INVESTIGATION_BOARD.CategoryLabel": "Category",
+  "INVESTIGATION_BOARD.ReliabilityLabel": "Reliability",
+  "INVESTIGATION_BOARD.ImageLabel": "Image",
+  "INVESTIGATION_BOARD.BodyLabel": "Details",
+  "INVESTIGATION_BOARD.ConnectionLabel": "Label",
+  "INVESTIGATION_BOARD.ConnectionEnds": "Connects",
+  "INVESTIGATION_BOARD.ConnectionEditHint": "Connections are created and removed from the Investigation Board. Only the label can be edited here.",
+
+  "INVESTIGATION_BOARD.TOOL.PinEvidence": "Pin Evidence",
+  "INVESTIGATION_BOARD.TOOL.CreateLead": "Create Lead",
+  "INVESTIGATION_BOARD.TOOL.DrawConnection": "Draw Connection",
+  "INVESTIGATION_BOARD.TOOL.Filter": "Filter",
+  "INVESTIGATION_BOARD.TOOL.ExportCase": "Export Case",
+
+  "INVESTIGATION_BOARD.TEMPLATE.Polaroid": "Polaroid",
+  "INVESTIGATION_BOARD.TEMPLATE.Mugshot": "Mugshot",
+  "INVESTIGATION_BOARD.TEMPLATE.Profile": "Profile",
+  "INVESTIGATION_BOARD.TEMPLATE.Document": "Document",
+  "INVESTIGATION_BOARD.TEMPLATE.Letter": "Letter",
+  "INVESTIGATION_BOARD.TEMPLATE.Sticky": "Sticky Note",
+  "INVESTIGATION_BOARD.TEMPLATE.Map": "Map",
+
+  "INVESTIGATION_BOARD.RELIABILITY.Unverified": "Unverified",
+  "INVESTIGATION_BOARD.RELIABILITY.Questionable": "Questionable",
+  "INVESTIGATION_BOARD.RELIABILITY.Corroborated": "Corroborated",
+  "INVESTIGATION_BOARD.RELIABILITY.Verified": "Verified",
+  "INVESTIGATION_BOARD.RELIABILITY.Debunked": "Debunked",
+
+  "INVESTIGATION_BOARD.CATEGORY.Physical": "Physical Evidence",
+  "INVESTIGATION_BOARD.CATEGORY.Testimony": "Testimony",
+  "INVESTIGATION_BOARD.CATEGORY.Document": "Document",
+  "INVESTIGATION_BOARD.CATEGORY.Person": "Person of Interest",
+  "INVESTIGATION_BOARD.CATEGORY.Location": "Location",
+  "INVESTIGATION_BOARD.CATEGORY.Lead": "Lead",
+  "INVESTIGATION_BOARD.CATEGORY.Other": "Other",
+
+  "INVESTIGATION_BOARD.STATUS.Active": "Active",
+  "INVESTIGATION_BOARD.STATUS.OnHold": "On Hold",
+  "INVESTIGATION_BOARD.STATUS.Cold": "Cold",
+  "INVESTIGATION_BOARD.STATUS.Solved": "Solved",
+
+  "INVESTIGATION_BOARD.CONNECTION_STYLE.Solid": "Solid",
+  "INVESTIGATION_BOARD.CONNECTION_STYLE.Dashed": "Dashed",
+  "INVESTIGATION_BOARD.CONNECTION_STYLE.Dotted": "Dotted",
+
+  "INVESTIGATION_BOARD.SETTINGS.Classifications": "Case Classifications",
+  "INVESTIGATION_BOARD.SETTINGS.ClassificationsHint": "Comma-separated list of classifications offered when creating or editing a case. Players may also type their own.",
+
+  "INVESTIGATION_BOARD.KEYBINDINGS.OpenBoard": "Open Investigation Board",
+  "INVESTIGATION_BOARD.KEYBINDINGS.OpenBoardHint": "Opens the Investigation Board window.",
+
+  "TYPES.JournalEntryPage.investigation-board.clue": "Clue",
+  "TYPES.JournalEntryPage.investigation-board.connection": "Connection"
+}

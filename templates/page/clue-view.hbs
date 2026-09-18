@@ -1,0 +1,15 @@
+<section class="ib-clue-page-view">
+    <h2>{{page.name}}</h2>
+    <dl class="ib-clue-meta">
+        <dt>{{localize "INVESTIGATION_BOARD.CategoryLabel"}}</dt>
+        <dd>{{lookup categoryChoices clue.category}}</dd>
+        <dt>{{localize "INVESTIGATION_BOARD.ReliabilityLabel"}}</dt>
+        <dd>{{lookup reliabilityChoices clue.reliability}}</dd>
+    </dl>
+    {{#if clue.image}}
+        <img class="ib-clue-page-image" src="{{clue.image}}" alt="{{page.name}}">
+    {{/if}}
+    {{#if enrichedBody}}
+        <div class="ib-clue-page-body">{{{enrichedBody}}}</div>
+    {{/if}}
+</section>
