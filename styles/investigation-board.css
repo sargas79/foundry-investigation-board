@@ -546,6 +546,11 @@
   margin-bottom: 22px;
 
   display: flex;
+  /* Eight tools are wider than the board column at the window's minimum size; wrapping keeps
+     the bar over the cork rather than spilling under the inspector. */
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 100%;
   gap: 4px;
   padding: 8px;
   border: 1px solid var(--ib-border);

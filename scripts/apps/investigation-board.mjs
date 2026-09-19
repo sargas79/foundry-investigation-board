@@ -68,6 +68,7 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       selectCase: InvestigationBoard.#onSelectCase,
       createCase: InvestigationBoard.#onCreateCase,
       configureCase: InvestigationBoard.#onConfigureCase,
+      useHand: InvestigationBoard.#onUseHand,
       pinEvidence: InvestigationBoard.#onPinEvidence,
       createLead: InvestigationBoard.#onCreateLead,
       drawConnection: InvestigationBoard.#onDrawConnection,
@@ -207,6 +208,8 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       ...this.#sidebarContext(),
       trayOpen: this.#trayOpen,
       linkMode: !!this.#interactions?.linkMode,
+      // The hand is what is in use whenever nothing else has been picked up.
+      handActive: !!currentCase && !this.#interactions?.linkMode && !this.#filterOpen,
       ...this.#inspectorContext(),
       ...this.#filterContext(),
       dismissed: currentCase ? getDismissed(currentCase).map(page => ({
@@ -1126,6 +1129,28 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
 
     // The card is drawn by the create hook; editing begins as soon as it exists.
     if ( page ) this.#pendingInlineEdit = page.id;
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Put down whatever tool is in use and go back to the plain pointer.
+   *
+   * The linking tool deliberately stays on between links, and the filter popover sits over the
+   * cork until it is dismissed — both are states you have to get *out* of, and Escape was the
+   * only way. This is that way out, in the toolbar where the tools were picked up.
+   *
+   * What is selected is left alone: the inspector showing a clue is not a tool in use, and
+   * clearing it here would mean losing the card you were reading to get your pointer back.
+   * @this {InvestigationBoard}
+   * @returns {Promise<void>}
+   */
+  static async #onUseHand() {
+    // Dropping link mode also abandons any half-drawn string, and re-renders the toolbar.
+    this.#interactions?.setLinkMode(false);
+    if ( !this.#filterOpen ) return;
+    this.#filterOpen = false;
+    await this.render({parts: ["filter", "toolbar"]});
   }
 
   /* -------------------------------------------- */

@@ -154,11 +154,47 @@ export default async function testTemplates() {
     assert(countAction(html, "editBrief") === 1, "no way to start the file");
   });
 
+  describe("toolbar.hbs");
+
+  const toolbarContext = extra => ({
+    hasCase: true, dismissed: [], linkMode: false, filterOpen: false, filterActive: false,
+    handActive: true, ...extra
+  });
+
+  // The way out of the linking tool. Without it the only way back to a plain pointer is Escape,
+  // which is not discoverable from a toolbar.
+  await check("the hand is offered whenever a case is open", () => {
+    const html = render("templates/toolbar.hbs", toolbarContext());
+    assert(countAction(html, "useHand") === 1,
+      `expected one hand control, got ${countAction(html, "useHand")}`);
+    assert(!html.includes('data-action="useHand" disabled'), "the hand was disabled with a case open");
+  });
+
+  await check("the hand reads as engaged only when no other tool is", () => {
+    const resting = render("templates/toolbar.hbs", toolbarContext());
+    const linking = render("templates/toolbar.hbs", toolbarContext({linkMode: true, handActive: false}));
+    // The pressed state is what tells a screen reader which tool is in use, so it has to follow
+    // the class rather than being spelled independently.
+    assert(/ib-tool active[\s\S]*?data-action="useHand"[\s\S]*?aria-pressed="true"/.test(resting),
+      "the resting hand is not shown as the engaged tool");
+    assert(/data-action="useHand"[\s\S]*?aria-pressed="false"/.test(linking),
+      "the hand still reads as engaged while the linking tool is on");
+    assert(/ib-tool active[\s\S]*?data-action="drawConnection"/.test(linking),
+      "the linking tool is not shown as engaged");
+  });
+
+  await check("with no case open every tool is disabled, the hand included", () => {
+    const html = render("templates/toolbar.hbs", toolbarContext({hasCase: false, handActive: false}));
+    const buttons = html.match(/<button[\s\S]*?>/g) ?? [];
+    const enabled = buttons.filter(b => !b.includes("disabled") && !b.includes("importCase"));
+    assert(enabled.length === 0, `these stayed enabled without a case: ${enabled.join(" ")}`);
+  });
+
   describe("every part compiles and renders");
 
   const parts = [
     ["templates/toolbar.hbs", {hasCase: true, dismissed: [], linkMode: false,
-      filterOpen: false, filterActive: false}],
+      filterOpen: false, filterActive: false, handActive: true}],
     ["templates/tray.hbs", {isGM: true, trayOpen: true, dismissed: [
       {id: "z", name: "Ruled out", image: null, template: "sticky", dismissedLabel: "Set aside"}]}],
     ["templates/filter.hbs", {filterOpen: true, filter: {text: ""}, categories: [],

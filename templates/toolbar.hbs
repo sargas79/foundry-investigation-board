@@ -1,5 +1,12 @@
 {{!-- Floating action bar. Each action is wired up in milestones 3-7. --}}
 <nav class="ib-toolbar" aria-label="{{localize 'INVESTIGATION_BOARD.ToolbarLabel'}}">
+    {{!-- The resting tool: pressing it puts down whatever else was picked up. --}}
+    <button type="button" class="ib-tool {{#if handActive}}active{{/if}}"
+            data-action="useHand" {{#unless hasCase}}disabled{{/unless}}
+            aria-pressed="{{#if handActive}}true{{else}}false{{/if}}">
+        <i class="fa-solid fa-hand"></i>
+        <span>{{localize "INVESTIGATION_BOARD.TOOL.Hand"}}</span>
+    </button>
     <button type="button" class="ib-tool" data-action="pinEvidence" {{#unless hasCase}}disabled{{/unless}}>
         <i class="fa-solid fa-thumbtack"></i>
         <span>{{localize "INVESTIGATION_BOARD.TOOL.PinEvidence"}}</span>

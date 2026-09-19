@@ -22,6 +22,7 @@
   "INVESTIGATION_BOARD.ConnectionLabel": "Label",
   "INVESTIGATION_BOARD.ConnectionEnds": "Connects",
   "INVESTIGATION_BOARD.ConnectionEditHint": "Connections are created and removed from the Investigation Board. Only the label can be edited here.",
+  "INVESTIGATION_BOARD.TOOL.Hand": "Hand",
   "INVESTIGATION_BOARD.TOOL.PinEvidence": "Pin Evidence",
   "INVESTIGATION_BOARD.TOOL.CreateLead": "Create Lead",
   "INVESTIGATION_BOARD.TOOL.DrawConnection": "Draw Connection",

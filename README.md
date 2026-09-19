@@ -37,7 +37,9 @@ character mid-campaign doesn't silently rewrite who found what.
 **Jot a lead** with Create Lead — one click drops a sticky note with the caret already in it.
 
 **String clues together** with the Draw Connection tool (click one clue, then another; it stays on
-so you can tie several in a row) or by dragging straight from a clue's pushpin. Cut a string by
+so you can tie several in a row) or by dragging straight from a clue's pushpin. **Hand**, the first
+tool in the bar, puts whatever is in use back down: it drops the linking tool, abandons a
+half-drawn string and closes the filter panel, leaving the plain pointer you started with. Cut a string by
 selecting it and pressing Delete, or right-clicking it. Strings take the colour of the pin they
 start from, so a line of enquiry reads as one colour across the board.
 
