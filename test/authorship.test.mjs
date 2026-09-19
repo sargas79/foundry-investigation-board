@@ -7,7 +7,7 @@ import {assert, check, describe} from "./harness.mjs";
  * world has moved on since: the actor renamed, reassigned to someone else, or deleted outright.
  */
 export default async function testAuthorship() {
-  const {authorStamp, authorName, authorColor} =
+  const {authorStamp, authorName, authorColor, characterName} =
     await import("../scripts/data/authorship.mjs");
 
   /** Install a world where a user may or may not have a character. */
@@ -23,6 +23,27 @@ export default async function testAuthorship() {
     return () => Object.assign(globalThis, previous);
   }
 
+  // #60: a byline has to fit on a 180px lead, and the token name is the short one a table says
+  // out loud. Foundry seeds it from the actor name, so for most actors the two are the same string.
+  describe("characterName");
+
+  await check("prefers the prototype token's name", () => {
+    const name = characterName({name: "Bartholomew Ashworth III", prototypeToken: {name: "Bart"}});
+    assert(name === "Bart", `showed ${name}`);
+  });
+
+  await check("falls back to the actor when the token has no name of its own", () => {
+    assert(characterName({name: "Mara Vale", prototypeToken: {name: ""}}) === "Mara Vale",
+      "an empty token name was preferred over the actor's");
+    assert(characterName({name: "Mara Vale"}) === "Mara Vale",
+      "an actor with no prototype token lost its name");
+  });
+
+  await check("says nothing for no actor at all", () => {
+    assert(characterName(null) === "", "invented a name for a missing actor");
+    assert(characterName(undefined) === "", "invented a name for a missing actor");
+  });
+
   describe("authorStamp");
 
   // At the table people are their characters, not their accounts.
@@ -35,6 +56,15 @@ export default async function testAuthorship() {
     assert(stamp.createdBy === "u1", "the account was not recorded alongside");
   });
 
+  await check("snapshots the token name, since that is what the byline will show", () => {
+    const restore = withWorld({
+      character: {uuid: "Actor.bart", name: "Bartholomew Ashworth III", prototypeToken: {name: "Bart"}}
+    });
+    const stamp = authorStamp();
+    restore();
+    assert(stamp.createdByName === "Bart", `recorded ${stamp.createdByName}`);
+  });
+
   // Normally the GM, who has no character assigned.
   await check("falls back to the account name when there is no character", () => {
     const restore = withWorld({character: null, userName: "diego"});
@@ -45,6 +75,17 @@ export default async function testAuthorship() {
   });
 
   describe("authorName");
+
+  await check("shows the live actor's token name over the recorded one", () => {
+    const restore = withWorld({
+      actors: {"Actor.bart": {name: "Bartholomew Ashworth III", prototypeToken: {name: "Bart"}}}
+    });
+    const name = authorName({
+      createdBy: "u1", createdByActor: "Actor.bart", createdByName: "Bartholomew Ashworth III"
+    });
+    restore();
+    assert(name === "Bart", `showed ${name}`);
+  });
 
   await check("prefers the actor as it stands now, so a rename follows through", () => {
     const restore = withWorld({

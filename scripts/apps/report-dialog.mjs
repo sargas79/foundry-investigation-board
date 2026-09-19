@@ -114,6 +114,14 @@ export default class ReportDialog extends HandlebarsApplicationMixin(Application
       return;
     }
 
+    // There is no page yet, so the case itself is the authority — the same test the buttons that
+    // opened this dialog are drawn from. Checked here as well as there so the create and the edit
+    // rules cannot quietly drift apart again.
+    if ( !game.user.isGM && !this.journal?.isOwner ) {
+      ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.NoPermission", {localize: true});
+      return;
+    }
+
     // New findings go to the end of the file, so it reads in the order it was written.
     const sort = getFindings(this.journal).length;
     await this.journal.createEmbeddedDocuments("JournalEntryPage", [{

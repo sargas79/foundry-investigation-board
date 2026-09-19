@@ -1,4 +1,5 @@
 import {MODULE_ID, PAGE_TYPES, modulePath} from "../constants.mjs";
+import {characterName} from "../data/authorship.mjs";
 import {canEditReport, getBrief, getFindings} from "../data/case.mjs";
 import {peekSealed, redactPassage, revealPassage} from "../data/redaction.mjs";
 
@@ -136,7 +137,7 @@ export default class CaseFile extends HandlebarsApplicationMixin(ApplicationV2) 
   #byline(page) {
     // The character first: at the table these pages are written by Mara, not by diego.
     const who = page.system.authorName
-      || game.users.get(page.system.author)?.character?.name
+      || characterName(game.users.get(page.system.author)?.character)
       || game.users.get(page.system.author)?.name
       || game.i18n.localize("INVESTIGATION_BOARD.SomeoneElse");
     let when = null;

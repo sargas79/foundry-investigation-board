@@ -112,6 +112,26 @@
 
 /* --- The prose itself ---------------------------------------------------- */
 
+/*
+ * Core turns selection off for the whole document in its reset (`body { user-select: none }`) and
+ * opts back in per surface — `.sheet.journal-entry .journal-entry-page *` is how a journal page
+ * becomes selectable. This window is an Application of our own rather than a journal sheet, so
+ * none of that reaches it and the file has to ask for itself.
+ *
+ * It matters twice over: the file is the part of a case most likely to be quoted into chat, and
+ * the GM's redaction reads `window.getSelection()`, which can never be filled if the text under
+ * the marker cannot be dragged across.
+ */
+.ib-case-file .ib-file-prose,
+.ib-case-file .ib-file-prose *,
+.ib-case-file h1,
+.ib-case-file h3,
+.ib-case-file .ib-case-number,
+.ib-case-file .ib-finding-by {
+  user-select: text;
+  cursor: var(--cursor-text, text);
+}
+
 .ib-case-file .ib-file-prose {
   max-width: 68ch;
   font-size: 13.5px;
