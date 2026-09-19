@@ -170,12 +170,17 @@
   background: var(--ib-panel-raised);
 }
 
+/* A note is something a player wrote, so it reads and copies like prose — see the same opt-in in
+   case-file.css for why it has to be asked for. The board itself keeps selection off: cards are
+   dragged, not read. */
 .investigation-board-app .ib-note-text {
   margin: 0;
   font-size: 11.5px;
   line-height: 1.4;
   color: var(--ib-text);
   white-space: pre-wrap;
+  user-select: text;
+  cursor: var(--cursor-text, text);
 }
 
 .investigation-board-app .ib-note-by {
