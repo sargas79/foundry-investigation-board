@@ -52,8 +52,10 @@ everything on it after a confirmation that says how many clues go with it.
 
 **Open the case file** with the folder icon in the header. The board is where the party works a
 case out; the file is what they write down — an opening document with a file number and the facts
-of the case, then findings pages added as sessions go on. The GM or the case's owner writes the
-opening file; anyone who can work the case can add a finding, and edits only their own.
+of the case, then findings pages added as sessions go on. Anyone who can work the case writes the
+opening file — shared means shared, and the file is the record of work the whole party did. Anyone
+who can work the case can add a finding too, and edits only their own. A GM who wants something in
+the file the party cannot rewrite has redaction, below.
 
 **Redaction** is the GM's. Selecting a passage and redacting it *moves the text out* of the page
 into a companion document players have no permission on — so a player's browser has no copy at all,
@@ -125,6 +127,9 @@ a case or lock out the only people who could repair it.
 | Action | Who |
 |---|---|
 | Add, edit, move, dismiss clues; string and cut | Anyone with **Owner** on the case |
+| Write the case file's opening document | Anyone with **Owner** on the case |
+| Add a finding to the case file | Anyone with **Owner** on the case — each edits only their own |
+| Redact or reveal a passage | **GM or Assistant GM** |
 | View only | **Observer** |
 | Create or import a case | Needs **Create Journal Entries** — the **Trusted Player** rank has it by default |
 | Share an existing case | **GM or Assistant GM** |

@@ -211,9 +211,17 @@ export function getFindings(journal) {
 /**
  * Whether a user may write a given case-file page.
  *
- * The opening file is the official record, so it belongs to the GM and to whoever the case belongs
- * to. A findings page belongs to whoever wrote it — anyone can add to the file, nobody rewrites
- * someone else's account of it. The GM may edit anything.
+ * The opening file belongs to the case: anyone who owns the case may write it, the same people who
+ * may pin a clue, cut a string or close it. Shared means shared, and the file is the record of work
+ * the whole party did. A findings page belongs instead to whoever wrote it — anyone can add to the
+ * file, nobody rewrites someone else's account of it. The GM may edit anything.
+ *
+ * It used to be narrower: only the single user in the `assignedTo` flag. That reads well until you
+ * notice `assignedTo` is the *creator*, so a case the GM opened and handed to the party could be
+ * written in by nobody but the GM — and a player who started the file was locked out of what they
+ * had just written, since starting it only ever needed ownership. A GM who wants a brief the party
+ * cannot rewrite has redaction, which removes the text from their clients rather than merely
+ * hiding the pen.
  *
  * @param {JournalEntryPage} page
  * @param {User} user
@@ -223,10 +231,7 @@ export function canEditReport(page, user) {
   if ( !page || !user ) return false;
   if ( user.isGM ) return true;
   if ( !page.parent?.isOwner ) return false;
-  if ( page.system.kind === "brief" ) {
-    const assigned = page.parent.getFlag(MODULE_ID, CASE_FLAGS.ASSIGNED_TO);
-    return assigned ? (assigned === user.id) : true;
-  }
+  if ( page.system.kind === "brief" ) return true;
   return page.system.author === user.id;
 }
 

@@ -129,11 +129,35 @@ export default async function testCaseFile() {
     assert(canEditReport(second, gm) === true, "the GM was refused someone's finding");
   });
 
-  // Settled in discussion: the opening file belongs to the GM and to the case's own player.
-  await check("the opening file belongs to the case's player", () => {
+  // #61: the opening file belongs to the case, not to one name on it. Anyone the case was shared
+  // with may write it, exactly as they may pin a clue or cut a string.
+  await check("the opening file belongs to everyone the case was shared with", () => {
     assert(canEditReport(brief, owner) === true, "the case's player was refused their own file");
-    assert(canEditReport(brief, other) === false,
-      "another player could rewrite the official opening file");
+    assert(canEditReport(brief, other) === true,
+      "a player the case was shared with was refused the opening file");
+  });
+
+  // The case this used to get wrong. `assignedTo` is the creator, so a case the GM opened and
+  // handed to the party named the *GM* — and every player failed the check on their own case.
+  await check("a case the GM opened and handed over can be written in by its players", () => {
+    const handedOut = journalOf(
+      [reportPage("b", "Opening", {kind: "brief", sort: -1})],
+      {assignedTo: "gm"}
+    );
+    assert(canEditReport(handedOut.pages.get("b"), owner) === true,
+      "the party could not write the file of the case they were given");
+    assert(canEditReport(handedOut.pages.get("b"), other) === true,
+      "the party could not write the file of the case they were given");
+  });
+
+  // Ownership is still the whole of the rule: an Observer reads the file and writes nothing.
+  await check("someone the case was never shared with still may not write it", () => {
+    const theirs = journalOf(
+      [reportPage("b", "Opening", {kind: "brief", sort: -1})],
+      {assignedTo: "p1", isOwner: false}
+    );
+    assert(canEditReport(theirs.pages.get("b"), other) === false,
+      "a non-owner could rewrite the opening file");
   });
 
   // Anyone can add to the file; nobody rewrites someone else's account of it.
