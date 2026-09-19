@@ -9,6 +9,7 @@ import {
 } from "../constants.mjs";
 import {freeSpotNear, topZ} from "../data/case.mjs";
 import {authorStamp} from "../data/authorship.mjs";
+import {bindLeadsPicker} from "../data/uploads.mjs";
 
 const {ApplicationV2, HandlebarsApplicationMixin} = foundry.applications.api;
 
@@ -128,6 +129,18 @@ export default class ClueDialog extends HandlebarsApplicationMixin(ApplicationV2
           label: this.isEdit ? "INVESTIGATION_BOARD.Save" : "INVESTIGATION_BOARD.Pin"}
       ]
     });
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * @inheritDoc
+   * Bound on the dialog itself rather than on the field: choosing a template re-renders the body
+   * part, so a listener attached to the picker would be thrown away with it.
+   */
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    bindLeadsPicker(this.element);
   }
 
   /* -------------------------------------------- */

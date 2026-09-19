@@ -115,6 +115,16 @@ case**, which keep everything recoverable.
 Image upload needs **Upload Files** (Assistant GM by default). Without it, the image picker falls
 back to browsing existing files or pasting a path.
 
+**Where uploads go.** Every image uploaded through the board is written to `leads/` inside the
+world's own folder — `Data/worlds/<your world>/leads` — whichever directory the picker happens to
+be showing, and the folder is created the first time it is needed. Browsing stays unrestricted, so
+an image already somewhere in the world can still be picked. One folder inside the world is the
+only sensible home for these: Foundry's server refuses an upload into any world but the running
+one, a module's own directory is wiped when the module updates, and evidence scattered across
+whatever folder each player last opened is no use to the next GM. Images dropped or pasted
+directly into a clue's *rich text* body are core's own feature and still go where core puts them,
+beside the journal entry.
+
 ## Moving a case between worlds
 
 **Export Case** writes a JSON file; **Import** reads one back. The board and the case file both

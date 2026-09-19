@@ -1,4 +1,5 @@
 import {CATEGORIES, CLUE_TEMPLATES, MODULE_ID, RELIABILITY, modulePath} from "../constants.mjs";
+import {bindLeadsPicker} from "../data/uploads.mjs";
 
 const {JournalEntryPageHandlebarsSheet} = foundry.applications.sheets.journal;
 
@@ -57,6 +58,17 @@ export class CluePageSheet extends JournalEntryPageHandlebarsSheet {
         secrets: this.page.isOwner
       })
     });
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * @inheritDoc
+   * A clue edited from the journal sidebar uploads to the same folder as one edited on the board.
+   */
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    bindLeadsPicker(this.element);
   }
 }
 
