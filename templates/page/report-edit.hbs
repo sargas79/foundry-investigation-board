@@ -1,11 +1,8 @@
+{{!-- No name field here. Core's `page-header.hbs`, included by these sheets as
+      `super.EDIT_PARTS.header`, already renders one. A second input with the same name makes
+      `form.elements.namedItem("name")` a RadioNodeList, which FormDataExtended reads as an
+      *array* of both values — so saving wrote "Old,New" and doubled the title on every edit. --}}
 <section class="ib-report-page-edit">
-    <div class="form-group">
-        <label for="{{rootId}}-name">{{localize "Name"}}</label>
-        <div class="form-fields">
-            <input type="text" id="{{rootId}}-name" name="name" value="{{name}}" required>
-        </div>
-    </div>
-
     {{#if report.isBrief}}
         <div class="form-group">
             <label for="{{rootId}}-number">{{localize "INVESTIGATION_BOARD.CaseNumberLabel"}}</label>

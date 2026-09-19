@@ -332,6 +332,25 @@ export default async function testTemplates() {
     assert(enabled.length === 0, `these stayed enabled without a case: ${enabled.join(" ")}`);
   });
 
+  describe("page sheets do not duplicate core's fields");
+
+  // A page sheet that lists `super.EDIT_PARTS.header` already has core's `page-header.hbs` in the
+  // form, and that part renders the page's name field. A second input with the same name makes
+  // `form.elements.namedItem("name")` a RadioNodeList, which FormDataExtended reads as an *array*
+  // of every matching field rather than a string — so saving stored "Old,New" and the title
+  // doubled in length on every edit. Nothing about the rendered form looks wrong, and no other
+  // check would catch it, so it is asserted directly against the source.
+  await check("no page edit template declares its own name field", () => {
+    const offenders = [];
+    for ( const file of fs.readdirSync(new URL("templates/page/", root)) ) {
+      if ( !file.endsWith("-edit.hbs") ) continue;
+      const text = fs.readFileSync(new URL(`templates/page/${file}`, root), "utf8");
+      if ( /name=("|')name\1/.test(text) ) offenders.push(file);
+    }
+    assert(offenders.length === 0,
+      `these would double the page title on every save: ${offenders.join(", ")}`);
+  });
+
   describe("every part compiles and renders");
 
   const parts = [
