@@ -1,0 +1,62 @@
+{{!-- The document as it is handed over. `name` comes from the page sheet's own context. --}}
+<article class="ib-handout ib-handout-{{handout.kind}}">
+
+    <header class="ib-handout-head">
+        <i class="{{icon}} ib-handout-seal"></i>
+        <div class="ib-handout-heading">
+            {{#if handout.issuer}}
+                <p class="ib-handout-issuer">{{handout.issuer}}</p>
+            {{/if}}
+            <h2 class="ib-handout-name">{{name}}</h2>
+            <p class="ib-handout-kind">{{kindLabel}}</p>
+        </div>
+        {{#if handout.reference}}
+            <p class="ib-handout-reference">
+                <span>{{localize "INVESTIGATION_BOARD.HandoutReference"}}</span>
+                <strong>{{handout.reference}}</strong>
+            </p>
+        {{/if}}
+    </header>
+
+    <div class="ib-handout-particulars {{#if portrait}}has-portrait{{/if}}">
+        {{#if portrait}}
+            <figure class="ib-handout-portrait">
+                {{#if handout.image}}
+                    <img src="{{handout.image}}" alt="{{name}}">
+                {{else}}
+                    <span class="ib-handout-nophoto">
+                        {{localize "INVESTIGATION_BOARD.HandoutNoPhoto"}}
+                    </span>
+                {{/if}}
+            </figure>
+        {{/if}}
+
+        {{#if rows.length}}
+            <dl class="ib-handout-rows">
+                {{#each rows}}
+                    <div class="ib-handout-line">
+                        <dt>{{this.label}}</dt>
+                        <dd>{{this.value}}</dd>
+                    </div>
+                {{/each}}
+            </dl>
+        {{/if}}
+    </div>
+
+    {{#unless portrait}}
+        {{#if handout.image}}
+            <figure class="ib-handout-scan">
+                <img src="{{handout.image}}" alt="{{name}}">
+            </figure>
+        {{/if}}
+    {{/unless}}
+
+    {{#if enrichedBody}}
+        <div class="ib-handout-prose">{{{enrichedBody}}}</div>
+    {{/if}}
+
+    {{#if handout.dateline}}
+        <footer class="ib-handout-foot">{{handout.dateline}}</footer>
+    {{/if}}
+
+</article>

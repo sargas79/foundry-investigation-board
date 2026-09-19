@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Investigation Board — handouts</title>
+  <link rel="stylesheet" href="/styles/fonts.css">
+  <link rel="stylesheet" href="/styles/investigation-board.css">
+  <link rel="stylesheet" href="/styles/handouts.css">
+  <!-- Icons come from Foundry in the real thing; pulled in here so the layout is honest. -->
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <style>
+    html, body { height: 100%; margin: 0; background: #0b0f13; }
+    body { display: grid; grid-template-columns: 260px 1fr 1fr; gap: 14px; padding: 14px;
+           box-sizing: border-box; font-family: system-ui, sans-serif; color: #e6eaee; }
+    .pane { display: flex; flex-direction: column; min-height: 0; border: 1px solid #39424c;
+            border-radius: 8px; overflow: hidden; background: #232a31; }
+    .pane > h2 { margin: 0; padding: 8px 12px; background: #1b2128; color: #8c98a4;
+                 font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+    .pane > .body { flex: 1; min-height: 0; overflow: auto; }
+    /* The real board puts the sidebar in a 260px grid column with overflow hidden, which is
+       what lets its rows ellipsise rather than widen the column. Reproduced here. */
+    .investigation-board-app [data-application-part="sidebar"] {
+      display: flex; flex-direction: column; width: 260px; height: 100%;
+      min-width: 0; overflow: hidden;
+    }
+    .investigation-board-app .ib-sidebar { display: flex; flex-direction: column; min-height: 0;
+      flex: 1; border: none !important; }
+    .docs { display: flex; flex-direction: column; gap: 14px; padding: 14px; }
+  </style>
+</head>
+<body>
+
+  <div class="pane investigation-board-app">
+    <h2>Documents tab — as the GM</h2>
+    <div class="body" data-application-part="sidebar" id="sidebar-gm"></div>
+  </div>
+
+  <div class="pane">
+    <h2>A record, and an ID card</h2>
+    <div class="body docs" id="records"></div>
+  </div>
+
+  <div class="pane">
+    <h2>A clipping, and a bare document</h2>
+    <div class="body docs" id="others"></div>
+  </div>
+
+  <script type="module">
+    // Rendered from the real templates, so this shows what the module actually produces.
+    const {default: Handlebars} =
+      await import("https://cdn.jsdelivr.net/npm/handlebars@4.7.8/+esm");
+
+    Handlebars.registerHelper({
+      localize: k => String(k ?? "").replace(/^INVESTIGATION_BOARD\./, ""),
+      eq: (a, b) => a === b
+    });
+
+    const compile = async file => Handlebars.compile(await (await fetch(file)).text());
+    const sidebar = await compile("/templates/sidebar.hbs");
+    const view = await compile("/templates/page/handout-view.hbs");
+
+    document.getElementById("sidebar-gm").innerHTML = sidebar({
+      isGM: true, documentsTab: true, canManageHandouts: true, canPin: true, hasRowActions: true, handoutCount: 4,
+      handouts: [
+        {id: "h1", name: "Certificate of Death — A. Vance", icon: "fa-solid fa-cross",
+          kindLabel: "Death Record", subLabel: "With Mara", shared: true, shareTooltip: "With Mara"},
+        {id: "h2", name: "Ashford Chemical — M. Reyes", icon: "fa-solid fa-id-badge",
+          kindLabel: "Company Badge", subLabel: "Not handed out yet", shared: false, shareTooltip: "Not handed out yet"},
+        {id: "h3", name: "Harbour Gazette, 12th", icon: "fa-solid fa-newspaper",
+          kindLabel: "Journal Article", subLabel: "In the whole party's hands", shared: true, shareTooltip: "In the whole party's hands"},
+        {id: "h4", name: "Torn ledger page", icon: "fa-solid fa-file-lines",
+          kindLabel: "Document", subLabel: "Not handed out yet", shared: false, shareTooltip: "Not handed out yet"}
+      ]
+    });
+
+    const render = (target, context) => {
+      const wrap = document.createElement("div");
+      wrap.className = "handout-page";
+      wrap.innerHTML = view(context);
+      document.getElementById(target).append(wrap);
+    };
+
+    render("records", {
+      name: "Certificate of Death",
+      kindLabel: "Death Record", icon: "fa-solid fa-cross", portrait: false,
+      handout: {kind: "death", issuer: "City Coroner's Office", reference: "DC/4471-B",
+        dateline: "Certified the 14th day of Brume, 1204", image: null},
+      rows: [
+        {label: "Deceased", value: "Aldous Vance, 51"},
+        {label: "Date of Death", value: "Night of the 11th"},
+        {label: "Place of Death", value: "Ashwood Lane, at the waterline"},
+        {label: "Cause of Death", value: "Exsanguination; incised wound to the throat"},
+        {label: "Certified By", value: "H. Okonkwo, Deputy Coroner"}
+      ],
+      enrichedBody: "<p>No evidence of a struggle. The watch on the deceased had stopped at "
+        + "two minutes past two, which the examiner notes is consistent with immersion.</p>"
+    });
+
+    render("records", {
+      name: "Harbour Authority Pass",
+      kindLabel: "Identity Card", icon: "fa-solid fa-id-card", portrait: true,
+      handout: {kind: "identity", issuer: "Port of Ashwood", reference: "PA-88214",
+        dateline: "Valid at all berths", image: null},
+      rows: [
+        {label: "Name", value: "Mira Reyes"},
+        {label: "Date of Birth", value: "3rd of Thermidor, 1173"},
+        {label: "Number", value: "88214"},
+        {label: "Expires", value: "End of the year"}
+      ],
+      enrichedBody: ""
+    });
+
+    render("others", {
+      name: "Body Pulled From The Ashwood Cut",
+      kindLabel: "Journal Article", icon: "fa-solid fa-newspaper", portrait: false,
+      handout: {kind: "article", issuer: "The Harbour Gazette", reference: "",
+        dateline: "Morning edition, the 12th", image: null},
+      rows: [{label: "By", value: "C. Adeyemi"}, {label: "Page", value: "3"}],
+      enrichedBody: "<p>Watchmen were called to the Cut before dawn, where a body had fouled "
+        + "the lower gate. The deceased is understood to have been known to the Authority.</p>"
+        + "<p>A spokesman for Ashford Chemical, whose wharf adjoins the Cut, said the company "
+        + "had no knowledge of the man and would assist the watch in any way asked of it.</p>"
+        + "<p>The Gazette understands that the ledger for that night is missing.</p>"
+    });
+
+    render("others", {
+      name: "Torn ledger page",
+      kindLabel: "Document", icon: "fa-solid fa-file-lines", portrait: false,
+      handout: {kind: "document", issuer: "", reference: "", dateline: "", image: null},
+      rows: [],
+      enrichedBody: "<p>…seven crates, unmanifested, signed for at the hour by a hand that is "
+        + "not the harbourmaster's. The rest of the page is gone.</p>"
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,441 @@
+/* =========================================================================
+   Handouts — documents the GM writes and hands to players.
+
+   Two surfaces: the list in the board's sidebar, and the document itself as
+   it is read. The list follows the case list beside it; the document breaks
+   away from the board's dark chrome entirely and is printed on paper,
+   because the whole point is that it reads as a thing found rather than an
+   interface panel.
+   ========================================================================= */
+
+/* --- The sidebar's two tabs ---------------------------------------------- */
+
+.investigation-board-app .ib-sidebar-tabs {
+  display: flex;
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--ib-border);
+  background: var(--ib-panel);
+}
+
+.investigation-board-app .ib-sidebar-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 4px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--ib-text-muted);
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.investigation-board-app .ib-sidebar-tab:hover {
+  color: var(--ib-text);
+  background: rgb(255 255 255 / 4%);
+}
+
+.investigation-board-app .ib-sidebar-tab.active {
+  color: var(--ib-text);
+  border-bottom-color: var(--ib-accent);
+}
+
+.investigation-board-app .ib-sidebar-tab i {
+  font-size: 0.9em;
+}
+
+.investigation-board-app .ib-tab-count {
+  padding: 0 5px;
+  border-radius: 8px;
+  background: var(--ib-panel-raised);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+/* --- The list of documents ----------------------------------------------- */
+
+.investigation-board-app .ib-handout-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 6px;
+}
+
+.investigation-board-app .ib-handout-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: var(--ib-radius);
+}
+
+.investigation-board-app .ib-handout-row:hover {
+  background: rgb(255 255 255 / 5%);
+}
+
+.investigation-board-app .ib-handout-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 8px;
+  border: none;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.investigation-board-app .ib-handout-icon {
+  flex: 0 0 auto;
+  width: 16px;
+  color: var(--ib-text-muted);
+  text-align: center;
+}
+
+/* A document out with the party is the one thing a GM scans this list for. */
+.investigation-board-app .ib-handout-row.shared .ib-handout-icon {
+  color: var(--ib-active);
+}
+
+.investigation-board-app .ib-handout-titles {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.investigation-board-app .ib-handout-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.investigation-board-app .ib-handout-sub {
+  color: var(--ib-text-muted);
+  font-size: 0.72rem;
+}
+
+/* The controls sit over the end of the row, revealed on hover, so a document's name
+   always has the full width of the column. Whether a document is out is carried by the
+   icon's colour instead, which needs no room and is readable at rest. */
+.investigation-board-app .ib-handout-actions {
+  position: absolute;
+  inset-block: 2px;
+  inset-inline-end: 2px;
+  display: none;
+  align-items: center;
+  padding-inline-start: 18px;
+  border-radius: var(--ib-radius);
+  background: linear-gradient(to right, transparent, var(--ib-panel-raised) 18px);
+}
+
+.investigation-board-app .ib-handout-row:hover .ib-handout-actions,
+.investigation-board-app .ib-handout-row:focus-within .ib-handout-actions {
+  display: flex;
+}
+
+.investigation-board-app .ib-handout-cog {
+  flex: 0 0 auto;
+  width: 24px;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: var(--ib-text-muted);
+  cursor: pointer;
+}
+
+.investigation-board-app .ib-handout-cog:hover {
+  color: var(--ib-text);
+}
+
+.investigation-board-app .ib-hand-over.is-shared {
+  color: var(--ib-active);
+}
+
+.investigation-board-app .ib-handout-cog.ib-danger:hover {
+  color: #f87171;
+}
+
+/* --- The document itself -------------------------------------------------- */
+
+.handout-page .ib-handout {
+  --paper: #f4f0e6;
+  --ink: #23201a;
+  --ink-soft: #6b6458;
+  --rule: #c9bfa8;
+
+  padding: 26px 30px 30px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Courier Prime", ui-monospace, monospace;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.handout-page .ib-handout-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid var(--ink);
+}
+
+.handout-page .ib-handout-seal {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  font-size: 1.6rem;
+  color: var(--ink-soft);
+}
+
+.handout-page .ib-handout-heading {
+  flex: 1;
+  min-width: 0;
+}
+
+.handout-page .ib-handout-issuer {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.handout-page .ib-handout-name {
+  margin: 2px 0 0;
+  border: none;
+  font-family: inherit;
+  font-size: 1.24rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.handout-page .ib-handout-kind {
+  margin: 1px 0 0;
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.handout-page .ib-handout-reference {
+  flex: 0 0 auto;
+  margin: 0;
+  text-align: right;
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+}
+
+.handout-page .ib-handout-reference strong {
+  display: block;
+  font-size: 0.94rem;
+  color: var(--ink);
+}
+
+/* --- Particulars ---------------------------------------------------------- */
+
+.handout-page .ib-handout-particulars.has-portrait {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.handout-page .ib-handout-portrait {
+  flex: 0 0 116px;
+  margin: 0;
+  padding: 5px;
+  border: 1px solid var(--rule);
+  background: #fff;
+}
+
+.handout-page .ib-handout-portrait img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border: none;
+}
+
+.handout-page .ib-handout-nophoto {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 3 / 4;
+  background: repeating-linear-gradient(
+    45deg, #ece7da, #ece7da 6px, #e3ddcd 6px, #e3ddcd 12px
+  );
+  font-size: 0.68rem;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+.handout-page .ib-handout-rows {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+.handout-page .ib-handout-line {
+  display: grid;
+  grid-template-columns: minmax(96px, 34%) 1fr;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px dotted var(--rule);
+}
+
+.handout-page .ib-handout-line dt {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.handout-page .ib-handout-line dd {
+  margin: 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+/* --- Scan, prose, dateline ------------------------------------------------ */
+
+.handout-page .ib-handout-scan {
+  margin: 18px 0 0;
+  padding: 6px;
+  border: 1px solid var(--rule);
+  background: #fff;
+}
+
+.handout-page .ib-handout-scan img {
+  display: block;
+  width: 100%;
+  border: none;
+}
+
+.handout-page .ib-handout-prose {
+  margin-top: 18px;
+}
+
+.handout-page .ib-handout-prose :first-child {
+  margin-top: 0;
+}
+
+/* An article is mostly its text, so it gets the column and the drop of a page
+   of newsprint rather than the form-like look the record kinds want. */
+.handout-page .ib-handout-article .ib-handout-prose {
+  columns: 2;
+  column-gap: 26px;
+  column-rule: 1px solid var(--rule);
+  text-align: justify;
+  hyphens: auto;
+}
+
+.handout-page .ib-handout-article .ib-handout-prose > p:first-of-type::first-letter {
+  float: left;
+  padding: 2px 6px 0 0;
+  font-size: 2.6em;
+  line-height: 0.82;
+  font-weight: 700;
+}
+
+.handout-page .ib-handout-foot {
+  margin-top: 20px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule);
+  font-size: 0.78rem;
+  font-style: italic;
+  text-align: right;
+  color: var(--ink-soft);
+}
+
+@media (width <= 560px) {
+  .handout-page .ib-handout-article .ib-handout-prose {
+    columns: 1;
+  }
+
+  .handout-page .ib-handout-particulars.has-portrait {
+    flex-direction: column;
+  }
+}
+
+/* --- The writing form ----------------------------------------------------- */
+
+.ib-handout-dialog .ib-kind-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.ib-handout-dialog .ib-kind-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 9px 4px;
+  border: 1px solid var(--ib-border, #39424c);
+  border-radius: var(--ib-radius, 8px);
+  background: none;
+  color: inherit;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+
+.ib-handout-dialog .ib-kind-option i {
+  font-size: 1.15rem;
+}
+
+.ib-handout-dialog .ib-kind-option.selected {
+  border-color: var(--ib-accent, #f0b429);
+  box-shadow: inset 0 0 0 1px var(--ib-accent, #f0b429);
+}
+
+.ib-row-edit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+
+.ib-row-edit .ib-row-label {
+  flex: 0 0 34%;
+}
+
+.ib-row-edit .ib-row-value {
+  flex: 1;
+  min-width: 0;
+}
+
+.ib-row-edit .ib-row-remove {
+  flex: 0 0 auto;
+  width: 26px;
+  padding: 3px 0;
+  border: none;
+  background: none;
+  color: var(--ib-text-muted, #8c98a4);
+  cursor: pointer;
+}
+
+.ib-row-edit .ib-row-remove:hover {
+  color: #f87171;
+}
+
+.ib-handout-dialog .ib-row-add {
+  width: auto;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+}
+
+.ib-handout-dialog .ib-handout-privacy {
+  margin-bottom: 0;
+}
+
+.ib-handout-share .ib-player-row.offline .ib-player-name {
+  color: var(--ib-text-muted, #8c98a4);
+}
+
+.ib-handout-share .ib-handout-withdraw {
+  margin-bottom: 0;
+}

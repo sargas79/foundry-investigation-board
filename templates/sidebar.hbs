@@ -1,62 +1,167 @@
 <aside class="ib-sidebar">
-    <header class="ib-sidebar-header">
-        <i class="fa-solid fa-folder-open"></i>
-        <span class="ib-sidebar-title">{{localize "INVESTIGATION_BOARD.CaseFiles"}}</span>
 
-        {{!-- Bound to "change" in _onRender: a data-action would fire on click, not on choice. --}}
-        <select class="ib-group-by" name="grouping"
-                data-tooltip="INVESTIGATION_BOARD.GroupByTooltip"
-                aria-label="{{localize 'INVESTIGATION_BOARD.GroupByTooltip'}}">
-            {{#each groupings}}
-                <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
-            {{/each}}
-        </select>
-    </header>
+    {{!-- Two lists share the sidebar: the cases being worked, and the documents in hand. The
+          documents tab is shown to everyone — a player's is the folder of what they have been
+          handed, and for most of a campaign it is the more interesting of the two. --}}
+    <nav class="ib-sidebar-tabs" aria-label="{{localize 'INVESTIGATION_BOARD.SidebarTabs'}}">
+        <button type="button" class="ib-sidebar-tab {{#unless documentsTab}}active{{/unless}}"
+                data-action="selectSidebarTab" data-tab="cases"
+                aria-pressed="{{#unless documentsTab}}true{{else}}false{{/unless}}">
+            <i class="fa-solid fa-folder-open"></i>
+            <span>{{localize "INVESTIGATION_BOARD.CaseFiles"}}</span>
+        </button>
+        <button type="button" class="ib-sidebar-tab {{#if documentsTab}}active{{/if}}"
+                data-action="selectSidebarTab" data-tab="documents"
+                aria-pressed="{{#if documentsTab}}true{{else}}false{{/if}}">
+            <i class="fa-solid fa-file-lines"></i>
+            <span>{{localize "INVESTIGATION_BOARD.Documents"}}</span>
+            {{#if handoutCount}}
+                <span class="ib-tab-count">{{handoutCount}}</span>
+            {{/if}}
+        </button>
+    </nav>
 
-    <section class="ib-case-list">
-        {{#each groups}}
-            <h3 class="ib-case-list-label">{{this.label}}</h3>
-            {{#each this.cases}}
-                <div class="ib-case-row {{#if this.active}}active{{/if}} {{#if this.archived}}archived{{/if}}"
-                     data-case-id="{{this.id}}">
-                    <button type="button" class="ib-case-open" data-action="selectCase"
-                            data-case-id="{{this.id}}">
-                        <span class="ib-case-dot" data-status="{{this.status}}"
-                              data-tooltip="{{localize this.statusLabel}}"></span>
-                        <span class="ib-case-name">{{this.name}}</span>
-                        {{#if this.classification}}
-                            <span class="ib-case-tag">{{this.classification}}</span>
-                        {{/if}}
+    {{#if documentsTab}}
+
+        <section class="ib-handout-list">
+            {{#each handouts}}
+                <div class="ib-handout-row {{#if this.shared}}shared{{/if}}"
+                     data-handout-id="{{this.id}}">
+                    <button type="button" class="ib-handout-open" data-action="openHandout"
+                            data-handout-id="{{this.id}}">
+                        <i class="{{this.icon}} ib-handout-icon"></i>
+                        <span class="ib-handout-titles">
+                            <span class="ib-handout-label">{{this.name}}</span>
+                            <span class="ib-handout-sub">{{this.subLabel}}</span>
+                        </span>
                     </button>
 
-                    {{#if this.isOwner}}
-                        <button type="button" class="ib-case-cog" data-action="configureCase"
-                                data-case-id="{{this.id}}"
-                                data-tooltip="INVESTIGATION_BOARD.CaseDetails"
-                                aria-label="{{localize 'INVESTIGATION_BOARD.CaseDetails'}}">
-                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                    {{!-- Laid over the end of the row rather than beside it. Four controls
+                          reserving width would cut every document's name down to nothing in a
+                          260px column, and hidden controls that still take space are the worst of
+                          both. Skipped entirely when it would hold nothing — an empty overlay
+                          still paints its gradient over the row on hover. --}}
+                    {{#if ../hasRowActions}}
+                    <span class="ib-handout-actions">
+
+                    {{!-- Only shown where a case is open to pin it to; a player's whole reason for
+                          having the document is to be able to put it on the board. --}}
+                    {{#if ../canPin}}
+                        <button type="button" class="ib-handout-cog" data-action="pinHandout"
+                                data-handout-id="{{this.id}}"
+                                data-tooltip="INVESTIGATION_BOARD.PinToBoard"
+                                aria-label="{{localize 'INVESTIGATION_BOARD.PinToBoard'}}">
+                            <i class="fa-solid fa-thumbtack"></i>
                         </button>
                     {{/if}}
-                    {{!-- Reachable without opening the case first, for clearing out old ones. --}}
-                    {{#if ../../isGM}}
-                        <button type="button" class="ib-case-cog ib-danger" data-action="deleteCase"
-                                data-case-id="{{this.id}}"
-                                data-tooltip="INVESTIGATION_BOARD.DeleteCase"
-                                aria-label="{{localize 'INVESTIGATION_BOARD.DeleteCase'}}">
+
+                    {{#if ../canManageHandouts}}
+                        <button type="button"
+                                class="ib-handout-cog ib-hand-over {{#if this.shared}}is-shared{{/if}}"
+                                data-action="shareHandout" data-handout-id="{{this.id}}"
+                                data-tooltip="{{this.shareTooltip}}"
+                                aria-label="{{this.shareTooltip}}">
+                            <i class="fa-solid fa-hand-holding"></i>
+                        </button>
+                        <button type="button" class="ib-handout-cog" data-action="editHandout"
+                                data-handout-id="{{this.id}}"
+                                data-tooltip="INVESTIGATION_BOARD.EditHandout"
+                                aria-label="{{localize 'INVESTIGATION_BOARD.EditHandout'}}">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button type="button" class="ib-handout-cog ib-danger"
+                                data-action="deleteHandout" data-handout-id="{{this.id}}"
+                                data-tooltip="INVESTIGATION_BOARD.DeleteHandout"
+                                aria-label="{{localize 'INVESTIGATION_BOARD.DeleteHandout'}}">
                             <i class="fa-solid fa-trash"></i>
                         </button>
                     {{/if}}
+                    </span>
+                    {{/if}}
                 </div>
+            {{else}}
+                <p class="ib-empty">
+                    {{#if canManageHandouts}}
+                        {{localize "INVESTIGATION_BOARD.NoHandoutsGM"}}
+                    {{else}}
+                        {{localize "INVESTIGATION_BOARD.NoHandouts"}}
+                    {{/if}}
+                </p>
             {{/each}}
-        {{else}}
-            <p class="ib-empty">{{localize "INVESTIGATION_BOARD.NoCases"}}</p>
-        {{/each}}
-    </section>
+        </section>
 
-    <footer class="ib-sidebar-footer">
-        <button type="button" class="ib-new-case" data-action="createCase">
-            <i class="fa-solid fa-plus"></i>
-            <span>{{localize "INVESTIGATION_BOARD.NewCase"}}</span>
-        </button>
-    </footer>
+        <footer class="ib-sidebar-footer">
+            {{#if canManageHandouts}}
+                <button type="button" class="ib-new-case" data-action="createHandout">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>{{localize "INVESTIGATION_BOARD.NewHandout"}}</span>
+                </button>
+            {{/if}}
+        </footer>
+
+    {{else}}
+
+        <header class="ib-sidebar-header">
+            <i class="fa-solid fa-folder-open"></i>
+            <span class="ib-sidebar-title">{{localize "INVESTIGATION_BOARD.CaseFiles"}}</span>
+
+            {{!-- Bound to "change" in _onRender: a data-action would fire on click, not on choice. --}}
+            <select class="ib-group-by" name="grouping"
+                    data-tooltip="INVESTIGATION_BOARD.GroupByTooltip"
+                    aria-label="{{localize 'INVESTIGATION_BOARD.GroupByTooltip'}}">
+                {{#each groupings}}
+                    <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+                {{/each}}
+            </select>
+        </header>
+
+        <section class="ib-case-list">
+            {{#each groups}}
+                <h3 class="ib-case-list-label">{{this.label}}</h3>
+                {{#each this.cases}}
+                    <div class="ib-case-row {{#if this.active}}active{{/if}} {{#if this.archived}}archived{{/if}}"
+                         data-case-id="{{this.id}}">
+                        <button type="button" class="ib-case-open" data-action="selectCase"
+                                data-case-id="{{this.id}}">
+                            <span class="ib-case-dot" data-status="{{this.status}}"
+                                  data-tooltip="{{localize this.statusLabel}}"></span>
+                            <span class="ib-case-name">{{this.name}}</span>
+                            {{#if this.classification}}
+                                <span class="ib-case-tag">{{this.classification}}</span>
+                            {{/if}}
+                        </button>
+
+                        {{#if this.isOwner}}
+                            <button type="button" class="ib-case-cog" data-action="configureCase"
+                                    data-case-id="{{this.id}}"
+                                    data-tooltip="INVESTIGATION_BOARD.CaseDetails"
+                                    aria-label="{{localize 'INVESTIGATION_BOARD.CaseDetails'}}">
+                                <i class="fa-solid fa-ellipsis-vertical"></i>
+                            </button>
+                        {{/if}}
+                        {{!-- Reachable without opening the case first, for clearing out old ones. --}}
+                        {{#if ../../isGM}}
+                            <button type="button" class="ib-case-cog ib-danger" data-action="deleteCase"
+                                    data-case-id="{{this.id}}"
+                                    data-tooltip="INVESTIGATION_BOARD.DeleteCase"
+                                    aria-label="{{localize 'INVESTIGATION_BOARD.DeleteCase'}}">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        {{/if}}
+                    </div>
+                {{/each}}
+            {{else}}
+                <p class="ib-empty">{{localize "INVESTIGATION_BOARD.NoCases"}}</p>
+            {{/each}}
+        </section>
+
+        <footer class="ib-sidebar-footer">
+            <button type="button" class="ib-new-case" data-action="createCase">
+                <i class="fa-solid fa-plus"></i>
+                <span>{{localize "INVESTIGATION_BOARD.NewCase"}}</span>
+            </button>
+        </footer>
+
+    {{/if}}
+
 </aside>

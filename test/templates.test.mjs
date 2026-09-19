@@ -86,6 +86,148 @@ export default async function testTemplates() {
     assert(gm.includes("archived"), "the archived case was not marked");
   });
 
+  describe("sidebar.hbs — documents");
+
+  const documentsContext = extra => ({
+    isGM: false,
+    documentsTab: true,
+    canManageHandouts: false,
+    canPin: false,
+    handoutCount: 2,
+    handouts: [
+      {id: "h1", name: "Coroner Report", icon: "fa-solid fa-cross",
+        kindLabel: "Death Record", subLabel: "With Mara", shared: true,
+        shareTooltip: "With Mara"},
+      {id: "h2", name: "Ashford Badge", icon: "fa-solid fa-id-badge",
+        kindLabel: "Company Badge", subLabel: "Not handed out yet", shared: false,
+        shareTooltip: "Not handed out yet"}
+    ],
+    ...extra
+  });
+
+  // Writing and handing over documents is the GM's alone. A player offered an edit or a hand-over
+  // control would be offered an action the server will refuse, and a delete control would suggest
+  // they could take a document out of the campaign.
+  await check("only a GM is offered the writing and hand-over controls", () => {
+    const gm = render("templates/sidebar.hbs",
+      documentsContext({isGM: true, canManageHandouts: true, hasRowActions: true}));
+    const player = render("templates/sidebar.hbs", documentsContext());
+
+    for ( const action of ["shareHandout", "editHandout", "deleteHandout"] ) {
+      assert(countAction(gm, action) === 2,
+        `a GM saw ${countAction(gm, action)} ${action} controls, expected one per document`);
+      assert(countAction(player, action) === 0,
+        `a player was offered ${countAction(player, action)} ${action} controls`);
+    }
+    assert(countAction(gm, "createHandout") === 1, "the GM has no way to write a document");
+    assert(countAction(player, "createHandout") === 0, "a player was offered a new document");
+  });
+
+  // A player's whole reason for holding a document is to be able to put it on the board, so the
+  // control is theirs too — but only where there is a case open to pin it to.
+  await check("pinning is offered to anyone, and only with a writable case open", () => {
+    const withCase = render("templates/sidebar.hbs",
+      documentsContext({canPin: true, hasRowActions: true}));
+    const without = render("templates/sidebar.hbs", documentsContext());
+    assert(countAction(withCase, "pinHandout") === 2,
+      `expected one pin control per document, got ${countAction(withCase, "pinHandout")}`);
+    assert(countAction(without, "pinHandout") === 0,
+      "a pin control was offered with no case open to pin to");
+  });
+
+  // An overlay with nothing in it still paints its gradient across the row on hover, so the
+  // wrapper has to go too — not just the controls inside it.
+  await check("a viewer with no controls gets no overlay at all", () => {
+    const player = render("templates/sidebar.hbs", documentsContext());
+    assert(!player.includes("ib-handout-actions"),
+      "an empty actions overlay was rendered for a player with no case open");
+    const withPin = render("templates/sidebar.hbs",
+      documentsContext({canPin: true, hasRowActions: true}));
+    assert((withPin.match(/ib-handout-actions/g) || []).length === 2,
+      "the overlay is missing where there is a control to put in it");
+  });
+
+  await check("every document is listed, the ones handed out marked", () => {
+    const html = render("templates/sidebar.hbs", documentsContext());
+    assert(countAction(html, "openHandout") === 2, "not every document was listed");
+    assert(html.includes("Coroner Report") && html.includes("Ashford Badge"),
+      "a document name is missing");
+    assert(/ib-handout-row shared/.test(html), "the document in a player's hands was not marked");
+  });
+
+  // The two lists share the sidebar; picking one must not show both or neither.
+  await check("the tabs show one list at a time", () => {
+    const documents = render("templates/sidebar.hbs", documentsContext());
+    const cases = render("templates/sidebar.hbs", sidebarContext(true));
+    assert(!documents.includes("ib-case-list"), "the case list showed on the documents tab");
+    assert(documents.includes("ib-handout-list"), "the documents tab showed no documents");
+    assert(cases.includes("ib-case-list"), "the cases tab showed no cases");
+    assert(!cases.includes("ib-handout-list"), "the documents list showed on the cases tab");
+  });
+
+  await check("an empty list says something different to a GM and to a player", () => {
+    const gm = render("templates/sidebar.hbs",
+      documentsContext({handouts: [], handoutCount: 0, isGM: true, canManageHandouts: true,
+        hasRowActions: true}));
+    const player = render("templates/sidebar.hbs",
+      documentsContext({handouts: [], handoutCount: 0}));
+    assert(gm.includes("NoHandoutsGM"), "the GM was not told how to start");
+    assert(player.includes("INVESTIGATION_BOARD.NoHandouts") && !player.includes("NoHandoutsGM"),
+      "a player was told to write documents");
+  });
+
+  describe("handout-view.hbs");
+
+  const handoutContext = extra => ({
+    name: "Coroner Report",
+    kindLabel: "Death Record",
+    icon: "fa-solid fa-cross",
+    portrait: false,
+    handout: {kind: "death", issuer: "City Coroner Office", reference: "4471-B",
+      dateline: "14th of Brume", image: null},
+    rows: [{label: "Deceased", value: "A. Vance"}, {label: "Cause", value: "Exsanguination"}],
+    enrichedBody: "<p>Found at the waterline.</p>",
+    ...extra
+  });
+
+  await check("the document prints its head, its particulars and its text", () => {
+    const html = render("templates/page/handout-view.hbs", handoutContext());
+    assert(html.includes("City Coroner Office"), "the issuer is missing");
+    assert(html.includes("4471-B"), "the reference is missing");
+    assert(html.includes("A. Vance") && html.includes("Exsanguination"), "a particular is missing");
+    assert(html.includes("Found at the waterline."), "the text is missing");
+    assert(html.includes("14th of Brume"), "the dateline is missing");
+  });
+
+  // The image is a photograph of a person on some kinds and a scan of the paper on others; showing
+  // it in the wrong place is the difference between an ID card and a full-width picture.
+  await check("the image lands where the kind puts it", () => {
+    const badge = render("templates/page/handout-view.hbs",
+      handoutContext({portrait: true, handout: {kind: "badge", image: "a.webp"}}));
+    const record = render("templates/page/handout-view.hbs",
+      handoutContext({portrait: false, handout: {kind: "death", image: "a.webp"}}));
+    assert(badge.includes("ib-handout-portrait") && !badge.includes("ib-handout-scan"),
+      "a badge photograph was printed as a full-width scan");
+    assert(record.includes("ib-handout-scan") && !record.includes("ib-handout-portrait"),
+      "a record scan was printed as a portrait");
+  });
+
+  await check("a portrait kind with no photograph still reads as a card", () => {
+    const html = render("templates/page/handout-view.hbs",
+      handoutContext({portrait: true, handout: {kind: "identity", image: null}}));
+    assert(html.includes("ib-handout-nophoto"), "an ID with no photo left an empty frame");
+  });
+
+  await check("a bare document prints without empty rules", () => {
+    const html = render("templates/page/handout-view.hbs", handoutContext({
+      rows: [], enrichedBody: "",
+      handout: {kind: "document", issuer: "", reference: "", dateline: "", image: null}
+    }));
+    assert(!html.includes("ib-handout-rows"), "an empty particulars list was still drawn");
+    assert(!html.includes("ib-handout-foot"), "an empty dateline still drew a footer");
+    assert(html.includes("Coroner Report"), "the document lost its name");
+  });
+
   describe("header.hbs");
 
   await check("only a GM sees the delete control", () => {
@@ -217,7 +359,13 @@ export default async function testTemplates() {
     ["templates/dialog/report.hbs", {isBrief: true, caseName: "X", name: "", caseNumber: "",
       body: "", redactions: 0}],
     ["templates/case-file.hbs", {isGM: false, caseName: "X", brief: null, findings: [],
-      canStartBrief: true, canAddFinding: true}]
+      canStartBrief: true, canAddFinding: true}],
+    ["templates/dialog/handout.hbs", {name: "", handout: {rows: []}, rows: [], kinds: [],
+      imageHint: "X", canUpload: true}],
+    ["templates/dialog/handout-share.hbs", {players: [], wholeParty: false}],
+    ["templates/page/handout-view.hbs", {name: "X", handout: {kind: "document"}, rows: [],
+      kindLabel: "Document", icon: "fa-solid fa-file-lines", enrichedBody: ""}],
+    ["templates/page/handout-edit.hbs", {rootId: "r", name: "X", handout: {rows: []}}]
   ];
 
   for ( const [file, context] of parts ) {

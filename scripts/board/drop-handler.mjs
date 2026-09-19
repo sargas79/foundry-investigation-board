@@ -1,4 +1,5 @@
 import {CLUE_DEFAULTS, PAGE_TYPES} from "../constants.mjs";
+import {handoutClueData, isHandout} from "../data/handouts.mjs";
 import {freeSpotNear, topZ} from "../data/case.mjs";
 import {authorStamp} from "../data/authorship.mjs";
 
@@ -129,6 +130,12 @@ export default class DropHandler {
       return null;
     }
 
+    // A handout dropped on the cork is the one page of ours that *should* become a card, so it is
+    // recognised before the refusal below — whether the GM dragged the journal entry or a player
+    // dragged the page itself out of the documents tab.
+    const handout = this.#handoutFrom(document);
+    if ( handout ) return handout;
+
     // Refuse to pin a case, or a clue, onto a board — that would nest the board inside itself.
     if ( document.documentName === "JournalEntryPage" ) {
       if ( Object.values(PAGE_TYPES).includes(document.type) ) {
@@ -152,6 +159,20 @@ export default class DropHandler {
         linkedUuid: document.uuid
       }
     };
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Clue data for a handout, if that is what was dropped.
+   *
+   * Either the entry or its page may be what was dragged; both mean the same document.
+   * @param {foundry.abstract.Document} document
+   * @returns {{name: string, system: object}|null}
+   */
+  #handoutFrom(document) {
+    const journal = (document.documentName === "JournalEntryPage") ? document.parent : document;
+    return isHandout(journal) ? handoutClueData(journal) : null;
   }
 
   /* -------------------------------------------- */

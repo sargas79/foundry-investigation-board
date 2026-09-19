@@ -72,6 +72,38 @@ further), **+**/**−** zoom, **0** resets. With a card focused: **Enter** opens
 string and Enter on another card finishes it, **Delete** sets it aside. **Escape** unwinds whatever
 is in progress, one step at a time.
 
+## Documents
+
+Beside the case list, the board's **Documents** tab holds the papers the GM writes in advance and
+hands over when the party earns them: death records, company badges, newspaper clippings, police
+records, identity cards.
+
+**Writing one.** *New Document* on the Documents tab. Pick a kind and it seeds the blanks that kind
+usually wants — a death record starts with Deceased, Date of Death, Cause; a badge with Name,
+Position, Employee No. Those are only a starting point: add lines, remove them, rename them. Every
+document also takes an issuing authority, a reference number, a dateline written however it reads
+in the fiction, a picture, and a block of text. On the kinds that describe a person the picture is
+shown as a photograph beside the details; on the rest it is a full-width scan of the paper.
+
+**A document you have written is yours alone.** It does not appear for any player, anywhere, until
+you hand it over — not greyed out, not hidden behind a permission check: their client is never sent
+it at all. See *Permissions* below for why that distinction matters.
+
+**Handing it over.** The hand icon beside a document opens the hand-over dialog: tick individual
+players, or the whole party. The icon lights up for a document that is out, and hovering it says
+who is holding it. Players you hand a document to do not need to be logged in — it is waiting for
+them when they connect. Unticking everyone takes it back.
+
+**What the players do with it.** A handed-over document appears in the player's own Documents tab,
+and opens as the document itself. The thumbtack beside it pins it to the open case as an ordinary
+clue card, which can be strung to anything else on the board — as can dragging it from the tab onto
+the cork. The card carries a *link* to the document, never a copy of it, so a player pinning
+something you gave to them alone does not thereby publish it to the rest of the party: the others
+see a card saying such a paper exists, and reading it still takes having been given it.
+
+Taking a document back leaves cards already on the board where they are, with the name and picture
+they were pinned with. Only the link stops opening.
+
 ## Sharing
 
 A case starts out belonging to whoever made it. How it gets shared depends on one quirk of
@@ -96,6 +128,8 @@ a case or lock out the only people who could repair it.
 | View only | **Observer** |
 | Create or import a case | Needs **Create Journal Entries** — the **Trusted Player** rank has it by default |
 | Share an existing case | **GM or Assistant GM** |
+| Write, edit, hand over or delete a document | **GM or Assistant GM** |
+| Read a document, and pin it to a case | Whoever it has been **handed to** |
 | Delete a clue permanently | **GM only**, from the Discarded tray — players set aside instead |
 | Delete a case permanently | **GM only**, from the header or the sidebar — players close instead |
 
@@ -111,6 +145,17 @@ through the interface and any accident. It cannot stop a player deliberately cal
 the browser console — Foundry grants an Owner delete rights, and revoking those would mean relaying
 every clue edit through a GM and breaking offline-GM play. Players get **Set aside** and **Close
 case**, which keep everything recoverable.
+
+**On documents being genuinely hidden:** a handout is a JournalEntry of its own rather than a page
+inside a shared one, and that is not tidiness — it is the whole mechanism. Foundry enforces
+ownership on *top-level* documents: a document a player has no permission on is never sent to their
+client. Page-level ownership only filters the *display*; the page is still in their client and can
+be read from the browser console. So an unshared handout is not a document a player is stopped from
+opening, it is a document they do not have. This is the same reasoning behind redacted passages,
+which are moved into a GM-only companion entry for exactly the same reason.
+
+Handing a document over grants **Observer**, not Owner: the player reads it and works from it, and
+cannot rewrite the coroner's report or delete it out of the campaign.
 
 Image upload needs **Upload Files** (Assistant GM by default). Without it, the image picker falls
 back to browsing existing files or pasting a path.
@@ -131,6 +176,9 @@ beside the journal entry.
 travel — clues, where they sit, the strings between them, the discarded tray, the opening document
 and every finding.
 
+Handouts are not part of a case and do not travel with one; a card pinned from a document exports
+as a plain card, since the link would mean nothing in the destination world.
+
 Three things deliberately stay behind. Ownership and links to documents are meaningless in another
 world, where those users and documents don't exist. **Redacted passages** are left out on purpose:
 they live in a GM-only document precisely so they are absent from anything a player could obtain,
@@ -140,7 +188,9 @@ the destination world, with nothing behind them.
 ## How it is stored
 
 A case is an ordinary **JournalEntry** flagged as one. Each clue and each string is a
-**JournalEntryPage** of a module sub-type.
+**JournalEntryPage** of a module sub-type. A handout is a **JournalEntry of its own**, flagged as
+one, holding a single page of the handout sub-type — its own entry because that is the only level
+at which Foundry's server withholds a document from a client.
 
 That is deliberate: ownership, folders, compendium export, permissions and multi-client sync all
 come from Foundry core rather than being rebuilt. It also means two players moving different clues

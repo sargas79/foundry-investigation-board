@@ -7,12 +7,23 @@ import ClueDialog from "./clue-dialog.mjs";
 import CaseConfig from "./case-config.mjs";
 import CaseFile from "./case-file.mjs";
 import ShareDialog from "./share-dialog.mjs";
+import HandoutDialog from "./handout-dialog.mjs";
+import HandoutShareDialog from "./handout-share-dialog.mjs";
+import {
+  canManageHandouts,
+  currentHolders,
+  getHandouts,
+  handoutPage,
+  isHandout,
+  isShared,
+  pinHandout
+} from "../data/handouts.mjs";
 import {canCreateDirectly, createCase} from "../data/case-create.mjs";
 import {canManageSharing} from "../data/sharing.mjs";
 import {buildImport, exportCase, exportFilename, validateExport} from "../data/transfer.mjs";
 import {announce, clearPresence, holderOf, watchPresence} from "../presence.mjs";
 import {authorColor, authorName, authorStamp} from "../data/authorship.mjs";
-import {CATEGORIES, RELIABILITY} from "../constants.mjs";
+import {CATEGORIES, HANDOUT_KINDS, RELIABILITY} from "../constants.mjs";
 import {EMPTY_FILTER, applyFilter, isActive} from "../board/filter.mjs";
 import {
   archiveCase,
@@ -88,7 +99,14 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       deleteCase: InvestigationBoard.#onDeleteCase,
       openCaseFile: InvestigationBoard.#onOpenCaseFile,
       exportCase: InvestigationBoard.#onExportCase,
-      importCase: InvestigationBoard.#onImportCase
+      importCase: InvestigationBoard.#onImportCase,
+      selectSidebarTab: InvestigationBoard.#onSelectSidebarTab,
+      createHandout: InvestigationBoard.#onCreateHandout,
+      openHandout: InvestigationBoard.#onOpenHandout,
+      editHandout: InvestigationBoard.#onEditHandout,
+      shareHandout: InvestigationBoard.#onShareHandout,
+      deleteHandout: InvestigationBoard.#onDeleteHandout,
+      pinHandout: InvestigationBoard.#onPinHandout
     }
   };
 
@@ -163,6 +181,9 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
   /** How the case list is grouped: "all", "status" or "classification". */
   #grouping = "all";
 
+  /** Which list the sidebar is showing: "cases" or "documents". */
+  #sidebarTab = "cases";
+
   /** The clue the inspector is showing. */
   #selectedClue = null;
 
@@ -206,6 +227,7 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       state: currentCase ? caseState(currentCase) : null,
       canShare: currentCase ? canManageSharing(currentCase, game.user) : false,
       ...this.#sidebarContext(),
+      ...this.#handoutContext(),
       trayOpen: this.#trayOpen,
       linkMode: !!this.#interactions?.linkMode,
       // The hand is what is in use whenever nothing else has been picked up.
@@ -450,6 +472,70 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
         {value: "classification", label: game.i18n.localize("INVESTIGATION_BOARD.GroupClassification")}
       ].map(g => ({...g, selected: g.value === this.#grouping}))
     };
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * The documents tab.
+   *
+   * There is no permission filtering here and there must not be: an unshared handout is a document
+   * a player's client was never sent, so `getHandouts()` already answers "what am I holding". The
+   * only thing that differs by role is which controls sit beside each row.
+   * @returns {object}
+   */
+  #handoutContext() {
+    const manage = canManageHandouts();
+    const handouts = getHandouts().map(journal => {
+      const page = handoutPage(journal);
+      const config = HANDOUT_KINDS[page?.system.kind] ?? HANDOUT_KINDS.document;
+      const kindLabel = game.i18n.localize(config.label);
+      const shareTooltip = this.#shareTooltip(journal);
+      return {
+        id: journal.id,
+        name: journal.name,
+        icon: config.icon,
+        kindLabel,
+        // The icon already says what kind of document this is, so the line under the name is
+        // spent on what it does not: for a GM, who is holding it — the thing they came to the
+        // list to find out. A player holds everything they can see, so they get the kind.
+        subLabel: manage ? shareTooltip : kindLabel,
+        shared: isShared(journal),
+        shareTooltip
+      };
+    });
+
+    // Pinning writes a clue into the case, so it needs a case that can be written to.
+    const canPin = !!this.currentCase?.isOwner;
+
+    return {
+      documentsTab: this.#sidebarTab === "documents",
+      handouts,
+      handoutCount: handouts.length,
+      canManageHandouts: manage,
+      canPin,
+      // A player with no case open has no control to put in the row's overlay, and an empty one
+      // still draws itself over the row.
+      hasRowActions: manage || canPin
+    };
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * "Not handed out yet" / "With Mara, Silas" — what the hand-over button says before it is pressed.
+   *
+   * Worth spelling out rather than leaving to a highlighted icon: who is holding which document is
+   * the thing a GM most needs to know at a glance, and it is invisible everywhere else in Foundry.
+   * @param {JournalEntry} journal
+   * @returns {string}
+   */
+  #shareTooltip(journal) {
+    const {wholeParty, userIds} = currentHolders(journal);
+    if ( wholeParty ) return game.i18n.localize("INVESTIGATION_BOARD.HandedToParty");
+    if ( !userIds.size ) return game.i18n.localize("INVESTIGATION_BOARD.NotHandedOut");
+    const names = [...userIds].map(id => game.users.get(id)?.name).filter(Boolean).join(", ");
+    return game.i18n.format("INVESTIGATION_BOARD.HandedToNames", {names});
   }
 
   /* -------------------------------------------- */
@@ -817,7 +903,17 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
    * @returns {Promise<void>}
    */
   async onCaseChange(journal, action) {
-    if ( !this.rendered || !isCase(journal) ) return;
+    if ( !this.rendered ) return;
+
+    // A handout being written, handed over or taken back changes the documents list. Sharing in
+    // particular arrives on a player's client as a *create* — the document did not exist for them
+    // a moment ago — which is why this listens for all three and not just updates.
+    if ( isHandout(journal) ) {
+      await this.render({parts: ["sidebar"]});
+      return;
+    }
+
+    if ( !isCase(journal) ) return;
     if ( (action === "delete") && (journal.id === this.#caseId) ) {
       this.#caseId = getCases()[0]?.id ?? null;
     }
@@ -1078,7 +1174,139 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
   }
 
   /* -------------------------------------------- */
+  /*  Documents                                   */
+  /* -------------------------------------------- */
 
+  /**
+   * Switch the sidebar between the cases and the documents.
+   * @this {InvestigationBoard}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   * @returns {Promise<void>}
+   */
+  static async #onSelectSidebarTab(_event, target) {
+    this.#sidebarTab = target.dataset.tab === "documents" ? "documents" : "cases";
+    await this.render({parts: ["sidebar"]});
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Write a new document to hand over later.
+   * @this {InvestigationBoard}
+   */
+  static #onCreateHandout() {
+    if ( !canManageHandouts() ) {
+      ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.HandoutIsGMOnly", {localize: true});
+      return;
+    }
+    HandoutDialog.create();
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Read a document.
+   *
+   * Opens the journal entry's own sheet rather than a window of this module's: the handout page
+   * renders itself as the document (see templates/page/handout-view.hbs), and going through core
+   * means the same thing appears whether it was opened from here or from the journal sidebar.
+   * @this {InvestigationBoard}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static #onOpenHandout(_event, target) {
+    const journal = game.journal.get(target.dataset.handoutId);
+    journal?.sheet.render({force: true});
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Rewrite a document.
+   * @this {InvestigationBoard}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static #onEditHandout(_event, target) {
+    const journal = game.journal.get(target.dataset.handoutId);
+    if ( !journal || !canManageHandouts() ) {
+      ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.HandoutIsGMOnly", {localize: true});
+      return;
+    }
+    HandoutDialog.edit(journal);
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Hand a document over, or take it back.
+   * @this {InvestigationBoard}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static #onShareHandout(_event, target) {
+    const journal = game.journal.get(target.dataset.handoutId);
+    if ( !journal || !canManageHandouts() ) {
+      ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.HandoutIsGMOnly", {localize: true});
+      return;
+    }
+    HandoutShareDialog.open(journal);
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Destroy a document for good.
+   *
+   * The confirmation names who is currently holding it, because that is the part a GM cannot see
+   * from the journal sidebar and the part that makes this irreversible in a way that matters —
+   * a document out with the party disappears from their hands too.
+   * @this {InvestigationBoard}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   * @returns {Promise<void>}
+   */
+  static async #onDeleteHandout(_event, target) {
+    const journal = game.journal.get(target.dataset.handoutId);
+    if ( !journal || !canManageHandouts() ) {
+      ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.HandoutIsGMOnly", {localize: true});
+      return;
+    }
+
+    const held = isShared(journal);
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: {title: "INVESTIGATION_BOARD.DeleteHandout"},
+      content: `<p>${game.i18n.format("INVESTIGATION_BOARD.DeleteHandoutConfirm",
+        {name: journal.name})}</p>`
+        + (held ? `<p class="notification warning">${game.i18n.localize(
+          "INVESTIGATION_BOARD.DeleteHandoutHeld")}</p>` : ""),
+      modal: true
+    });
+    if ( !confirmed ) return;
+    await journal.delete();
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Put a document on the board as a clue.
+   *
+   * This is the players' half of the feature: a document handed to them becomes a card the whole
+   * party can see and tie strings to. The card points at the handout rather than copying it, so
+   * what the others get is a card saying such a document exists — reading it still takes having
+   * been given it.
+   * @this {InvestigationBoard}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   * @returns {Promise<void>}
+   */
+  static async #onPinHandout(_event, target) {
+    const journal = game.journal.get(target.dataset.handoutId);
+    const currentCase = this.#writableCase();
+    if ( !journal || !currentCase ) return;
+    await pinHandout(journal, currentCase, this.#view?.center ?? {x: 0, y: 0});
+  }
 
   /* -------------------------------------------- */
 

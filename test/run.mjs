@@ -30,6 +30,7 @@ const {default: testCaseFile} = await import("./case-file.test.mjs");
 const {default: testRedaction} = await import("./redaction.test.mjs");
 const {default: testAuthorship} = await import("./authorship.test.mjs");
 const {default: testUploads} = await import("./uploads.test.mjs");
+const {default: testHandouts} = await import("./handouts.test.mjs");
 
 await testManifest();
 await testDataModels();
@@ -46,5 +47,6 @@ await testAuthorship();
 await testTemplates();
 await testRedaction();
 await testUploads();
+await testHandouts();
 
 report();

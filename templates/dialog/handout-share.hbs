@@ -1,0 +1,34 @@
+<div class="ib-share ib-handout-share">
+
+    <p class="hint">{{localize "INVESTIGATION_BOARD.HandOverHint"}}</p>
+
+    <div class="form-group">
+        <label class="ib-whole-party">
+            <input type="checkbox" name="wholeParty" {{#if wholeParty}}checked{{/if}}>
+            <span>{{localize "INVESTIGATION_BOARD.WholeParty"}}</span>
+        </label>
+        <p class="hint">{{localize "INVESTIGATION_BOARD.HandOverPartyHint"}}</p>
+    </div>
+
+    <fieldset class="ib-player-list" {{#if wholeParty}}disabled{{/if}}>
+        <legend>{{localize "INVESTIGATION_BOARD.HandedTo"}}</legend>
+        {{#each players}}
+            <label class="ib-player-row {{#if this.offline}}offline{{/if}}">
+                <input type="checkbox" name="player" value="{{this.id}}"
+                       {{#if this.shared}}checked{{/if}}>
+                <span class="ib-player-dot" style="--ib-swatch: {{this.color}}"></span>
+                <span class="ib-player-name">{{this.name}}</span>
+                {{#if this.offline}}
+                    {{!-- Handing a document to someone not logged in is fine: it is waiting when
+                          they next connect. Saying so stops a GM wondering whether it took. --}}
+                    <span class="ib-player-note">{{localize "INVESTIGATION_BOARD.PlayerOffline"}}</span>
+                {{/if}}
+            </label>
+        {{else}}
+            <p class="ib-empty">{{localize "INVESTIGATION_BOARD.NoPlayers"}}</p>
+        {{/each}}
+    </fieldset>
+
+    <p class="hint ib-handout-withdraw">{{localize "INVESTIGATION_BOARD.HandOverWithdrawHint"}}</p>
+
+</div>

@@ -25,7 +25,8 @@
     "styles/tray.css",
     "styles/inspector.css",
     "styles/filter.css",
-    "styles/case-file.css"
+    "styles/case-file.css",
+    "styles/handouts.css"
   ],
   "languages": [
     {
@@ -51,6 +52,16 @@
         "htmlFields": [
           "body"
         ]
+      },
+      "handout": {
+        "htmlFields": [
+          "body"
+        ],
+        "filePathFields": {
+          "image": [
+            "IMAGE"
+          ]
+        }
       }
     }
   },

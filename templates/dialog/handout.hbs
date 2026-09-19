@@ -1,0 +1,98 @@
+{{!-- Fields are flat rather than `system.*`: the dialog assembles the system object on submit,
+      because the particulars are a variable-length list rather than named fields. --}}
+<div class="ib-handout-form">
+
+    <div class="form-group">
+        <label for="ib-handout-name">{{localize "INVESTIGATION_BOARD.TitleLabel"}}</label>
+        <div class="form-fields">
+            <input type="text" id="ib-handout-name" name="name" value="{{name}}" autofocus
+                   placeholder="{{localize 'INVESTIGATION_BOARD.HandoutNamePlaceholder'}}">
+        </div>
+    </div>
+
+    <fieldset class="ib-kind-picker">
+        <legend>{{localize "INVESTIGATION_BOARD.HandoutKindLabel"}}</legend>
+        <div class="ib-kind-grid">
+            {{#each kinds}}
+                <button type="button" class="ib-kind-option {{#if this.selected}}selected{{/if}}"
+                        data-action="pickKind" data-kind="{{this.value}}"
+                        aria-pressed="{{#if this.selected}}true{{else}}false{{/if}}">
+                    <i class="{{this.icon}}"></i>
+                    <span class="ib-kind-name">{{this.label}}</span>
+                </button>
+            {{/each}}
+        </div>
+    </fieldset>
+
+    <div class="form-group ib-split">
+        <label for="ib-handout-issuer">{{localize "INVESTIGATION_BOARD.HandoutIssuerLabel"}}</label>
+        <div class="form-fields">
+            <input type="text" id="ib-handout-issuer" name="issuer" value="{{handout.issuer}}"
+                   placeholder="{{localize 'INVESTIGATION_BOARD.HandoutIssuerPlaceholder'}}">
+        </div>
+    </div>
+
+    <div class="form-group ib-split">
+        <label for="ib-handout-reference">{{localize "INVESTIGATION_BOARD.HandoutReferenceLabel"}}</label>
+        <div class="form-fields">
+            <input type="text" id="ib-handout-reference" name="reference" value="{{handout.reference}}">
+        </div>
+    </div>
+
+    <div class="form-group ib-split">
+        <label for="ib-handout-dateline">{{localize "INVESTIGATION_BOARD.HandoutDatelineLabel"}}</label>
+        <div class="form-fields">
+            <input type="text" id="ib-handout-dateline" name="dateline" value="{{handout.dateline}}">
+        </div>
+        <p class="hint">{{localize "INVESTIGATION_BOARD.HandoutDatelineHint"}}</p>
+    </div>
+
+    <fieldset class="ib-handout-rows-edit">
+        <legend>{{localize "INVESTIGATION_BOARD.HandoutRowsLabel"}}</legend>
+
+        {{#each rows}}
+            <div class="ib-row-edit">
+                <input type="text" name="rows.{{@index}}.label" value="{{this.label}}"
+                       class="ib-row-label"
+                       aria-label="{{localize 'INVESTIGATION_BOARD.HandoutRowLabel'}}"
+                       placeholder="{{localize 'INVESTIGATION_BOARD.HandoutRowLabel'}}">
+                <input type="text" name="rows.{{@index}}.value" value="{{this.value}}"
+                       class="ib-row-value"
+                       aria-label="{{localize 'INVESTIGATION_BOARD.HandoutRowValue'}}"
+                       placeholder="{{localize 'INVESTIGATION_BOARD.HandoutRowValue'}}">
+                <button type="button" class="ib-row-remove" data-action="removeRow"
+                        data-index="{{@index}}"
+                        data-tooltip="INVESTIGATION_BOARD.HandoutRemoveRow"
+                        aria-label="{{localize 'INVESTIGATION_BOARD.HandoutRemoveRow'}}">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        {{else}}
+            <p class="ib-empty">{{localize "INVESTIGATION_BOARD.HandoutNoRows"}}</p>
+        {{/each}}
+
+        <button type="button" class="ib-row-add" data-action="addRow">
+            <i class="fa-solid fa-plus"></i>
+            <span>{{localize "INVESTIGATION_BOARD.HandoutAddRow"}}</span>
+        </button>
+    </fieldset>
+
+    <div class="form-group">
+        <label for="ib-handout-image">{{localize "INVESTIGATION_BOARD.ImageLabel"}}</label>
+        <div class="form-fields">
+            <file-picker id="ib-handout-image" type="image" name="image" value="{{handout.image}}"
+                         {{#unless canUpload}}noupload{{/unless}}></file-picker>
+        </div>
+        <p class="hint">{{localize imageHint}}</p>
+    </div>
+
+    <div class="form-group stacked">
+        <label for="ib-handout-body">{{localize "INVESTIGATION_BOARD.HandoutBodyLabel"}}</label>
+        <prose-mirror id="ib-handout-body" name="body" value="{{handout.body}}" toggled></prose-mirror>
+    </div>
+
+    <p class="notification info ib-handout-privacy">
+        {{localize "INVESTIGATION_BOARD.HandoutPrivacyNote"}}
+    </p>
+
+</div>

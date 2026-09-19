@@ -6,8 +6,14 @@ import {receivePresence} from "./presence.mjs";
 import ClueData from "./data/clue-data.mjs";
 import ConnectionData from "./data/connection-data.mjs";
 import ReportData from "./data/report-data.mjs";
+import HandoutData from "./data/handout-data.mjs";
 import InvestigationBoard from "./apps/investigation-board.mjs";
-import {CluePageSheet, ConnectionPageSheet, ReportPageSheet} from "./apps/clue-page-sheet.mjs";
+import {
+  CluePageSheet,
+  ConnectionPageSheet,
+  HandoutPageSheet,
+  ReportPageSheet
+} from "./apps/clue-page-sheet.mjs";
 import {registerKeybindings, registerSettings} from "./settings.mjs";
 
 /**
@@ -35,7 +41,8 @@ Hooks.once("init", () => {
   Object.assign(CONFIG.JournalEntryPage.dataModels, {
     [PAGE_TYPES.CLUE]: ClueData,
     [PAGE_TYPES.CONNECTION]: ConnectionData,
-    [PAGE_TYPES.REPORT]: ReportData
+    [PAGE_TYPES.REPORT]: ReportData,
+    [PAGE_TYPES.HANDOUT]: HandoutData
   });
 
   // Sheets, so these pages can still be opened from the journal sidebar.
@@ -55,6 +62,13 @@ Hooks.once("init", () => {
     types: [PAGE_TYPES.REPORT],
     makeDefault: true,
     label: "INVESTIGATION_BOARD.ReportPageSheet"
+  });
+  // Not a fallback like the others: this sheet *is* how a handout is read, from the board's
+  // documents tab and from the journal directory alike.
+  DocumentSheetConfig.registerSheet(JournalEntryPage, MODULE_ID, HandoutPageSheet, {
+    types: [PAGE_TYPES.HANDOUT],
+    makeDefault: true,
+    label: "INVESTIGATION_BOARD.HandoutPageSheet"
   });
 
   registerFonts();
@@ -78,7 +92,8 @@ Hooks.once("init", () => {
     open: openBoard,
     InvestigationBoard,
     ClueData,
-    ConnectionData
+    ConnectionData,
+    HandoutData
   };
 });
 
