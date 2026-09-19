@@ -12,6 +12,25 @@
  */
 
 /**
+ * The name to show for a character.
+ *
+ * The prototype token's name, not the actor's. They are the same string for most actors — Foundry
+ * seeds the token name from the actor name on creation — so this only differs where the GM has
+ * deliberately set a short one, which is exactly the case worth honouring: the sheet says
+ * "Bartholomew Ashworth III" and the table says "Bart", and a byline on a 180px lead has room for
+ * one of those.
+ *
+ * @param {Actor|null} actor
+ * @returns {string}
+ */
+export function characterName(actor) {
+  if ( !actor ) return "";
+  return actor.prototypeToken?.name || actor.name || "";
+}
+
+/* -------------------------------------------- */
+
+/**
  * A stamp for whoever is acting now.
  * @param {User} [user]
  * @returns {{createdBy: string, createdByActor: string|null, createdByName: string}}
@@ -21,7 +40,7 @@ export function authorStamp(user = game.user) {
   return {
     createdBy: user.id,
     createdByActor: actor?.uuid ?? null,
-    createdByName: actor?.name ?? user.name
+    createdByName: characterName(actor) || user.name
   };
 }
 
@@ -43,7 +62,8 @@ export function authorName(stamp) {
   if ( stamp.createdByActor ) {
     // Synchronous on purpose: this is called while building render context for every card.
     const actor = fromUuidSync?.(stamp.createdByActor);
-    if ( actor?.name ) return actor.name;
+    const name = characterName(actor);
+    if ( name ) return name;
   }
   if ( stamp.createdByName ) return stamp.createdByName;
 

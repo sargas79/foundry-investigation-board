@@ -176,7 +176,10 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  row-gap: 3px;
   margin-top: 8px;
+  /* The byline drops to its own line rather than being squeezed — see .ib-clue-author. */
+  flex-wrap: wrap;
 }
 
 .investigation-board-app .ib-badge {
@@ -196,11 +199,18 @@
 .investigation-board-app .ib-badge[data-reliability="debunked"] { background: #8d2f2c; color: #fbeceb; }
 
 /* Who pinned it — the character, so a board can be traced back at a glance.
-   Takes the space between the badge and the link marker rather than a fixed cap, since the name
-   is the whole point of the stamp and a hard truncation makes it useless. */
+   Takes the space between the badge and the link marker, or its own line when that space is too
+   tight, rather than a fixed cap: the name is the whole point of the stamp and a hard truncation
+   makes it useless. */
 .investigation-board-app .ib-clue-author {
   flex: 1 1 auto;
-  min-width: 0;
+  /*
+   * A floor rather than the usual 0, so that when the badge leaves too little room the byline
+   * wraps to its own line and gets the whole card instead of being ellipsised down to a syllable.
+   * Capped at the row width so the narrowest card we allow (90px) can still fall below it without
+   * the name spilling over the edge.
+   */
+  min-width: min(80px, 100%);
   padding-left: 9px;
   position: relative;
   font-size: 8.5px;
@@ -222,6 +232,19 @@
   margin-top: -2.5px;
   border-radius: 50%;
   background: var(--ib-author, rgb(0 0 0 / 35%));
+}
+
+/*
+ * A lead is the narrowest card we make — 180px, and the sticky template spends 26px of that on
+ * padding — so the meta row cannot hold both a badge and a name. The badge loses: "UNVERIFIED" is
+ * the state every lead starts in and says nothing the yellow note hasn't already said, whereas the
+ * byline is the whole point of the stamp and was being cut to about a dozen characters.
+ *
+ * Keyed on the lead's reliability rather than its template, so the moment someone marks a lead
+ * corroborated or debunked the badge comes back — that is a fact about the case, and worth the room.
+ */
+.investigation-board-app .ib-clue[data-category="lead"][data-reliability="unverified"] .ib-badge {
+  display: none;
 }
 
 /* Clickable: opens whatever document the clue was made from. */
