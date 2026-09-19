@@ -6,6 +6,20 @@
   <link rel="stylesheet" href="/styles/fonts.css">
   <link rel="stylesheet" href="/styles/investigation-board.css">
   <style>
+    /* Foundry's base rule for every <button>, copied from its own foundry2.css. The module's
+       stylesheet has to win against this, and without it here the workbench flatters the board:
+       a toolbar squashed to a sliver in the real app looked perfect in this page. Core styles
+       some buttons more specifically than this (form footers, icon buttons), so those will not
+       match Foundry exactly — this is the floor every button starts from. */
+    button {
+      display: flex; justify-content: center; align-items: center;
+      height: 2em; min-height: 2em; gap: 0.25rem; padding: 0 0.5rem;
+      border: 1px solid #1b2026; border-radius: 4px;
+      font-family: system-ui, sans-serif; font-size: 14px; line-height: normal;
+      cursor: pointer; transition: 0.5s;
+    }
+    button.active, button:focus { outline: 1px solid #ff8a3d; box-shadow: 0 0 4px #ff8a3d; }
+
     /* Stand-ins for the Foundry window chrome the app normally renders inside. */
     html, body { height: 100%; margin: 0; background: #0b0f13; }
     body { display: grid; grid-template-rows: 1fr; padding: 12px; box-sizing: border-box; }
@@ -37,9 +51,15 @@
         </header>
         <section class="ib-case-list">
           <h3 class="ib-case-list-label">Case Files</h3>
-          <button type="button" class="ib-case-row active">The Ashwood Murders</button>
-          <button type="button" class="ib-case-row">Dockside Disappearance</button>
-          <button type="button" class="ib-case-row">Cold Case 1989</button>
+          <div class="ib-case-row active">
+            <button type="button" class="ib-case-open"><span class="ib-case-name">The Ashwood Murders</span></button>
+          </div>
+          <div class="ib-case-row">
+            <button type="button" class="ib-case-open"><span class="ib-case-name">Dockside Disappearance</span></button>
+          </div>
+          <div class="ib-case-row">
+            <button type="button" class="ib-case-open"><span class="ib-case-name">Cold Case 1989</span></button>
+          </div>
         </section>
       </aside>
 

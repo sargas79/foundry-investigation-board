@@ -76,6 +76,8 @@
   justify-content: center;
   gap: 6px;
   padding: 8px 6px;
+  /* Core sizes every <button> to a single line (2em); this one asks for more. */
+  height: auto;
   border: 1px solid var(--ib-border);
   border-radius: 5px;
   background: var(--ib-panel-raised);

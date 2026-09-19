@@ -250,6 +250,8 @@
   gap: 7px;
   width: 100%;
   padding: 8px;
+  /* Core sizes every <button> to a single line (2em); this one asks for more. */
+  height: auto;
   border: 1px dashed var(--ib-border);
   border-radius: 6px;
   background: transparent;
@@ -559,19 +561,30 @@
   box-shadow: 0 6px 20px rgb(0 0 0 / 50%);
 }
 
+/* Core styles every <button> as a single-line control: a fixed `height: var(--button-size)`,
+   which is 2em — 22px at this label size, shorter than the icon alone. A tool here is two lines,
+   icon over label, so its height has to come from its own content. Without this the box that
+   hovers, highlights and takes the click is a sliver in the middle of the text. */
 .investigation-board-app .ib-tool {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   width: 92px;
+  height: auto;
   padding: 8px 6px;
   border: none;
   border-radius: 6px;
   background: transparent;
   color: var(--ib-text);
   font-size: 11px;
+  line-height: 1.25;
+  text-align: center;
   cursor: pointer;
+  /* Core fades every button property over half a second, which on a toolbar reads as lag. */
+  transition: background-color 120ms ease, color 120ms ease;
 }
 
 .investigation-board-app .ib-tool i {
@@ -585,6 +598,23 @@
 .investigation-board-app .ib-tool:disabled {
   opacity: 0.45;
   cursor: default;
+}
+
+/* Which tool is in use. Core rings a `button.active` with its focus outline and glow, which on a
+   tool that is simply switched on reads as something having gone wrong; the raised panel and the
+   accent colour are this toolbar's own way of saying it. */
+.investigation-board-app .ib-tool.active {
+  background: var(--ib-panel-raised);
+  color: var(--ib-accent);
+  outline: none;
+  box-shadow: none;
+}
+
+/* Keyboard focus keeps a ring of its own — last, so it outranks the rule above on a tool that is
+   both focused and in use. */
+.investigation-board-app .ib-tool:focus-visible {
+  outline: 2px solid var(--ib-accent);
+  outline-offset: -2px;
 }
 
 /* --- Inspector ----------------------------------------------------------- */

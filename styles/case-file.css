@@ -199,6 +199,8 @@
   justify-content: center;
   gap: 8px;
   padding: 9px 16px;
+  /* Core sizes every <button> to a single line (2em); this one asks for more. */
+  height: auto;
   border: 1px dashed #39424c;
   border-radius: 6px;
   background: transparent;

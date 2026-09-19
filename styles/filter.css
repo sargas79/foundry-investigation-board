@@ -125,8 +125,3 @@
 .investigation-board-app .ib-clue.dimmed:not(.selected) {
   pointer-events: none;
 }
-
-.investigation-board-app .ib-tool.active {
-  background: var(--ib-panel-raised);
-  color: var(--ib-accent);
-}
