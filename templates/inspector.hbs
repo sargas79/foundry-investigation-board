@@ -55,14 +55,17 @@
                 </button>
             {{/if}}
 
-            {{!-- #25: the clue's strings, each with its own cut button. --}}
+            {{!-- #25, #62: the clue's strings — the name walks to the clue, the scissors cut it. --}}
             <section class="ib-inspector-section">
                 <h3 class="ib-panel-label">{{localize "INVESTIGATION_BOARD.Connections"}}</h3>
                 {{#each connections}}
                     <div class="ib-connection-row" data-connection-id="{{this.id}}">
                         <span class="ib-connection-swatch" style="--ib-swatch: var(--ib-pin-{{this.color}})"></span>
-                        <button type="button" class="ib-connection-name" data-action="focusConnection"
-                                data-connection-id="{{this.id}}">{{this.otherName}}</button>
+                        <button type="button" class="ib-connection-name" data-action="goToClue"
+                                data-clue-id="{{this.otherId}}"
+                                data-tooltip="INVESTIGATION_BOARD.GoToClue"
+                                aria-label="{{localize 'INVESTIGATION_BOARD.GoToClueNamed' name=this.otherName}}"
+                                >{{this.otherName}}</button>
                         {{#if ../clue.editable}}
                             <button type="button" class="ib-icon-button ib-danger" data-action="cutConnection"
                                     data-connection-id="{{this.id}}"

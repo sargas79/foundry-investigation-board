@@ -90,7 +90,7 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       linkFromSelected: InvestigationBoard.#onLinkFromSelected,
       addNote: InvestigationBoard.#onAddNote,
       openLinked: InvestigationBoard.#onOpenLinked,
-      focusConnection: InvestigationBoard.#onFocusConnection,
+      goToClue: InvestigationBoard.#onGoToClue,
       cutConnection: InvestigationBoard.#onCutConnection,
       toggleFilter: InvestigationBoard.#onToggleFilter,
       clearFilter: InvestigationBoard.#onClearFilter,
@@ -363,13 +363,18 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
           byline: this.#noteByline(note)
         }))
       },
-      connections: getConnectionsFor(journal, page.id).map(connection => ({
-        id: connection.id,
-        color: connection.system.color,
-        label: connection.system.label,
-        otherName: journal.pages.get(connection.system.other(page.id))?.name
-          ?? game.i18n.localize("INVESTIGATION_BOARD.MissingClue")
-      }))
+      connections: getConnectionsFor(journal, page.id).map(connection => {
+        // #62: the row names the clue at the far end, and is the way to walk the string to it.
+        const otherId = connection.system.other(page.id);
+        return {
+          id: connection.id,
+          color: connection.system.color,
+          label: connection.system.label,
+          otherId,
+          otherName: journal.pages.get(otherId)?.name
+            ?? game.i18n.localize("INVESTIGATION_BOARD.MissingClue")
+        };
+      })
     };
   }
 
@@ -1558,13 +1563,45 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
   /* -------------------------------------------- */
 
   /**
-   * Highlight a string listed in the inspector, so it can be picked out among many.
+   * Walk a string to the clue at its far end, as listed in the inspector.
    * @this {InvestigationBoard}
    * @param {PointerEvent} _event
    * @param {HTMLElement} target
+   * @returns {Promise<void>}
    */
-  static #onFocusConnection(_event, target) {
-    this.#interactions?.selectString(target.dataset.connectionId);
+  static async #onGoToClue(_event, target) {
+    await this.#revealClue(target.dataset.clueId);
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Select a clue and bring it into view, as following a string from the inspector does.
+   *
+   * The card is focused rather than merely selected so the keyboard keeps up with the pointer: a
+   * player who tabbed to the string and pressed Enter lands on the clue itself, with Enter, L and
+   * Delete all meaning what they mean on any other focused card.
+   *
+   * @param {string} clueId
+   * @returns {Promise<void>}
+   */
+  async #revealClue(clueId) {
+    const card = this.#renderer?.cards.get(clueId);
+    const page = this.currentCase?.pages.get(clueId);
+    // A clue set aside or destroyed by someone else leaves its row behind until the inspector is
+    // next drawn, so say why nothing happened and redraw the list rather than swallowing the click.
+    if ( !card || !page ) {
+      ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.ClueGone", {localize: true});
+      await this.render({parts: ["inspector"]});
+      return;
+    }
+
+    this.#view?.reveal(clueBounds([page]));
+    this.#interactions?.selectString(null);
+    this.#interactions?.select(clueId);
+    // The view owns the scrolling here; letting the browser scroll to the card as well would
+    // fight the transform that has just been set.
+    card.focus({preventScroll: true});
   }
 
   /* -------------------------------------------- */

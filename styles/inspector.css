@@ -144,8 +144,12 @@
   cursor: pointer;
 }
 
-.investigation-board-app .ib-connection-name:hover {
+/* #62: the name is the way along the string, so it has to read as something you can follow. */
+.investigation-board-app .ib-connection-name:hover,
+.investigation-board-app .ib-connection-name:focus-visible {
   color: var(--ib-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .investigation-board-app .ib-connection-row .ib-icon-button {

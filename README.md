@@ -43,6 +43,12 @@ half-drawn string and closes the filter panel, leaving the plain pointer you sta
 selecting it and pressing Delete, or right-clicking it. Strings take the colour of the pin they
 start from, so a line of enquiry reads as one colour across the board.
 
+**Follow a string** from the **Strings** list in the inspector: each row names the clue at the far
+end, and clicking that name selects it and brings it into view. A chain of reasoning can be walked
+end to end from the panel, without hunting for the next card by eye. The board only moves if the
+clue was off-screen — a corkboard is a spatial memory, and it should not rearrange itself under
+you when what you asked for was already in front of you.
+
 **Set clues aside** with Delete or the right-click menu. They go to the **Discarded** tray and come
 back with every string they were tied to still attached — dismissing is never destructive.
 

@@ -198,6 +198,45 @@ export default class BoardView {
     this.#apply();
   }
 
+  /**
+   * Pan so a board-space point sits at the centre of the viewport, keeping the current zoom.
+   * @param {number} x
+   * @param {number} y
+   */
+  centerOn(x, y) {
+    if ( !Number.isFinite(x) || !Number.isFinite(y) ) return;
+    const rect = this.viewport.getBoundingClientRect();
+    if ( !rect.width || !rect.height ) return;
+    this.#pan.x = (rect.width / 2) - (x * this.#scale);
+    this.#pan.y = (rect.height / 2) - (y * this.#scale);
+    this.#apply();
+  }
+
+  /**
+   * Bring a board-space rectangle into view, moving only if it isn't comfortably on screen.
+   *
+   * A board is a spatial memory, so following a string to a clue already in front of the player
+   * must not shuffle the layout out from under them: only something off-screen, or pressed right
+   * up against an edge, is worth panning to. The zoom is left alone either way — arriving at a
+   * clue at a different magnification than you left is far more disorienting than a pan.
+   *
+   * @param {{x: number, y: number, width: number, height: number}|null} bounds
+   * @param {number} [margin=24]   Board-space slack that must also be visible around the rectangle.
+   * @returns {boolean}            Whether the view actually moved.
+   */
+  reveal(bounds, margin = 24) {
+    if ( !bounds ) return false;
+    const visible = this.visibleBounds;
+    if ( !visible.width || !visible.height ) return false;
+    const onScreen = ((bounds.x - margin) >= visible.x)
+      && ((bounds.y - margin) >= visible.y)
+      && ((bounds.x + bounds.width + margin) <= (visible.x + visible.width))
+      && ((bounds.y + bounds.height + margin) <= (visible.y + visible.height));
+    if ( onScreen ) return false;
+    this.centerOn(bounds.x + (bounds.width / 2), bounds.y + (bounds.height / 2));
+    return true;
+  }
+
   /** Reset to 100% with the board origin at the viewport's top-left. */
   reset() {
     this.#pan = {x: 0, y: 0};

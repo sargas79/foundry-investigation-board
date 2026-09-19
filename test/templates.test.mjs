@@ -332,6 +332,47 @@ export default async function testTemplates() {
     assert(enabled.length === 0, `these stayed enabled without a case: ${enabled.join(" ")}`);
   });
 
+  describe("inspector.hbs");
+
+  const inspectorContext = () => ({
+    categories: [], reliabilities: [],
+    clue: {id: "clue-a", name: "Broken watch", category: "physical", reliability: "verified",
+      editable: true, notes: []},
+    connections: [
+      {id: "conn-1", color: "red", label: "", otherId: "clue-b", otherName: "Mara Vale"},
+      {id: "conn-2", color: "blue", label: "", otherId: "clue-c", otherName: "Pawn receipt"}
+    ]
+  });
+
+  // #62: the row's name walks the string to the clue at the far end. The connection id and the
+  // clue id are both to hand here and both are plausible-looking strings, so wiring the button to
+  // the wrong one would navigate nowhere at all — and only ever at runtime, with a real board.
+  await check("following a string targets the clue at the far end, not the string", () => {
+    const html = render("templates/inspector.hbs", inspectorContext());
+    const targets = [...html.matchAll(/data-action="goToClue"[\s\S]*?data-clue-id="([^"]*)"/g)]
+      .map(m => m[1]);
+    assert(targets.length === 2, `expected one per string, got ${targets.length}`);
+    assert(targets.join() === "clue-b,clue-c", `walked to ${targets.join()}`);
+  });
+
+  // The scissors stays a separate control: a player following a string must never cut it.
+  await check("cutting is its own button, still keyed to the string", () => {
+    const html = render("templates/inspector.hbs", inspectorContext());
+    const cuts = [...html.matchAll(/data-action="cutConnection"[\s\S]*?data-connection-id="([^"]*)"/g)]
+      .map(m => m[1]);
+    assert(cuts.join() === "conn-1,conn-2", `cut buttons carried ${cuts.join()}`);
+  });
+
+  await check("a read-only clue can still be followed, but not cut", () => {
+    const context = inspectorContext();
+    context.clue.editable = false;
+    const html = render("templates/inspector.hbs", context);
+    assert(countAction(html, "goToClue") === 2,
+      `a player saw ${countAction(html, "goToClue")} strings to follow`);
+    assert(countAction(html, "cutConnection") === 0,
+      `a player saw ${countAction(html, "cutConnection")} cut buttons`);
+  });
+
   describe("page sheets do not duplicate core's fields");
 
   // A page sheet that lists `super.EDIT_PARTS.header` already has core's `page-header.hbs` in the

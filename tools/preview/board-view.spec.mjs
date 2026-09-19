@@ -138,6 +138,54 @@ export function runBoardViewTests(view, viewport) {
     assert(view.transform.scale < 1, "a large area should zoom out to fit");
   });
 
+  check("centerOn puts a board point in the middle without changing zoom", () => {
+    view.setTransform({x: 0, y: 0, scale: 1.4});
+    view.centerOn(900, 640);
+    const r = rect();
+    const s = view.boardToScreen(900, 640);
+    assert(near(view.transform.scale, 1.4, 0.0001), `zoom changed to ${view.transform.scale}`);
+    assert(near(s.x - r.left, r.width / 2, 0.01) && near(s.y - r.top, r.height / 2, 0.01),
+      `landed at ${(s.x - r.left).toFixed(1)}, ${(s.y - r.top).toFixed(1)}`);
+  });
+
+  // #62: following a string to a clue already in front of the player must not shift the board.
+  // A corkboard is a spatial memory, and moving it when nothing needed moving costs more than the
+  // pan saves.
+  check("reveal leaves the view alone when the target is already on screen", () => {
+    view.reset();
+    const before = view.transform;
+    const moved = view.reveal({x: 120, y: 90, width: 180, height: 200});
+    assert(moved === false, "reveal claimed to move for a clue already in view");
+    const after = view.transform;
+    assert((after.x === before.x) && (after.y === before.y), `panned to ${after.x}, ${after.y}`);
+  });
+
+  check("reveal centres a target that is off screen", () => {
+    view.reset();
+    const bounds = {x: 4000, y: 3000, width: 180, height: 200};
+    const moved = view.reveal(bounds);
+    assert(moved === true, "reveal did not move for an off-screen clue");
+    const r = rect();
+    const s = view.boardToScreen(bounds.x + (bounds.width / 2), bounds.y + (bounds.height / 2));
+    assert(near(s.x - r.left, r.width / 2, 0.01) && near(s.y - r.top, r.height / 2, 0.01),
+      `off-screen clue landed at ${(s.x - r.left).toFixed(1)}, ${(s.y - r.top).toFixed(1)}`);
+  });
+
+  // Half a card hanging off the edge is "visible" and still unreadable, so the margin has to count.
+  check("reveal moves for a target pressed against the edge", () => {
+    view.reset();
+    const visible = view.visibleBounds;
+    const bounds = {x: visible.x + visible.width - 100, y: 40, width: 180, height: 200};
+    assert(view.reveal(bounds) === true, "a clue hanging off the right edge was left there");
+  });
+
+  check("reveal does nothing without bounds", () => {
+    view.reset();
+    const before = view.transform;
+    assert(view.reveal(null) === false, "reveal claimed to move for a missing clue");
+    assert(view.transform.x === before.x, "the view moved for a missing clue");
+  });
+
   check("center reports the middle of the visible area", () => {
     view.reset();
     const r = rect();
