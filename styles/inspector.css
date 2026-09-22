@@ -216,3 +216,30 @@
   border-radius: 50%;
   background: var(--ib-author, var(--ib-text-muted));
 }
+
+.investigation-board-app .ib-pinned-by-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* #63: the GM's way to put a clue's credit right, kept quiet until the byline is hovered. */
+.investigation-board-app .ib-pinned-by .ib-reassign-author {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  border-radius: 4px;
+  font-size: 10px;
+  opacity: 0;
+}
+
+.investigation-board-app .ib-pinned-by:hover .ib-reassign-author,
+.investigation-board-app .ib-pinned-by .ib-reassign-author:focus-visible {
+  opacity: 1;
+}
+
+.investigation-board-app .ib-author-history {
+  margin: 2px 0 0 13px;
+  font-size: 9.5px;
+  font-style: italic;
+  color: var(--ib-text-muted);
+}

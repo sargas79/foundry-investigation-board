@@ -373,6 +373,34 @@ export default async function testTemplates() {
       `a player saw ${countAction(html, "cutConnection")} cut buttons`);
   });
 
+  // #63: crediting a clue to another character is the GM's alone, and a player must not even be
+  // offered the control — the preUpdate guard would refuse them, but only after a confusing click.
+  await check("only the GM is offered to change who a clue is credited to", () => {
+    const context = inspectorContext();
+    context.clue.author = "Elira";
+    context.clue.canReassign = true;
+    assert(countAction(render("templates/inspector.hbs", context), "reassignAuthor") === 1,
+      "the GM was not offered the reassignment");
+    context.clue.canReassign = false;
+    assert(countAction(render("templates/inspector.hbs", context), "reassignAuthor") === 0,
+      "a player was offered the reassignment");
+  });
+
+  await check("a clue with no byline can still be credited by the GM", () => {
+    const context = inspectorContext();
+    context.clue.canReassign = true;
+    assert(countAction(render("templates/inspector.hbs", context), "reassignAuthor") === 1,
+      "an unstamped clue could not be credited");
+  });
+
+  await check("every reassignment stays on show", () => {
+    const context = inspectorContext();
+    context.clue.author = "Kestrel";
+    context.clue.authorHistory = ["Credited to Kestrel instead of Elira by Gamemaster"];
+    const html = render("templates/inspector.hbs", context);
+    assert(html.includes("instead of Elira"), "the previous creator was not shown");
+  });
+
   describe("page sheets do not duplicate core's fields");
 
   // A page sheet that lists `super.EDIT_PARTS.header` already has core's `page-header.hbs` in the
