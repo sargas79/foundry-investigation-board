@@ -12,13 +12,37 @@
             {{#if clue.author}}
                 <p class="ib-pinned-by">
                     <span class="ib-author-dot" style="--ib-author: {{clue.authorColor}}"></span>
-                    {{#if clue.pinnedAt}}
-                        {{localize "INVESTIGATION_BOARD.PinnedByAt" who=clue.author when=clue.pinnedAt}}
-                    {{else}}
-                        {{localize "INVESTIGATION_BOARD.PinnedBy" who=clue.author}}
+                    <span class="ib-pinned-by-text">
+                        {{#if clue.pinnedAt}}
+                            {{localize "INVESTIGATION_BOARD.PinnedByAt" who=clue.author when=clue.pinnedAt}}
+                        {{else}}
+                            {{localize "INVESTIGATION_BOARD.PinnedBy" who=clue.author}}
+                        {{/if}}
+                    </span>
+                    {{#if clue.canReassign}}
+                        <button type="button" class="ib-icon-button ib-reassign-author" data-action="reassignAuthor"
+                                data-tooltip="INVESTIGATION_BOARD.ReassignAuthor"
+                                aria-label="{{localize 'INVESTIGATION_BOARD.ReassignAuthor'}}">
+                            <i class="fa-solid fa-user-pen"></i>
+                        </button>
                     {{/if}}
                 </p>
+            {{else if clue.canReassign}}
+                {{!-- A clue pinned before bylines existed has nobody to credit until the GM names one. --}}
+                <p class="ib-pinned-by">
+                    <span class="ib-pinned-by-text">{{localize "INVESTIGATION_BOARD.NoAuthor"}}</span>
+                    <button type="button" class="ib-icon-button ib-reassign-author" data-action="reassignAuthor"
+                            data-tooltip="INVESTIGATION_BOARD.ReassignAuthor"
+                            aria-label="{{localize 'INVESTIGATION_BOARD.ReassignAuthor'}}">
+                        <i class="fa-solid fa-user-pen"></i>
+                    </button>
+                </p>
             {{/if}}
+
+            {{!-- #63: a reassignment is never silent — what the credit said before stays on show. --}}
+            {{#each clue.authorHistory}}
+                <p class="ib-author-history">{{this}}</p>
+            {{/each}}
 
             <dl class="ib-inspector-meta">
                 <dt>{{localize "INVESTIGATION_BOARD.CategoryLabel"}}</dt>

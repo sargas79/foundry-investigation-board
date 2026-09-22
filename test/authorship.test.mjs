@@ -157,4 +157,146 @@ export default async function testAuthorship() {
     assert(clue.createdByActor === null, `createdByActor defaulted to ${clue.createdByActor}`);
     assert(clue.createdByName === "", "createdByName should default empty");
   });
+
+  /* ------------------------------------------ */
+  /*  #63: a GM puts a clue's credit right        */
+  /* ------------------------------------------ */
+
+  const {canReassignAuthor, changesAuthor, playerFor, reassignedStamp, reassignAuthor} =
+    await import("../scripts/data/authorship.mjs");
+
+  const gm = {id: "gm", name: "Gamemaster", isGM: true};
+  const sam = {id: "sam", name: "sam", isGM: false};
+  const ana = {id: "ana", name: "ana", isGM: false};
+  const elira = {uuid: "Actor.elira", documentName: "Actor", name: "Elira"};
+  const kestrel = {
+    uuid: "Actor.kestrel", documentName: "Actor", name: "Kestrel",
+    testUserPermission: (user, level) => (user.id === "ana") && (level === "OWNER")
+  };
+
+  /** A clue page whose update records what was written, as Foundry would apply it. */
+  function cluePage(system) {
+    return {
+      system: {...system},
+      updates: [],
+      async update({system: changes}) {
+        this.updates.push(changes);
+        Object.assign(this.system, changes);
+      }
+    };
+  }
+
+  /** Install a world with the given users and actors resolvable by uuid. */
+  function withTable({users = [gm, sam, ana], actors = {}} = {}) {
+    const previous = {game: globalThis.game, fromUuid: globalThis.fromUuid,
+      fromUuidSync: globalThis.fromUuidSync};
+    globalThis.game = {user: gm, users};
+    globalThis.fromUuid = async uuid => actors[uuid] ?? null;
+    globalThis.fromUuidSync = uuid => actors[uuid] ?? null;
+    return () => Object.assign(globalThis, previous);
+  }
+
+  const eliraStamp = () => ({
+    createdBy: "sam", createdByActor: "Actor.elira", createdByName: "Elira", authorHistory: []
+  });
+
+  describe("reassigning who a clue is credited to");
+
+  await check("a GM reassigns a clue to another existing character", async () => {
+    const restore = withTable({actors: {"Actor.elira": elira, "Actor.kestrel": kestrel}});
+    const page = cluePage(eliraStamp());
+    const result = await reassignAuthor(page, "Actor.kestrel", gm);
+    const name = authorName(page.system);
+    restore();
+    assert(result.ok, `refused: ${result.reason}`);
+    assert(name === "Kestrel", `credited to ${name}`);
+    const [entry] = page.system.authorHistory;
+    assert(entry?.fromName === "Elira", `history lost the previous creator: ${JSON.stringify(entry)}`);
+    assert(entry.toName === "Kestrel" && entry.by === "gm", "history did not say who changed it to what");
+  });
+
+  await check("a player cannot reassign a clue's creator", async () => {
+    const restore = withTable({actors: {"Actor.elira": elira, "Actor.kestrel": kestrel}});
+    const page = cluePage(eliraStamp());
+    const result = await reassignAuthor(page, "Actor.kestrel", sam);
+    restore();
+    assert(!result.ok, "a player was allowed to reassign");
+    assert(page.updates.length === 0, "the clue was written to anyway");
+    assert(page.system.createdByName === "Elira", `credited to ${page.system.createdByName}`);
+    assert(!canReassignAuthor(sam) && canReassignAuthor(gm), "the permission rule is wrong");
+  });
+
+  await check("a clue whose creator was deleted keeps no reference to them", async () => {
+    const restore = withTable({actors: {"Actor.kestrel": kestrel}});
+    const page = cluePage(eliraStamp());
+    const result = await reassignAuthor(page, "Actor.kestrel", gm);
+    restore();
+    assert(result.ok, `refused: ${result.reason}`);
+    assert(page.system.createdByActor === "Actor.kestrel", "the new actor was not recorded");
+    assert(page.system.createdByName === "Kestrel", `the name recorded was ${page.system.createdByName}`);
+    assert(!JSON.stringify(page.system).includes("Actor.elira"),
+      "the clue kept a reference to the deleted actor");
+  });
+
+  await check("reassigning to another player's character credits that player", async () => {
+    const restore = withTable({actors: {"Actor.kestrel": kestrel}});
+    const page = cluePage(eliraStamp());
+    await reassignAuthor(page, "Actor.kestrel", gm);
+    restore();
+    assert(page.system.createdBy === "ana", `the player recorded was ${page.system.createdBy}`);
+  });
+
+  await check("a player's assigned character wins over one they merely own", () => {
+    const shared = {uuid: "Actor.kestrel", testUserPermission: () => true};
+    const assigned = {...sam, character: {uuid: "Actor.kestrel"}};
+    assert(playerFor(shared, [gm, ana, assigned])?.id === "sam", "the assigned player was passed over");
+    assert(playerFor(shared, [gm]) === null, "a GM was taken for the player");
+  });
+
+  await check("a GM cannot reassign to a character that does not exist", async () => {
+    const restore = withTable({actors: {"Actor.elira": elira, "Item.x": {documentName: "Item"}}});
+    const page = cluePage(eliraStamp());
+    const missing = await reassignAuthor(page, "Actor.nobody", gm);
+    const notAnActor = await reassignAuthor(page, "Item.x", gm);
+    const empty = await reassignAuthor(page, "", gm);
+    restore();
+    assert(!missing.ok && !notAnActor.ok && !empty.ok, "a nonexistent character was accepted");
+    assert(page.updates.length === 0, "the clue was written to anyway");
+    assert(page.system.createdByName === "Elira", `credited to ${page.system.createdByName}`);
+  });
+
+  // The guard in module.mjs refuses a non-GM any update this reports as touching the credit.
+  await check("after a reassignment the credit is locked to players again", () => {
+    const now = reassignedStamp(eliraStamp(), kestrel, {by: gm, time: 1, users: [gm, ana]});
+    assert(changesAuthor(now, {createdByName: "Elira"}), "a rename of the credit went unnoticed");
+    assert(changesAuthor(now, {createdByActor: "Actor.elira"}), "a new actor went unnoticed");
+    assert(changesAuthor(now, {authorHistory: []}), "wiping the history went unnoticed");
+    assert(!changesAuthor(now, {x: 10}), "an ordinary move was taken for a reassignment");
+    assert(!changesAuthor(now, {...now}), "writing the stamp back unchanged was taken for one");
+    assert(!changesAuthor(now, undefined), "an update with no system changes was taken for one");
+  });
+
+  for ( const [clue, other] of [["Bloodstained Letter", "Torn Map"], ["Torn Map", "Bloodstained Letter"]] ) {
+    await check(`reassigning "${clue}" leaves "${other}" alone`, async () => {
+      const restore = withTable({actors: {"Actor.elira": elira, "Actor.kestrel": kestrel}});
+      const pages = {"Bloodstained Letter": cluePage(eliraStamp()), "Torn Map": cluePage(eliraStamp())};
+      await reassignAuthor(pages[clue], "Actor.kestrel", gm);
+      const moved = authorName(pages[clue].system);
+      const kept = authorName(pages[other].system);
+      restore();
+      assert(moved === "Kestrel", `"${clue}" was credited to ${moved}`);
+      assert(kept === "Elira", `"${other}" was credited to ${kept}`);
+      assert(pages[other].system.authorHistory.length === 0, `"${other}" gained history`);
+    });
+  }
+
+  await check("ClueData carries the reassignment history through validation", async () => {
+    const {default: ClueData} = await import("../scripts/data/clue-data.mjs");
+    const clue = new ClueData({
+      authorHistory: [{fromName: "Elira", toName: "Kestrel", by: "gm", time: 5}]
+    });
+    assert(clue.authorHistory.length === 1, "the history was dropped");
+    assert(clue.authorHistory[0].fromName === "Elira", "the previous creator was lost");
+    assert(new ClueData({}).authorHistory.length === 0, "an old clue should start with no history");
+  });
 }

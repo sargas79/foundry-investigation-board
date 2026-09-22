@@ -22,7 +22,15 @@ import {canCreateDirectly, createCase} from "../data/case-create.mjs";
 import {canManageSharing} from "../data/sharing.mjs";
 import {buildImport, exportCase, exportFilename, validateExport} from "../data/transfer.mjs";
 import {announce, clearPresence, holderOf, watchPresence} from "../presence.mjs";
-import {authorColor, authorName, authorStamp} from "../data/authorship.mjs";
+import {
+  authorColor,
+  authorName,
+  authorStamp,
+  canReassignAuthor,
+  characterName,
+  playerFor,
+  reassignAuthor
+} from "../data/authorship.mjs";
 import {CATEGORIES, HANDOUT_KINDS, RELIABILITY} from "../constants.mjs";
 import {EMPTY_FILTER, applyFilter, isActive} from "../board/filter.mjs";
 import {
@@ -89,6 +97,7 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       deleteClue: InvestigationBoard.#onDeleteClue,
       linkFromSelected: InvestigationBoard.#onLinkFromSelected,
       addNote: InvestigationBoard.#onAddNote,
+      reassignAuthor: InvestigationBoard.#onReassignAuthor,
       openLinked: InvestigationBoard.#onOpenLinked,
       goToClue: InvestigationBoard.#onGoToClue,
       cutConnection: InvestigationBoard.#onCutConnection,
@@ -358,6 +367,8 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
         author: authorName(page.system),
         authorColor: authorColor(page.system),
         pinnedAt: this.#pinnedAt(page),
+        canReassign: canReassignAuthor(game.user),
+        authorHistory: (page.system.authorHistory ?? []).map(entry => this.#reassignedLine(entry)),
         notes: (page.system.notes ?? []).map(note => ({
           text: note.text,
           byline: this.#noteByline(note)
@@ -394,6 +405,32 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
     catch {
       return null;
     }
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * "Credited to Kestrel instead of Elira by Gamemaster, 5 minutes ago" for a clue's history.
+   * @param {{fromName: string, toName: string, by: string|null, time: number}} entry
+   * @returns {string}
+   */
+  #reassignedLine(entry) {
+    const unknown = game.i18n.localize("INVESTIGATION_BOARD.SomeoneElse");
+    const data = {
+      from: entry.fromName || unknown,
+      to: entry.toName || unknown,
+      by: game.users.get(entry.by)?.name ?? unknown
+    };
+    let when = null;
+    try {
+      if ( entry.time ) when = foundry.utils.timeSince(new Date(entry.time));
+    }
+    catch {
+      when = null;
+    }
+    return when
+      ? game.i18n.format("INVESTIGATION_BOARD.ReassignedAt", {...data, when})
+      : game.i18n.format("INVESTIGATION_BOARD.Reassigned", data);
   }
 
   /* -------------------------------------------- */
@@ -1538,6 +1575,58 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
         notes: [...page.system.notes, {author: game.user.id, text, time: Date.now()}]
       }
     });
+    await this.render({parts: ["inspector"]});
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Credit the selected clue to another character. GM only (#63).
+   * @this {InvestigationBoard}
+   * @returns {Promise<void>}
+   */
+  static async #onReassignAuthor() {
+    if ( !canReassignAuthor(game.user) ) {
+      ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.ReassignIsGMOnly", {localize: true});
+      return;
+    }
+    const page = this.currentCase?.pages.get(this.#selectedClue);
+    if ( !page ) return;
+
+    // Characters a player has first, since that is who a clue is normally credited to.
+    const esc = foundry.utils.escapeHTML;
+    const actors = game.actors.contents
+      .map(actor => ({actor, player: playerFor(actor), name: characterName(actor)}))
+      .sort((a, b) => (!!b.player - !!a.player) || a.name.localeCompare(b.name));
+    if ( !actors.length ) {
+      ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.ReassignNoCharacter", {localize: true});
+      return;
+    }
+    const options = actors.map(({actor, player, name}) => {
+      const label = player ? `${name} (${player.name})` : name;
+      const selected = actor.uuid === page.system.createdByActor ? " selected" : "";
+      return `<option value="${esc(actor.uuid)}"${selected}>${esc(label)}</option>`;
+    }).join("");
+
+    const actorUuid = await foundry.applications.api.DialogV2.prompt({
+      window: {title: "INVESTIGATION_BOARD.ReassignAuthor"},
+      content: `<p>${esc(game.i18n.format("INVESTIGATION_BOARD.ReassignPrompt", {name: page.name}))}</p>
+                <div class="form-group"><select name="actor" autofocus>${options}</select></div>`,
+      ok: {
+        label: "INVESTIGATION_BOARD.ReassignAuthor",
+        icon: "fa-solid fa-user-pen",
+        callback: (_event, button) => button.form.elements.actor.value
+      },
+      modal: true,
+      rejectClose: false
+    });
+    if ( !actorUuid ) return;
+
+    const result = await reassignAuthor(page, actorUuid);
+    if ( !result.ok ) {
+      ui.notifications.warn(result.reason, {localize: true});
+      return;
+    }
     await this.render({parts: ["inspector"]});
   }
 

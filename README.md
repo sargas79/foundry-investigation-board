@@ -141,6 +141,7 @@ a case or lock out the only people who could repair it.
 | Share an existing case | **GM or Assistant GM** |
 | Write, edit, hand over or delete a document | **GM or Assistant GM** |
 | Read a document, and pin it to a case | Whoever it has been **handed to** |
+| Change which character a clue is credited to | **GM or Assistant GM**, from the pencil beside the clue's byline in the inspector. Each change is listed there with the previous name |
 | Delete a clue permanently | **GM only**, from the Discarded tray — players set aside instead |
 | Delete a case permanently | **GM only**, from the header or the sidebar — players close instead |
 

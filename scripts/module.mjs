@@ -1,5 +1,6 @@
 import {MODULE_ID, PAGE_TYPES, modulePath} from "./constants.mjs";
 import {canDeleteCase, canDeletePage} from "./data/case.mjs";
+import {canReassignAuthor, changesAuthor} from "./data/authorship.mjs";
 import {CREATE_CASE_QUERY, handleCreateCaseQuery} from "./data/case-create.mjs";
 import {SHARE_QUERY, handleShareQuery} from "./data/sharing.mjs";
 import {receivePresence} from "./presence.mjs";
@@ -132,6 +133,19 @@ Hooks.once("ready", () => {
 Hooks.on("preDeleteJournalEntryPage", page => {
   if ( canDeletePage(page, game.user) ) return true;
   ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.DeleteIsGMOnly", {localize: true});
+  return false;
+});
+
+/**
+ * #63: who a clue is credited to is the GM's to change, and nobody else's.
+ *
+ * Like the delete guard above, this runs on the client making the change: it stops every path
+ * through the UI, not a player determined to call the API from the console.
+ */
+Hooks.on("preUpdateJournalEntryPage", (page, changes) => {
+  if ( page.type !== PAGE_TYPES.CLUE ) return true;
+  if ( canReassignAuthor(game.user) || !changesAuthor(page.system, changes.system) ) return true;
+  ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.ReassignIsGMOnly", {localize: true});
   return false;
 });
 

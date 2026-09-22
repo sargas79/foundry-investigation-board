@@ -74,6 +74,13 @@ export default class ClueData extends foundry.abstract.TypeDataModel {
       createdByActor: new fields.DocumentUUIDField({required: false, nullable: true, initial: null}),
       createdByName: new fields.StringField({required: false, blank: true, initial: ""}),
       createdAt: new fields.NumberField({required: false, nullable: true, initial: null, integer: true}),
+      // #63: every time a GM credits the clue to someone else, what it said before and who changed it.
+      authorHistory: new fields.ArrayField(new fields.SchemaField({
+        fromName: new fields.StringField({required: true, blank: true, initial: ""}),
+        toName: new fields.StringField({required: true, blank: true, initial: ""}),
+        by: new fields.StringField({required: false, nullable: true, initial: null}),
+        time: new fields.NumberField({required: true, integer: true, nullable: false, initial: 0})
+      })),
 
       // --- Links and annotations --------------------------------------------
       linkedUuid: new fields.DocumentUUIDField({required: false, nullable: true, initial: null}),
