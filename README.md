@@ -1,4 +1,4 @@
-# Investigation Board
+# Sargas - Investigation Board
 
 A corkboard for collaborative investigation in **Foundry VTT V14**. Players pin clues, string them
 together, and work cases as a party — no GM required at the table.
@@ -8,10 +8,10 @@ together, and work cases as a party — no GM required at the table.
 Paste this manifest URL into Foundry's **Add-on Modules → Install Module**:
 
 ```
-https://github.com/sargas79/foundry-investigation-board/releases/latest/download/module.json
+https://github.com/sargas79/sargas-investigation-board/releases/latest/download/module.json
 ```
 
-Then enable **Investigation Board** in your world's module settings.
+Then enable **Sargas - Investigation Board** in your world's module settings.
 
 ## Opening the board
 

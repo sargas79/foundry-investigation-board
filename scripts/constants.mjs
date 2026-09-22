@@ -1,5 +1,5 @@
 /**
- * Shared constants for the Investigation Board module.
+ * Shared constants for the Sargas - Investigation Board module.
  * @module investigation-board/constants
  */
 

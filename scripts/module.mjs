@@ -104,7 +104,7 @@ Hooks.once("ready", () => {
   // Presence travels over the socket: it is momentary, and writing it would put a database
   // round-trip in the middle of every drag.
   game.socket.on(`module.${MODULE_ID}`, receivePresence);
-  console.log(`${MODULE_ID} | Investigation Board ready`);
+  console.log(`${MODULE_ID} | Sargas - Investigation Board ready`);
 });
 
 /* -------------------------------------------- */
