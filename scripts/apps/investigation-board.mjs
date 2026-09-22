@@ -428,9 +428,11 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
     catch {
       when = null;
     }
+    // A clue pinned before bylines existed was credited to nobody, not to "someone else".
+    const key = entry.fromName ? "INVESTIGATION_BOARD.Reassigned" : "INVESTIGATION_BOARD.CreditedFirst";
     return when
-      ? game.i18n.format("INVESTIGATION_BOARD.ReassignedAt", {...data, when})
-      : game.i18n.format("INVESTIGATION_BOARD.Reassigned", data);
+      ? game.i18n.format(`${key}At`, {...data, when})
+      : game.i18n.format(key, data);
   }
 
   /* -------------------------------------------- */

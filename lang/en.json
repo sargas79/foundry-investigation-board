@@ -214,6 +214,8 @@
   "INVESTIGATION_BOARD.ReassignPrompt": "Who should \"{name}\" be credited to?",
   "INVESTIGATION_BOARD.Reassigned": "Credited to {to} instead of {from} by {by}",
   "INVESTIGATION_BOARD.ReassignedAt": "Credited to {to} instead of {from} by {by}, {when}",
+  "INVESTIGATION_BOARD.CreditedFirst": "Credited to {to} by {by}",
+  "INVESTIGATION_BOARD.CreditedFirstAt": "Credited to {to} by {by}, {when}",
   "INVESTIGATION_BOARD.NOTIFY.ReassignIsGMOnly": "Only the GM can change who a clue is credited to.",
   "INVESTIGATION_BOARD.NOTIFY.ReassignNoCharacter": "That character does not exist in this world, so the clue was left as it was.",
   "INVESTIGATION_BOARD.NOTIFY.ReassignUnchanged": "The clue is already credited to that character.",
