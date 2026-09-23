@@ -13,7 +13,7 @@ import {freeSpotNear, topZ} from "./case.mjs";
  * Handouts: documents the GM writes in advance and hands over when the moment comes.
  *
  * **A handout is a JournalEntry of its own**, flagged as one, holding a single page of sub-type
- * `investigation-board.handout`. Nothing cheaper would work. Foundry only enforces ownership on
+ * `sargas-investigation-board.handout`. Nothing cheaper would work. Foundry only enforces ownership on
  * top-level documents: a page inside an entry a player can already see is filtered from the
  * *display* but still sits in their client, readable from the console. `data/redaction.mjs` was
  * written around the same limit and reaches the same conclusion — if a player must not read

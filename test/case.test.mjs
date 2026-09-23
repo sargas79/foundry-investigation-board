@@ -5,7 +5,7 @@ function journalWithFlags(flags) {
   return {
     id: "case1",
     name: "The Ashwood Murders",
-    getFlag: (scope, key) => (scope === "investigation-board" ? flags[key] : undefined)
+    getFlag: (scope, key) => (scope === "sargas-investigation-board" ? flags[key] : undefined)
   };
 }
 
@@ -88,8 +88,8 @@ export default async function testCase() {
 
   const gm = {isGM: true};
   const player = {isGM: false};
-  const cluePage = {type: "investigation-board.clue"};
-  const connectionPage = {type: "investigation-board.connection"};
+  const cluePage = {type: "sargas-investigation-board.clue"};
+  const connectionPage = {type: "sargas-investigation-board.connection"};
 
   await check("only the GM may destroy a clue", () => {
     assert(canDeletePage(cluePage, gm) === true, "the GM was refused");

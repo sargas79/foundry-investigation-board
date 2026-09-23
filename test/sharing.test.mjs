@@ -1,6 +1,6 @@
 import {assert, check, describe} from "./harness.mjs";
 
-const MODULE_ID = "investigation-board";
+const MODULE_ID = "sargas-investigation-board";
 
 /** A stand-in case owned by `assignedTo`, with the given ownership map. */
 function caseWith({assignedTo, ownership = {}, isOwner = true} = {}) {

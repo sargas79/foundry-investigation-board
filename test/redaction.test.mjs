@@ -1,6 +1,6 @@
 import {assert, check, describe} from "./harness.mjs";
 
-const MODULE_ID = "investigation-board";
+const MODULE_ID = "sargas-investigation-board";
 const SECRET = "the killer was the harbourmaster";
 
 /**

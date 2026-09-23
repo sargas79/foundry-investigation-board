@@ -5,7 +5,7 @@ const fields = foundry.data.fields;
 /**
  * A document the GM hands over: a death record, a company badge, a newspaper clipping, an ID.
  *
- * One handout is one JournalEntryPage of sub-type `investigation-board.handout`, and it is the only
+ * One handout is one JournalEntryPage of sub-type `sargas-investigation-board.handout`, and it is the only
  * page of its own JournalEntry. That envelope is not ceremony — it is the whole security model.
  * Ownership is enforced by the server on *top-level* documents only, so a handout that is to be
  * genuinely unreadable until the GM shares it has to be a document of its own. Page-level ownership

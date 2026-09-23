@@ -16,6 +16,7 @@ import {
   ReportPageSheet
 } from "./apps/clue-page-sheet.mjs";
 import {registerKeybindings, registerSettings} from "./settings.mjs";
+import {migrateLegacyData} from "./migration.mjs";
 
 /**
  * The shared board instance. Created lazily so the window survives across case switches.
@@ -105,6 +106,9 @@ Hooks.once("ready", () => {
   // round-trip in the middle of every drag.
   game.socket.on(`module.${MODULE_ID}`, receivePresence);
   console.log(`${MODULE_ID} | Sargas - Investigation Board ready`);
+
+  // Worlds from before the module's rename keep their data under the old id until this moves it.
+  migrateLegacyData();
 });
 
 /* -------------------------------------------- */

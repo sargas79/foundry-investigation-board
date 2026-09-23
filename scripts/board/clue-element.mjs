@@ -29,7 +29,7 @@ function pinSvg() {
 
 /**
  * Render the data a card needs from a clue page.
- * @param {JournalEntryPage} page          A page of sub-type `investigation-board.clue`.
+ * @param {JournalEntryPage} page          A page of sub-type `sargas-investigation-board.clue`.
  * @param {string} [enrichedBody]          Body HTML already run through Foundry's enricher.
  * @returns {object}
  */

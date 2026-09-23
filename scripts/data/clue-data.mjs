@@ -11,7 +11,7 @@ const fields = foundry.data.fields;
 /**
  * The data model backing a single clue pinned to an investigation board.
  *
- * One clue is one JournalEntryPage of sub-type `investigation-board.clue`, which keeps concurrent
+ * One clue is one JournalEntryPage of sub-type `sargas-investigation-board.clue`, which keeps concurrent
  * edits from different players isolated to separate documents and lets a clue carry its own
  * ownership (so the GM can stage a clue before revealing it).
  *

@@ -1,6 +1,6 @@
 import {assert, assertThrows, check, describe} from "./harness.mjs";
 
-const MODULE_ID = "investigation-board";
+const MODULE_ID = "sargas-investigation-board";
 
 /** A stand-in handout entry with the given ownership map. */
 function handoutWith({ownership = {}, kind = "death", image = null, name = "Coroner's Report"} = {}) {

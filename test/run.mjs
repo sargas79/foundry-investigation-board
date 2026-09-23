@@ -31,6 +31,7 @@ const {default: testRedaction} = await import("./redaction.test.mjs");
 const {default: testAuthorship} = await import("./authorship.test.mjs");
 const {default: testUploads} = await import("./uploads.test.mjs");
 const {default: testHandouts} = await import("./handouts.test.mjs");
+const {default: testMigration} = await import("./migration.test.mjs");
 
 await testManifest();
 await testDataModels();
@@ -48,5 +49,6 @@ await testTemplates();
 await testRedaction();
 await testUploads();
 await testHandouts();
+await testMigration();
 
 report();

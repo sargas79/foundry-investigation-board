@@ -14,7 +14,7 @@ export default async function testManifest() {
   let mod;
   await check("passes BaseModule validation", () => {
     mod = new BaseModule(data, {strict: true});
-    assert(mod.id === "investigation-board", `id was ${mod?.id}`);
+    assert(mod.id === "sargas-investigation-board", `id was ${mod?.id}`);
   });
 
   await check("targets V14 only", () => {

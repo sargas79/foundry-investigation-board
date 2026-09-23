@@ -3,7 +3,14 @@
  * @module investigation-board/constants
  */
 
-export const MODULE_ID = "investigation-board";
+export const MODULE_ID = "sargas-investigation-board";
+
+/**
+ * The id this module shipped under up to v1.0.1. It collided with another package on the Foundry
+ * registry, which made Foundry's update button install that package over this one. Worlds created
+ * before the rename still hold their data under it; see migration.mjs.
+ */
+export const LEGACY_MODULE_ID = "investigation-board";
 
 /** Fully-qualified JournalEntryPage sub-types provided by this module. */
 export const PAGE_TYPES = {

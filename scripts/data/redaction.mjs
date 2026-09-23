@@ -75,7 +75,7 @@ export function redactionMarkup(id, label = "") {
 /**
  * Take a passage out of a page and put it beyond players' reach.
  *
- * @param {JournalEntryPage} page      A page of sub-type `investigation-board.report`.
+ * @param {JournalEntryPage} page      A page of sub-type `sargas-investigation-board.report`.
  * @param {string} passage             The exact HTML to remove from the body.
  * @param {string} [label]             A short description of what was removed.
  * @returns {Promise<string|null>}     The redaction's id, or null if nothing changed.
