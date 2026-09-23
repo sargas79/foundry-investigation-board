@@ -1,7 +1,7 @@
 import {assert, check, describe} from "./harness.mjs";
 
-const CLUE = "investigation-board.clue";
-const CONN = "investigation-board.connection";
+const CLUE = "sargas-investigation-board.clue";
+const CONN = "sargas-investigation-board.connection";
 
 /** A stand-in clue page. */
 function clue(id, name, system = {}, lastModifiedBy = "u1") {

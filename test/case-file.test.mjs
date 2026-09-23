@@ -1,7 +1,7 @@
 import {assert, check, describe} from "./harness.mjs";
 
-const REPORT = "investigation-board.report";
-const MODULE_ID = "investigation-board";
+const REPORT = "sargas-investigation-board.report";
+const MODULE_ID = "sargas-investigation-board";
 
 /** A stand-in case-file page. */
 function reportPage(id, name, system = {}, parent = null) {

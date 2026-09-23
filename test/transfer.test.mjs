@@ -1,14 +1,14 @@
 import {assert, check, describe} from "./harness.mjs";
 
-const CLUE = "investigation-board.clue";
-const CONN = "investigation-board.connection";
+const CLUE = "sargas-investigation-board.clue";
+const CONN = "sargas-investigation-board.connection";
 
 /** A stand-in case holding the given pages. */
 function journalOf(name, pages, flags = {}) {
   return {
     name,
     pages: {filter: fn => pages.filter(fn)},
-    getFlag: (scope, key) => (scope === "investigation-board" ? flags[key] : undefined)
+    getFlag: (scope, key) => (scope === "sargas-investigation-board" ? flags[key] : undefined)
   };
 }
 
@@ -50,7 +50,7 @@ export default async function testTransfer() {
   const exported = exportCase(journal);
 
   await check("carries the case's own details", () => {
-    assert(exported.module === "investigation-board", "module not stamped");
+    assert(exported.module === "sargas-investigation-board", "module not stamped");
     assert(exported.format === EXPORT_FORMAT, "format not stamped");
     assert(exported.name === "The Ashwood Murders", `name was ${exported.name}`);
     assert(exported.status === "cold", `status was ${exported.status}`);
@@ -81,11 +81,11 @@ export default async function testTransfer() {
 
   const withFile = journalOf("Ashwood", [
     cluePage("a", "Mara Vale"),
-    {id: "b1", name: "The File", type: "investigation-board.report", system: {
+    {id: "b1", name: "The File", type: "sargas-investigation-board.report", system: {
       kind: "brief", caseNumber: "4471-B", body: "<p>Opening. <span>REDACTED</span></p>",
       sort: -1, sealed: [{id: "s1", label: "a name", sealedBy: "gm", sealedAt: 1}]
     }},
-    {id: "f1", name: "Docks", type: "investigation-board.report", system: {
+    {id: "f1", name: "Docks", type: "sargas-investigation-board.report", system: {
       kind: "entry", caseNumber: "", body: "<p>Found it.</p>", sort: 0, sealed: []
     }}
   ], {});
@@ -112,7 +112,7 @@ export default async function testTransfer() {
 
   await check("importing rebuilds the file, crediting the importer", () => {
     const built = buildImport(fileExport, "newplayer");
-    const reports = built.pages.filter(p => p.type === "investigation-board.report");
+    const reports = built.pages.filter(p => p.type === "sargas-investigation-board.report");
     assert(reports.length === 2, `built ${reports.length} case-file pages`);
     const brief = reports.find(p => p.system.kind === "brief");
     assert(brief.system.caseNumber === "4471-B", "the case number did not survive");
@@ -122,7 +122,7 @@ export default async function testTransfer() {
 
   await check("a file with no case-file pages imports cleanly", () => {
     const built = buildImport({...fileExport, reports: undefined}, "p");
-    assert(built.pages.every(p => p.type !== "investigation-board.report"),
+    assert(built.pages.every(p => p.type !== "sargas-investigation-board.report"),
       "case-file pages appeared from nowhere");
   });
 
@@ -137,8 +137,13 @@ export default async function testTransfer() {
     assert(validateExport("nope").ok === false, "a string was accepted");
     assert(validateExport({module: "something-else", format: 1, clues: []}).ok === false,
       "another module's file was accepted");
-    assert(validateExport({module: "investigation-board", format: 1}).ok === false,
+    assert(validateExport({module: "sargas-investigation-board", format: 1}).ok === false,
       "a file with no clues array was accepted");
+  });
+
+  await check("accepts a file exported before the module was renamed", () => {
+    assert(validateExport({...exported, module: "investigation-board"}).ok === true,
+      "an export stamped with the old id was rejected");
   });
 
   // Better to refuse than to silently drop fields a newer version added.
@@ -155,8 +160,8 @@ export default async function testTransfer() {
   await check("gives the case to the importing user", () => {
     assert(built.journal.ownership.player1 === CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER,
       "the importer does not own the imported case");
-    assert(built.journal.flags["investigation-board"].isCase === true, "not flagged as a case");
-    assert(built.journal.flags["investigation-board"].status === "cold", "status was not carried");
+    assert(built.journal.flags["sargas-investigation-board"].isCase === true, "not flagged as a case");
+    assert(built.journal.flags["sargas-investigation-board"].status === "cold", "status was not carried");
   });
 
   // The crux: strings must end up joining the same two clues they did before.

@@ -13,11 +13,24 @@ https://github.com/sargas79/sargas-investigation-board/releases/latest/download/
 
 Then enable **Sargas - Investigation Board** in your world's module settings.
 
+### Upgrading from 1.0.1 or earlier
+
+Up to 1.0.1 the module's id was `investigation-board`, which another package on the Foundry
+registry already uses, so Foundry's **Update** button replaced this module with that one. The id
+is now `sargas-investigation-board`. Foundry treats that as a different module, so upgrading is a
+one-time reinstall:
+
+1. Uninstall the old **Sargas - Investigation Board** (or whatever the update replaced it with).
+   Your worlds' cases are stored in the worlds, not the module, so nothing is lost.
+2. Install again from the manifest URL above, and enable it in each world.
+3. The first time a GM loads each world, the module moves its cases, handouts and settings over
+   to the new id and asks everyone to refresh.
+
 ## Opening the board
 
 - The thumbtack in the **token scene controls**
 - **Shift+I**
-- `game.modules.get("investigation-board").api.open()` from a macro
+- `game.modules.get("sargas-investigation-board").api.open()` from a macro
 
 ## Working a case
 

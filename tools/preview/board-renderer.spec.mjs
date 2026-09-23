@@ -102,7 +102,7 @@ export async function runBoardRendererTests({renderer, journal, makePage, CLUE, 
   await check("a render interrupted by a case switch does not leak its cards", async () => {
     const other = {
       id: "other-case", name: "Dockside", visible: true,
-      flags: {"investigation-board": {isCase: true}},
+      flags: {"sargas-investigation-board": {isCase: true}},
       getFlag(scope, key) { return this.flags?.[scope]?.[key]; },
       pages: {get: () => undefined, filter: () => [], contents: []}
     };
@@ -120,7 +120,7 @@ export async function runBoardRendererTests({renderer, journal, makePage, CLUE, 
     const page = journal.pages.get("b");
     const other = {
       id: "other-case-2", name: "Cold Case", visible: true,
-      flags: {"investigation-board": {isCase: true}},
+      flags: {"sargas-investigation-board": {isCase: true}},
       getFlag(scope, key) { return this.flags?.[scope]?.[key]; },
       pages: {get: () => undefined, filter: () => [], contents: []}
     };

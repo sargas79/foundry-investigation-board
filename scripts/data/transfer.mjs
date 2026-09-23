@@ -1,4 +1,4 @@
-import {CASE_FLAGS, MODULE_ID, PAGE_TYPES} from "../constants.mjs";
+import {CASE_FLAGS, LEGACY_MODULE_ID, MODULE_ID, PAGE_TYPES} from "../constants.mjs";
 import {caseState} from "./case.mjs";
 import {caseData} from "./case-create.mjs";
 
@@ -78,7 +78,8 @@ export function validateExport(data) {
   if ( !data || (typeof data !== "object") ) {
     return {ok: false, reason: "INVESTIGATION_BOARD.NOTIFY.ImportNotJSON"};
   }
-  if ( data.module !== MODULE_ID ) {
+  // Files exported before the module was renamed carry its old id, and are otherwise the same.
+  if ( ![MODULE_ID, LEGACY_MODULE_ID].includes(data.module) ) {
     return {ok: false, reason: "INVESTIGATION_BOARD.NOTIFY.ImportWrongModule"};
   }
   if ( !Number.isInteger(data.format) || (data.format > EXPORT_FORMAT) ) {

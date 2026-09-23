@@ -23,7 +23,7 @@ export default async function testCaseCreate() {
   });
 
   await check("flags it as a case, assigned to its owner", () => {
-    const flags = caseData({name: "X", ownerId: "player1"}).flags["investigation-board"];
+    const flags = caseData({name: "X", ownerId: "player1"}).flags["sargas-investigation-board"];
     assert(flags.isCase === true, "not flagged as a case");
     assert(flags.assignedTo === "player1", `assignedTo was ${flags.assignedTo}`);
     assert(flags.status === "active", `status was ${flags.status}`);
@@ -55,7 +55,7 @@ export default async function testCaseCreate() {
 
   await check("carries a classification when given one", () => {
     const flags = caseData({name: "X", ownerId: "p", classification: "Homicide"})
-      .flags["investigation-board"];
+      .flags["sargas-investigation-board"];
     assert(flags.classification === "Homicide", `classification was ${flags.classification}`);
   });
 
@@ -118,7 +118,7 @@ export default async function testCaseCreate() {
 
     await handleCreateCaseQuery({name: "z".repeat(500), classification: "c".repeat(300), ownerId: "p"});
     assert(created.name.length === 200, `name length was ${created.name.length}`);
-    assert(created.flags["investigation-board"].classification.length === 100,
+    assert(created.flags["sargas-investigation-board"].classification.length === 100,
       "classification was not clamped");
 
     await handleCreateCaseQuery({name: "   ", classification: "", ownerId: "p"});

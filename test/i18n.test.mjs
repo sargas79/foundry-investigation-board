@@ -49,7 +49,7 @@ export default async function testI18n() {
 
   await check("the sub-type labels Foundry needs are present", () => {
     for ( const type of ["clue", "connection"] ) {
-      const key = `TYPES.JournalEntryPage.investigation-board.${type}`;
+      const key = `TYPES.JournalEntryPage.sargas-investigation-board.${type}`;
       assert(key in strings, `missing ${key}`);
     }
   });
