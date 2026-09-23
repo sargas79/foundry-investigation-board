@@ -75,4 +75,24 @@ export default async function testMigration() {
     }, replace, DELETE);
     assert(pages.length === 0, "an unknown sub-type was migrated");
   });
+
+  await check("copies a saved string setting without parsing it twice", async () => {
+    // A Setting's value is a JSONField, so Foundry hands it over already parsed.
+    const stored = "Secret\nEyes Only";
+    const field = new foundry.data.fields.JSONField();
+    const legacy = {key: `${OLD}.classifications`, value: field.initialize(JSON.stringify(stored))};
+    const saved = [];
+    const previous = globalThis.game.settings;
+    globalThis.game.settings = {
+      storage: new Map([["world", {getSetting: key => (key === legacy.key ? legacy : undefined)}]]),
+      set: async (scope, key, value) => saved.push({scope, key, value})
+    };
+    try {
+      const {migrateSettings} = await import("../scripts/migration.mjs");
+      const copied = await migrateSettings();
+      assert(copied === 1, `copied ${copied} setting(s)`);
+      assert(saved[0]?.value === stored, `saved ${JSON.stringify(saved[0]?.value)}`);
+    }
+    finally { globalThis.game.settings = previous; }
+  });
 }
