@@ -116,15 +116,19 @@ export async function migrateLegacyData() {
 
 /**
  * Copy world settings saved under the old id, unless the new id already has its own value.
+ *
+ * A Setting document's `value` is already parsed from JSON, and a key nobody registers any more
+ * keeps it that way, so it is copied as it stands. Parsing it again threw on any saved string.
+ *
  * @returns {Promise<number>}   How many settings were copied.
  */
-async function migrateSettings() {
+export async function migrateSettings() {
   const storage = game.settings.storage.get("world");
   let copied = 0;
   for ( const key of Object.values(SETTINGS) ) {
     const legacy = storage.getSetting(`${LEGACY_MODULE_ID}.${key}`);
     if ( !legacy || storage.getSetting(`${MODULE_ID}.${key}`) ) continue;
-    await game.settings.set(MODULE_ID, key, JSON.parse(legacy.value));
+    await game.settings.set(MODULE_ID, key, legacy.value);
     copied++;
   }
   return copied;
