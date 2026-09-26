@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Sargas - Investigation Board — deduction tracker</title>
+  <link rel="stylesheet" href="/styles/fonts.css">
+  <link rel="stylesheet" href="/styles/deductions.css">
+  <style>
+    html, body { height: 100%; margin: 0; background: #0b0f13; }
+    body { display: grid; grid-template-columns: 760px 300px; gap: 14px; padding: 14px;
+           box-sizing: border-box; font-family: system-ui, sans-serif; color: #e6eaee; }
+    .pane { display: flex; flex-direction: column; min-height: 0; border: 1px solid #39424c;
+            border-radius: 8px; overflow: hidden; }
+    .pane > h2 { margin: 0; padding: 8px 12px; background: #1b2128; color: #8c98a4;
+                 font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+    .window-content { flex: 1; min-height: 0; }
+    button { cursor: pointer; }
+    /* A stand-in for the inspector column the section sits in on the real board. */
+    .inspector { padding: 12px; background: #232a31; font-size: 13px; }
+    .card { padding: 10px; background: #f4f1ea; color: #222; margin-top: 12px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="pane ib-deductions" style="height: calc(100vh - 28px)">
+    <h2>GM: deduction tracker</h2>
+    <div class="window-content" id="tracker"></div>
+  </div>
+  <div class="pane">
+    <h2>GM: inspector section and roll card</h2>
+    <div class="investigation-board-app"><div class="inspector" id="inspector"></div></div>
+    <div class="card" id="card"></div>
+  </div>
+
+  <script type="module">
+    // Built from the real rules and ledger modules, and rendered from the real template, so this
+    // shows what the tracker actually produces for a case part-way through.
+    import {CLUE_RULES, CLUE_SOURCES, CLUE_WEIGHTS, DEDUCTIONS, DEDUCTION_RULES, ENEMIES, TIERS}
+      from "/scripts/rules/monster-hunters.mjs";
+    import * as D from "/scripts/data/deductions.mjs";
+
+    const strings = await (await fetch("/lang/en.json")).json();
+    const localize = k => strings[k] ?? k;
+    const loc = key => localize(`INVESTIGATION_BOARD.DEDUCTIONS.${key}`);
+    const {default: Handlebars} = await import("https://cdn.jsdelivr.net/npm/handlebars@4.7.8/+esm");
+    Handlebars.registerHelper({
+      localize: (k, options) => {
+        let s = localize(k);
+        for ( const [n, v] of Object.entries(options?.hash ?? {}) ) s = s.replace(`{${n}}`, v);
+        return s;
+      },
+      eq: (a, b) => a === b,
+      selectOptions: () => ""
+    });
+    const tracker = Handlebars.compile(await (await fetch("/templates/deduction-tracker.hbs")).text());
+    const inspector = Handlebars.compile(await (await fetch("/templates/inspector.hbs")).text());
+
+    // Two hunters' sheets, as read from GURPS Game Aid.
+    const sheets = {
+      "Actor.danielle": D.parseSkills([
+        {name: "Hidden Lore (Demons)", level: 14}, {name: "Theology (Abrahamic)", level: 12},
+        {name: "Streetwise", level: 11}, {name: "Psychology", level: 12}]),
+      "Actor.everett": D.parseSkills([
+        {name: "Lore!", level: 13}, {name: "Computer Operation/TL8", level: 14},
+        {name: "Intelligence Analysis/TL8", level: 12}])
+    };
+
+    let ledger = D.normalizeLedger({
+      enemy: "demon",
+      confusion: 1,
+      deductions: {what: {factors: {caution: "basic", commonness: "unexpected"}}},
+      investigators: [
+        {uuid: "Actor.danielle", name: "Danielle", manual: {}, used: {lucky: false}},
+        {uuid: "Actor.everett", name: "Everett", manual: {who: 9}, used: {}}
+      ],
+      teamUsed: {program: true},
+      sources: [{label: "Shayna at the shipyards", kind: "standard", attempts: 1},
+        {label: "County records office", kind: "library", attempts: 2}],
+      deadline: "The summoning completes at the new moon, Friday night."
+    });
+    ledger = D.logClue(ledger, {clueId: "c1", label: "Shaman's bad vibes", types: ["what"], weight: "normal"});
+    ledger = D.logClue(ledger, {label: "Door smashed open", types: ["what"], weight: "normal"});
+    ledger = D.logClue(ledger, {label: "Police report", types: ["what", "when", "where"], weight: "major", bonus: 1});
+    ledger = D.recordRoll(ledger, {type: "what", name: "Danielle", tier: "low", margin: 1, time: Date.now(),
+      reason: "New clue: Door smashed open", skillLabel: "Hidden Lore (Demons)", skill: 14, effective: 11,
+      roll: 10, verify: null, outcome: "success", critical: null});
+    ledger = D.recordRoll(ledger, {type: "where", name: "Everett", tier: null, margin: -12, time: Date.now(),
+      reason: "New clue: Police report", skillLabel: "Lore! for Hidden Lore (Demons)", skill: 13, effective: 5,
+      roll: 18, verify: 15, outcome: "lie", critical: "failure"});
+
+    let tab = "deductions";
+    const draw = () => {
+      const deductions = DEDUCTIONS.map(type => {
+        const rules = DEDUCTION_RULES[type];
+        const d = ledger.deductions[type];
+        const parts = D.modifierBreakdown(ledger, type);
+        const allowed = D.skillsFor(ledger, type);
+        return {
+          type, label: rules.label, page: rules.page, question: rules.question,
+          adjust: d.adjust, adjustHint: rules.adjustHint, guess: d.guess, confirmed: d.confirmed,
+          showConfirmed: type === "where", whoNamed: false,
+          factors: rules.factors.map(f => ({id: f.id, label: f.label, options: f.options.map(o => ({
+            id: o.id, label: `${o.label} (${D.signed(o.mod)})`, selected: d.factors[f.id] === o.id}))})),
+          parts: {base: D.signed(parts.base), clues: D.signed(parts.clues), clueCount: parts.clueCount,
+            confusion: D.signed(parts.confusion), guess: parts.guess ? D.signed(parts.guess) : null,
+            confirmed: null, total: D.signed(parts.total)},
+          best: d.best ? {...d.best, label: loc(`Tier.${d.best.tier}`)} : null,
+          results: TIERS.map(t => ({tier: t, label: loc(`Tier.${t}`), text: rules.results[t],
+            reached: !!d.best && TIERS.indexOf(d.best.tier) >= TIERS.indexOf(t)})),
+          skills: allowed.map(s => [s.spec ? `${s.name} (${s.spec})` : s.name, s.mod ? D.signed(s.mod) : "",
+            s.note ? `— ${s.note}` : ""].filter(Boolean).join(" ")),
+          team: ledger.investigators.map(inv => {
+            const skill = D.bestSkill(sheets[inv.uuid], allowed, inv.manual[type]);
+            return {name: inv.name, skill: skill ? (skill.manual ? loc("ManualSkill") : skill.label) : loc("NoSkill"),
+              level: skill?.level ?? null, effective: skill ? skill.level + parts.total : null};
+          })
+        };
+      });
+      document.getElementById("tracker").innerHTML = tracker({
+        tab,
+        tabs: ["deductions", "clues", "team", "sources", "log", "reference"]
+          .map(id => ({id, label: loc(`Tab.${id}`), active: id === tab})),
+        enemies: Object.entries(ENEMIES).map(([id, e]) => ({id, label: e.label, selected: id === ledger.enemy})),
+        publicRecords: ledger.publicRecords, confusion: ledger.confusion,
+        deadline: ledger.deadline, notes: ledger.notes, deductions,
+        clueTypes: DEDUCTIONS.map(type => ({type, label: DEDUCTION_RULES[type].label})),
+        weights: Object.entries(CLUE_WEIGHTS).map(([id, w]) => ({id, label: w.label})),
+        clues: ledger.clues.map(c => ({id: c.id, label: c.label, onBoard: !!c.clueId,
+          types: c.types.map(t => DEDUCTION_RULES[t].label).join(", "), bonus: D.signed(c.bonus),
+          weight: CLUE_WEIGHTS[c.weight].label})).reverse(),
+        teamUsed: D.TEAM_ONCE_PER_ADVENTURE.map(key => ({key, label: loc(`Use.${key}`), checked: ledger.teamUsed[key]})),
+        investigators: ledger.investigators.map((inv, index) => ({
+          uuid: inv.uuid, luckySpent: inv.used.lucky, name: inv.name, img: "/assets/textures/cork.svg",
+          intuition: index === 0, serendipity: false, skillCount: sheets[inv.uuid].length,
+          manual: DEDUCTIONS.map(type => ({type, label: DEDUCTION_RULES[type].label, value: inv.manual[type] ?? "",
+            auto: D.bestSkill(sheets[inv.uuid], D.skillsFor(ledger, type))?.level ?? "—"})),
+          used: D.ONCE_PER_ADVENTURE.map(key => ({key, label: loc(`Use.${key}`), checked: inv.used[key]}))
+        })),
+        sources: ledger.sources.map((s, index) => ({...s, index, next: D.signed(D.deadHorsePenalty(s)),
+          library: s.kind === "library"})),
+        history: ledger.history.slice().reverse().map(h => ({
+          when: new Date(h.time).toLocaleString(), type: DEDUCTION_RULES[h.type].label, reason: h.reason,
+          name: h.name, skill: `${h.skillLabel} ${h.skill} → ${h.effective}`,
+          roll: h.verify !== null ? `${h.roll} / ${h.verify}` : h.roll,
+          outcome: h.outcome === "lie" ? `${loc("CriticalFailure")} — ${loc("Lie")}`
+            : `${loc("SuccessBy")} ${D.signed(h.margin)} — ${loc(`Tier.${h.tier}`)}`,
+          css: h.outcome === "lie" ? "lie" : (h.tier ?? "fail")})),
+        clueRules: CLUE_RULES, clueSources: CLUE_SOURCES
+      });
+    };
+    document.getElementById("tracker").addEventListener("click", event => {
+      const button = event.target.closest("[data-action=selectTab]");
+      if ( !button ) return;
+      tab = button.dataset.tab;
+      draw();
+    });
+    draw();
+
+    document.getElementById("inspector").innerHTML = inspector({
+      categories: [], reliabilities: [], connections: [],
+      clue: {id: "c1", name: "Police report", editable: true, notes: [], stamps: ["What", "Where"]},
+      deduce: {
+        types: DEDUCTIONS.map(t => ({type: t, label: DEDUCTION_RULES[t].label, checked: ["what", "where"].includes(t)})),
+        weights: Object.entries(CLUE_WEIGHTS).map(([id, w]) => ({id, label: w.label, selected: id === "major"})),
+        bonus: 1, logged: true
+      }
+    });
+
+    document.getElementById("card").innerHTML = `<div class="ib-deduction-card">
+      <header><strong>The Missing Shamans</strong><span>New clue: Police report</span></header>
+      <h4>What <span class="ib-dc-mod">-1</span></h4><ul>
+      <li class="ib-dc-success ib-dc-mid"><span class="ib-dc-who">Danielle</span>
+        <span class="ib-dc-skill">Hidden Lore (Demons) 14 → 13</span><span class="ib-dc-roll">10</span>
+        <span class="ib-dc-outcome">Success by +3 — Success by 3-4</span></li>
+      <li class="ib-dc-lie"><span class="ib-dc-who">Everett</span>
+        <span class="ib-dc-skill">Lore! for Hidden Lore (Demons) 13 → 12</span><span class="ib-dc-roll">18 / 15</span>
+        <span class="ib-dc-outcome">Critical failure — verification failed: give false information</span></li>
+      </ul><p class="ib-dc-reveal">${DEDUCTION_RULES.what.results.mid}</p></div>`;
+    window.__ready = true;
+  </script>
+</body>
+</html>

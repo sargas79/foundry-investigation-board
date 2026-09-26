@@ -1,4 +1,4 @@
-import {MODULE_ID, PAGE_TYPES, modulePath} from "./constants.mjs";
+import {CASE_FLAGS, MODULE_ID, PAGE_TYPES, modulePath} from "./constants.mjs";
 import {canDeleteCase, canDeletePage} from "./data/case.mjs";
 import {canReassignAuthor, changesAuthor} from "./data/authorship.mjs";
 import {CREATE_CASE_QUERY, handleCreateCaseQuery} from "./data/case-create.mjs";
@@ -17,6 +17,8 @@ import {
 } from "./apps/clue-page-sheet.mjs";
 import {registerKeybindings, registerSettings} from "./settings.mjs";
 import {migrateLegacyData} from "./migration.mjs";
+import DeductionTracker from "./apps/deduction-tracker.mjs";
+import {changesStamp} from "./data/deductions.mjs";
 
 /**
  * The shared board instance. Created lazily so the window survives across case switches.
@@ -87,7 +89,8 @@ Hooks.once("init", () => {
     modulePath("templates/header.hbs"),
     modulePath("templates/board.hbs"),
     modulePath("templates/toolbar.hbs"),
-    modulePath("templates/inspector.hbs")
+    modulePath("templates/inspector.hbs"),
+    modulePath("templates/deduction-tracker.hbs")
   ]);
 
   game.modules.get(MODULE_ID).api = {
@@ -95,7 +98,8 @@ Hooks.once("init", () => {
     InvestigationBoard,
     ClueData,
     ConnectionData,
-    HandoutData
+    HandoutData,
+    DeductionTracker
   };
 });
 
@@ -154,6 +158,23 @@ Hooks.on("preUpdateJournalEntryPage", (page, changes) => {
 });
 
 /**
+ * The Who / What / When / Where / Why stamp is the GM's declaration, so only a GM may put one on
+ * or take one off. Same client-side guard, and the same limits, as the author above.
+ */
+Hooks.on("preUpdateJournalEntryPage", (page, changes) => {
+  if ( (page.type !== PAGE_TYPES.CLUE) || game.user.isGM ) return true;
+  if ( !changesStamp(page.system, changes.system) ) return true;
+  ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.StampIsGMOnly", {localize: true});
+  return false;
+});
+Hooks.on("preCreateJournalEntryPage", (page, data) => {
+  if ( (page.type !== PAGE_TYPES.CLUE) || game.user.isGM ) return true;
+  if ( !data.system?.deductions?.length ) return true;
+  ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.StampIsGMOnly", {localize: true});
+  return false;
+});
+
+/**
  * The same rule for whole cases: players archive, only the GM deletes.
  *
  * Foundry grants an Owner delete rights on a JournalEntry, so without this a player could destroy
@@ -177,10 +198,27 @@ function guard(promise) {
 }
 
 Hooks.on("createJournalEntryPage", page => guard(board?.onPageChange(page, "upsert")));
-Hooks.on("updateJournalEntryPage", page => guard(board?.onPageChange(page, "upsert")));
+Hooks.on("updateJournalEntryPage", (page, changes) => guard(board?.onPageChange(page, "upsert", changes)));
 Hooks.on("deleteJournalEntryPage", page => guard(board?.onPageChange(page, "delete")));
 
 Hooks.on("updateJournalEntry", journal => guard(board?.onCaseChange(journal, "update")));
+
+/**
+ * A case's deduction ledger lives on its GM-only companion entry, so a change to that entry is a
+ * change to the ledger: refresh the tracker and the GM's inspector for the case it belongs to.
+ * Players never receive the companion entry, so this never fires for them.
+ */
+function onSealedChange(journal) {
+  const caseId = journal.getFlag(MODULE_ID, CASE_FLAGS.SEALED_FOR);
+  if ( !caseId ) return;
+  DeductionTracker.refresh(caseId);
+  guard(board?.onLedgerChange(caseId));
+}
+Hooks.on("updateJournalEntry", onSealedChange);
+Hooks.on("createJournalEntry", onSealedChange);
+
+// The rules being switched on or off changes what every card and the inspector show.
+Hooks.on(`${MODULE_ID}.rulesChanged`, () => guard(board?.onRulesChange()));
 Hooks.on("deleteJournalEntry", journal => guard(board?.onCaseChange(journal, "delete")));
 Hooks.on("createJournalEntry", journal => guard(board?.onCaseChange(journal, "update")));
 

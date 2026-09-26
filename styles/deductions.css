@@ -1,0 +1,637 @@
+/* =========================================================================
+   GURPS Monster Hunters: the GM's deduction tracker, the stamp on a clue
+   card, the inspector's Deduction section and the whispered roll card.
+   ========================================================================= */
+
+/* --- The stamp on a card -------------------------------------------------- */
+
+/* Inked across the card at an angle, like a rubber stamp on a file. It sits over the content but
+   never takes a pointer event, so the card still drags and opens as before. */
+.investigation-board-app .ib-clue-inner {
+  position: relative;
+}
+
+.investigation-board-app .ib-clue-stamp {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  z-index: 3;
+  max-width: 92%;
+  padding: 2px 8px;
+  border: 3px double rgb(168 28 28 / 85%);
+  border-radius: 4px;
+  transform: translate(-50%, -50%) rotate(-12deg);
+  font-family: "Courier Prime", monospace;
+  /* Scales with the card, so a wide profile gets a stamp that reads across the room and a narrow
+     polaroid one that still fits. */
+  font-size: clamp(11px, calc(var(--ib-w, 200px) * 0.085), 22px);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-align: center;
+  text-transform: uppercase;
+  color: rgb(168 28 28 / 85%);
+  background: rgb(255 255 255 / 12%);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  user-select: none;
+}
+
+.investigation-board-app .ib-clue-stamp[hidden] {
+  display: none;
+}
+
+/* --- Inspector ------------------------------------------------------------ */
+
+.investigation-board-app .ib-inspector-stamps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 0 8px;
+}
+
+.investigation-board-app .ib-stamp-chip {
+  padding: 1px 7px;
+  border: 1px solid #c24141;
+  border-radius: 3px;
+  font-family: "Courier Prime", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f2b8b8;
+}
+
+.investigation-board-app .ib-deduce {
+  border-left: 2px solid #c24141;
+  padding-left: 8px;
+}
+
+.investigation-board-app .ib-deduce-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.investigation-board-app .ib-deduce-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+}
+
+.investigation-board-app .ib-deduce-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.investigation-board-app .ib-deduce-row select {
+  flex: 1;
+  min-width: 0;
+}
+
+.investigation-board-app .ib-deduce-row input[type="number"] {
+  width: 64px;
+  flex: none;
+}
+
+.investigation-board-app .ib-deduce-roll {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+/* --- The tracker window --------------------------------------------------- */
+
+.ib-deductions .window-content {
+  padding: 0;
+  overflow: hidden;
+  background: #12171c;
+  color: #e6eaee;
+}
+
+.ib-deductions .ib-dt {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.ib-deductions .ib-dt-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #39424c;
+  background: #232a31;
+}
+
+.ib-deductions .ib-dt-enemy {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ib-deductions .ib-dt-confusion {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ib-deductions .ib-dt-confusion-value {
+  min-width: 2em;
+  text-align: center;
+  color: #8c98a4;
+}
+
+.ib-deductions .ib-dt-confusion-value.active {
+  color: #f87171;
+}
+
+.ib-deductions .ib-dt-new-adventure {
+  margin-left: auto;
+  width: auto;
+}
+
+.ib-deductions .ib-icon-button {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  padding: 0;
+  line-height: 1;
+}
+
+.ib-deductions .ib-danger {
+  color: #f87171;
+}
+
+/* Scoreboard: always in view. */
+.ib-deductions .ib-dt-scoreboard {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  padding: 10px 14px;
+  background: #1a2026;
+  border-bottom: 1px solid #39424c;
+}
+
+.ib-deductions .ib-dt-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 4px;
+  border: 1px solid #39424c;
+  border-radius: 6px;
+  background: #232a31;
+}
+
+.ib-deductions .ib-dt-score-label {
+  font-family: "Courier Prime", monospace;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.ib-deductions .ib-dt-score-mod {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.ib-deductions .ib-dt-score-best {
+  font-size: 11px;
+  color: #8c98a4;
+}
+
+.ib-deductions .ib-dt-score[data-tier="low"] { border-color: #b07a1f; }
+.ib-deductions .ib-dt-score[data-tier="mid"] { border-color: #4d7a55; }
+.ib-deductions .ib-dt-score[data-tier="high"] { border-color: #4ade80; background: #1f3325; }
+.ib-deductions .ib-dt-score[data-tier="high"] .ib-dt-score-best { color: #4ade80; }
+
+.ib-deductions .ib-dt-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 14px;
+  border-bottom: 1px solid #39424c;
+}
+
+.ib-deductions .ib-dt-tabs button {
+  width: auto;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: #8c98a4;
+  padding: 6px 10px;
+}
+
+.ib-deductions .ib-dt-tabs button.active {
+  border-bottom-color: #f0b429;
+  color: #e6eaee;
+}
+
+.ib-deductions .ib-dt-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 14px 20px;
+}
+
+.ib-deductions h2 {
+  margin: 0 0 6px;
+  border: none;
+  font-size: 15px;
+  color: #e6eaee;
+}
+
+.ib-deductions h3 {
+  margin: 8px 0 4px;
+  border: none;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8c98a4;
+}
+
+.ib-deductions .ib-dt-page {
+  font-size: 11px;
+  font-weight: 400;
+  color: #8c98a4;
+}
+
+.ib-deductions .hint,
+.ib-deductions .ib-empty {
+  font-size: 12px;
+  color: #8c98a4;
+}
+
+.ib-deductions section {
+  margin-bottom: 14px;
+}
+
+.ib-deductions .ib-dt-deduction {
+  padding: 10px 12px;
+  border: 1px solid #39424c;
+  border-radius: 8px;
+  background: #1a2026;
+}
+
+.ib-deductions .ib-dt-deduction > header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ib-deductions .ib-dt-deduction > header h2 {
+  margin: 0;
+  flex: none;
+}
+
+.ib-deductions .ib-dt-deduction > header button {
+  width: auto;
+  flex: none;
+}
+
+.ib-deductions .ib-dt-total {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  flex: 1;
+  font-size: 12px;
+  color: #8c98a4;
+}
+
+.ib-deductions .ib-dt-total strong {
+  color: #f0b429;
+}
+
+.ib-deductions .ib-dt-question {
+  margin: 6px 0;
+  font-style: italic;
+  color: #c3ccd5;
+}
+
+.ib-deductions .ib-dt-factors {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 6px 10px;
+}
+
+.ib-deductions .ib-dt-factors label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.ib-deductions .ib-dt-adjust input {
+  width: 80px;
+}
+
+.ib-deductions .ib-dt-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.ib-deductions label.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ib-deductions .ib-dt-suggest {
+  color: #4ade80;
+}
+
+.ib-deductions .ib-dt-columns {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 14px;
+}
+
+.ib-deductions .ib-dt-results {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: #8c98a4;
+}
+
+.ib-deductions .ib-dt-results li {
+  margin-bottom: 4px;
+}
+
+.ib-deductions .ib-dt-results li.reached {
+  color: #e6eaee;
+}
+
+.ib-deductions .ib-dt-results li.reached::marker {
+  color: #4ade80;
+}
+
+.ib-deductions .ib-dt-best {
+  font-size: 11px;
+  color: #4ade80;
+}
+
+.ib-deductions .ib-dt-member {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 2px;
+  font-size: 12px;
+}
+
+.ib-deductions .ib-dt-member-skill {
+  flex: 1;
+  color: #8c98a4;
+}
+
+.ib-deductions .ib-dt-skills {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 11px;
+  color: #8c98a4;
+}
+
+.ib-deductions textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+.ib-deductions .ib-dt-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.ib-deductions .ib-dt-row > button {
+  width: auto;
+}
+
+.ib-deductions .ib-dt-row > .hint {
+  flex: 1;
+  margin: 0;
+}
+
+.ib-deductions .ib-dt-row input[type="text"] {
+  flex: 1;
+  min-width: 160px;
+}
+
+.ib-deductions .ib-dt-clue-form > input[type="text"] {
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+.ib-deductions .ib-dt-type-picks {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.ib-deductions .ib-dt-bonus {
+  width: 80px;
+}
+
+.ib-deductions .ib-dt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.ib-deductions .ib-dt-table th {
+  text-align: left;
+  color: #8c98a4;
+  font-weight: 600;
+  border-bottom: 1px solid #39424c;
+  background: none;
+}
+
+.ib-deductions .ib-dt-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid #232a31;
+  vertical-align: top;
+}
+
+.ib-deductions .ib-dt-table tr:nth-child(even) {
+  background: none;
+}
+
+.ib-deductions .ib-dt-actions {
+  display: flex;
+  gap: 2px;
+  justify-content: flex-end;
+}
+
+.ib-deductions .ib-dt-history tr[data-result="high"] td:last-child { color: #4ade80; }
+.ib-deductions .ib-dt-history tr[data-result="mid"] td:last-child { color: #86c79a; }
+.ib-deductions .ib-dt-history tr[data-result="low"] td:last-child { color: #f0b429; }
+.ib-deductions .ib-dt-history tr[data-result="fail"] td:last-child { color: #8c98a4; }
+.ib-deductions .ib-dt-history tr[data-result="lie"] td:last-child { color: #f87171; font-weight: 700; }
+
+.ib-deductions .ib-dt-investigator {
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  border: 1px solid #39424c;
+  border-radius: 8px;
+  background: #1a2026;
+}
+
+.ib-deductions .ib-dt-investigator > header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.ib-deductions .ib-dt-investigator img {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.ib-deductions .ib-dt-investigator h3 {
+  margin: 0;
+  flex: 1;
+  font-size: 14px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #e6eaee;
+}
+
+.ib-deductions .ib-dt-flag {
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  background: #2f6b3a;
+  color: #f0f6f1;
+}
+
+.ib-deductions .ib-dt-flag.warn {
+  background: #8d2f2c;
+}
+
+.ib-deductions .ib-dt-skill-count {
+  font-size: 11px;
+  color: #8c98a4;
+}
+
+.ib-deductions .ib-dt-levels {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.ib-deductions .ib-dt-levels label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 11px;
+}
+
+.ib-deductions .ib-dt-levels input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.ib-deductions .ib-dt-drop {
+  padding: 20px;
+  border: 2px dashed #39424c;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.ib-deductions .ib-dt-rules dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.ib-deductions .ib-dt-rules dt {
+  font-weight: 700;
+  color: #f0b429;
+}
+
+.ib-deductions .ib-dt-rules dd {
+  margin: 0;
+}
+
+/* --- The whispered roll card ---------------------------------------------- */
+
+.ib-deduction-card header {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 4px;
+}
+
+.ib-deduction-card header span {
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+.ib-deduction-card h4 {
+  margin: 6px 0 2px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.ib-deduction-card .ib-dc-mod {
+  float: right;
+}
+
+.ib-deduction-card ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ib-deduction-card li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0 6px;
+  padding: 2px 0;
+  border-bottom: 1px dotted rgb(0 0 0 / 20%);
+  font-size: 12px;
+}
+
+.ib-deduction-card .ib-dc-skill {
+  grid-column: 1;
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+.ib-deduction-card .ib-dc-roll {
+  grid-row: 1;
+  grid-column: 2;
+  font-weight: 700;
+}
+
+.ib-deduction-card .ib-dc-outcome {
+  grid-column: 1 / -1;
+  font-size: 11px;
+}
+
+.ib-deduction-card .ib-dc-high .ib-dc-outcome,
+.ib-deduction-card .ib-dc-mid .ib-dc-outcome { color: #2f6b3a; font-weight: 700; }
+.ib-deduction-card .ib-dc-low .ib-dc-outcome { color: #8a5a10; font-weight: 700; }
+.ib-deduction-card .ib-dc-lie .ib-dc-outcome,
+.ib-deduction-card .ib-dc-reveal.ib-dc-lie { color: #a11d1d; font-weight: 700; }
+
+.ib-deduction-card .ib-dc-reveal {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-style: italic;
+}

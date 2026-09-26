@@ -1,0 +1,375 @@
+{{!-- The GM's deduction tracker (GURPS Monster Hunters 2). Every field saves on change: it names
+      its place in the ledger in data-ledger. --}}
+<div class="ib-dt">
+    {{#if missing}}
+        <p class="ib-empty">{{localize "INVESTIGATION_BOARD.DEDUCTIONS.CaseMissing"}}</p>
+    {{else}}
+    <header class="ib-dt-head">
+        <label class="ib-dt-enemy">
+            <span>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Enemy"}}</span>
+            <select data-ledger="enemy">
+                {{#each enemies}}
+                    <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+                {{/each}}
+            </select>
+        </label>
+        <div class="ib-dt-confusion" data-tooltip="INVESTIGATION_BOARD.DEDUCTIONS.ConfusionHint">
+            <span>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Confusion"}}</span>
+            <button type="button" class="ib-icon-button" data-action="confusion" data-step="-1"
+                    aria-label="{{localize 'INVESTIGATION_BOARD.DEDUCTIONS.ConfusionDown'}}">
+                <i class="fa-solid fa-minus"></i>
+            </button>
+            <strong class="ib-dt-confusion-value {{#if confusion}}active{{/if}}">-{{confusion}}</strong>
+            <button type="button" class="ib-icon-button" data-action="confusion" data-step="1"
+                    aria-label="{{localize 'INVESTIGATION_BOARD.DEDUCTIONS.ConfusionUp'}}">
+                <i class="fa-solid fa-plus"></i>
+            </button>
+        </div>
+        <button type="button" class="ib-dt-new-adventure" data-action="newAdventure">
+            <i class="fa-solid fa-rotate"></i>
+            <span>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.NewAdventure"}}</span>
+        </button>
+    </header>
+
+    {{!-- The scoreboard stays in view whatever tab is open. --}}
+    <div class="ib-dt-scoreboard">
+        {{#each deductions}}
+            <div class="ib-dt-score" data-tier="{{#if this.best}}{{this.best.tier}}{{else}}none{{/if}}">
+                <span class="ib-dt-score-label">{{this.label}}</span>
+                <span class="ib-dt-score-mod">{{this.parts.total}}</span>
+                <span class="ib-dt-score-best">{{#if this.best}}{{this.best.label}}{{else}}—{{/if}}</span>
+            </div>
+        {{/each}}
+    </div>
+
+    <nav class="ib-dt-tabs" role="tablist">
+        {{#each tabs}}
+            <button type="button" role="tab" class="{{#if this.active}}active{{/if}}"
+                    aria-selected="{{this.active}}" data-action="selectTab" data-tab="{{this.id}}">{{this.label}}</button>
+        {{/each}}
+    </nav>
+
+    <div class="ib-dt-body">
+
+    {{#if (eq tab "deductions")}}
+        {{#each deductions}}
+            <section class="ib-dt-deduction" data-type="{{this.type}}">
+                <header>
+                    <h2>{{this.label}} <span class="ib-dt-page">p. {{this.page}}</span></h2>
+                    <div class="ib-dt-total" data-tooltip="{{localize 'INVESTIGATION_BOARD.DEDUCTIONS.TotalHint'}}">
+                        <span>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Base"}} {{this.parts.base}}</span>
+                        <span>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Clues"}} {{this.parts.clues}}
+                            <small>({{this.parts.clueCount}})</small></span>
+                        <span>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Confusion"}} {{this.parts.confusion}}</span>
+                        {{#if this.parts.guess}}<span>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Guess"}} {{this.parts.guess}}</span>{{/if}}
+                        {{#if this.parts.confirmed}}<span>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Address"}} {{this.parts.confirmed}}</span>{{/if}}
+                        <strong>= {{this.parts.total}}</strong>
+                    </div>
+                    <button type="button" data-action="rollTeam" data-type="{{this.type}}">
+                        <i class="fa-solid fa-dice"></i>
+                        <span>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.RollTeam"}}</span>
+                    </button>
+                </header>
+                <p class="ib-dt-question">{{this.question}}</p>
+
+                <div class="ib-dt-factors">
+                    {{#each this.factors}}
+                        <label>
+                            <span>{{this.label}}</span>
+                            <select data-ledger="deductions.{{../type}}.factors.{{this.id}}">
+                                {{#each this.options}}
+                                    <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+                                {{/each}}
+                            </select>
+                        </label>
+                    {{/each}}
+                    <label class="ib-dt-adjust">
+                        <span>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Adjust"}}</span>
+                        <input type="number" step="1" value="{{this.adjust}}"
+                               data-ledger="deductions.{{this.type}}.adjust">
+                    </label>
+                </div>
+                <p class="hint">{{this.adjustHint}}</p>
+
+                <div class="ib-dt-toggles">
+                    <label class="checkbox">
+                        <input type="checkbox" data-ledger="deductions.{{this.type}}.guess" {{#if this.guess}}checked{{/if}}>
+                        {{localize "INVESTIGATION_BOARD.DEDUCTIONS.GuessLabel"}}
+                    </label>
+                    {{#if this.showConfirmed}}
+                        <label class="checkbox {{#if this.whoNamed}}ib-dt-suggest{{/if}}">
+                            <input type="checkbox" data-ledger="deductions.where.confirmed" {{#if this.confirmed}}checked{{/if}}>
+                            {{localize "INVESTIGATION_BOARD.DEDUCTIONS.AddressLabel"}}
+                        </label>
+                    {{/if}}
+                    {{#if (eq this.type "who")}}
+                        <label class="checkbox">
+                            <input type="checkbox" data-ledger="publicRecords" {{#if ../publicRecords}}checked{{/if}}>
+                            {{localize "INVESTIGATION_BOARD.DEDUCTIONS.PublicRecordsLabel"}}
+                        </label>
+                    {{/if}}
+                </div>
+
+                <div class="ib-dt-columns">
+                    <div>
+                        <h3>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Results"}}</h3>
+                        <ol class="ib-dt-results">
+                            {{#each this.results}}
+                                <li class="{{#if this.reached}}reached{{/if}}" data-tier="{{this.tier}}">
+                                    <strong>{{this.label}}</strong> {{this.text}}
+                                </li>
+                            {{/each}}
+                        </ol>
+                        {{#if this.best}}
+                            <p class="ib-dt-best">{{localize "INVESTIGATION_BOARD.DEDUCTIONS.BestBy" name=this.best.name}}</p>
+                        {{/if}}
+                    </div>
+                    <div>
+                        <h3>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Team"}}</h3>
+                        {{#each this.team}}
+                            <p class="ib-dt-member">
+                                <span>{{this.name}}</span>
+                                <span class="ib-dt-member-skill">{{this.skill}}</span>
+                                {{#if this.level}}<strong>{{this.level}} → {{this.effective}}</strong>{{/if}}
+                            </p>
+                        {{else}}
+                            <p class="ib-empty">{{localize "INVESTIGATION_BOARD.DEDUCTIONS.NoTeam"}}</p>
+                        {{/each}}
+                        <h3>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Skills"}}</h3>
+                        <ul class="ib-dt-skills">
+                            {{#each this.skills}}<li>{{this}}</li>{{/each}}
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        {{/each}}
+
+        <section class="ib-dt-deadline">
+            <h2>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Deadline"}} <span class="ib-dt-page">p. 28</span></h2>
+            <textarea rows="3" data-ledger="deadline"
+                      placeholder="{{localize 'INVESTIGATION_BOARD.DEDUCTIONS.DeadlineHint'}}">{{deadline}}</textarea>
+            <h2>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Notes"}}</h2>
+            <textarea rows="4" data-ledger="notes">{{notes}}</textarea>
+        </section>
+    {{/if}}
+
+    {{#if (eq tab "clues")}}
+        <section class="ib-dt-clue-form">
+            <h2>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.LogClue"}}</h2>
+            <p class="hint">{{localize "INVESTIGATION_BOARD.DEDUCTIONS.LogClueHint"}}</p>
+            <input type="text" name="label" placeholder="{{localize 'INVESTIGATION_BOARD.DEDUCTIONS.ClueLabel'}}">
+            <div class="ib-dt-type-picks">
+                {{#each clueTypes}}
+                    <label class="checkbox"><input type="checkbox" name="types" value="{{this.type}}"> {{this.label}}</label>
+                {{/each}}
+            </div>
+            <div class="ib-dt-row">
+                <select name="weight">
+                    {{#each weights}}<option value="{{this.id}}" {{#if (eq this.id "normal")}}selected{{/if}}>{{this.label}}</option>{{/each}}
+                </select>
+                <input type="number" name="bonus" step="1" class="ib-dt-bonus"
+                       placeholder="{{localize 'INVESTIGATION_BOARD.DEDUCTIONS.Bonus'}}"
+                       data-tooltip="INVESTIGATION_BOARD.DEDUCTIONS.BonusHint">
+                <label class="checkbox"><input type="checkbox" name="roll" checked> {{localize "INVESTIGATION_BOARD.DEDUCTIONS.RollNow"}}</label>
+                <button type="button" data-action="logFreeClue">
+                    <i class="fa-solid fa-plus"></i> <span>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Log"}}</span>
+                </button>
+            </div>
+        </section>
+
+        <section>
+            <h2>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.ClueLog"}}</h2>
+            <table class="ib-dt-table">
+                <thead><tr>
+                    <th>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Clue"}}</th>
+                    <th>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Types"}}</th>
+                    <th>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Weight"}}</th>
+                    <th>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Bonus"}}</th>
+                    <th></th>
+                </tr></thead>
+                <tbody>
+                {{#each clues}}
+                    <tr>
+                        <td>{{#if this.onBoard}}<i class="fa-solid fa-thumbtack" data-tooltip="INVESTIGATION_BOARD.DEDUCTIONS.OnBoard"></i> {{/if}}{{this.label}}</td>
+                        <td>{{this.types}}</td>
+                        <td>{{this.weight}}</td>
+                        <td>{{this.bonus}}</td>
+                        <td><button type="button" class="ib-icon-button ib-danger" data-action="removeClue" data-id="{{this.id}}"
+                                    aria-label="{{localize 'INVESTIGATION_BOARD.DEDUCTIONS.RemoveClue'}}"
+                                    data-tooltip="INVESTIGATION_BOARD.DEDUCTIONS.RemoveClue"><i class="fa-solid fa-xmark"></i></button></td>
+                    </tr>
+                {{else}}
+                    <tr><td colspan="5" class="ib-empty">{{localize "INVESTIGATION_BOARD.DEDUCTIONS.NoClues"}}</td></tr>
+                {{/each}}
+                </tbody>
+            </table>
+        </section>
+
+        <section class="ib-dt-rules">
+            <h2>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.ClueRules"}} <span class="ib-dt-page">pp. 5–6</span></h2>
+            <dl>
+                {{#each clueRules}}<dt>{{this.[0]}}</dt><dd>{{this.[1]}}</dd>{{/each}}
+            </dl>
+        </section>
+    {{/if}}
+
+    {{#if (eq tab "team")}}
+        <section class="ib-dt-team">
+            <header class="ib-dt-row">
+                <p class="hint">{{localize "INVESTIGATION_BOARD.DEDUCTIONS.TeamHint"}}</p>
+                <button type="button" data-action="addParty">
+                    <i class="fa-solid fa-users"></i> <span>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.AddParty"}}</span>
+                </button>
+            </header>
+            {{!-- One of each per adventure for the whole team, however many hunters share it (p. 7). --}}
+            <div class="ib-dt-row ib-dt-team-uses">
+                <span>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.TeamUses"}}</span>
+                {{#each teamUsed}}
+                    <label class="checkbox">
+                        <input type="checkbox" data-ledger="teamUsed.{{this.key}}" {{#if this.checked}}checked{{/if}}>
+                        {{this.label}}
+                    </label>
+                {{/each}}
+            </div>
+            {{#each investigators}}
+                <article class="ib-dt-investigator">
+                    <header>
+                        <img src="{{this.img}}" alt="">
+                        <h3>{{this.name}}</h3>
+                        {{#if this.missing}}<span class="ib-dt-flag warn">{{localize "INVESTIGATION_BOARD.DEDUCTIONS.ActorMissing"}}</span>{{/if}}
+                        {{#if this.intuition}}<span class="ib-dt-flag">Intuition</span>{{/if}}
+                        {{#if this.serendipity}}<span class="ib-dt-flag">Serendipity</span>{{/if}}
+                        <span class="ib-dt-skill-count">{{localize "INVESTIGATION_BOARD.DEDUCTIONS.SkillsRead" count=this.skillCount}}</span>
+                        <button type="button" class="ib-icon-button ib-danger" data-action="removeInvestigator" data-uuid="{{this.uuid}}"
+                                aria-label="{{localize 'INVESTIGATION_BOARD.DEDUCTIONS.RemoveInvestigator'}}"
+                                data-tooltip="INVESTIGATION_BOARD.DEDUCTIONS.RemoveInvestigator"><i class="fa-solid fa-user-minus"></i></button>
+                    </header>
+                    <div class="ib-dt-levels">
+                        {{#each this.manual}}
+                            <label>
+                                <span>{{this.label}}</span>
+                                <input type="number" step="1" value="{{this.value}}" placeholder="{{this.auto}}"
+                                       data-investigator="{{../uuid}}" data-ledger="manual.{{this.type}}"
+                                       data-tooltip="INVESTIGATION_BOARD.DEDUCTIONS.ManualHint">
+                            </label>
+                        {{/each}}
+                    </div>
+                    <div class="ib-dt-row">
+                        {{#each this.used}}
+                            <label class="checkbox">
+                                <input type="checkbox" data-investigator="{{../uuid}}" data-ledger="used.{{this.key}}" {{#if this.checked}}checked{{/if}}>
+                                {{this.label}}
+                            </label>
+                        {{/each}}
+                    </div>
+                    <div class="ib-dt-row">
+                        <select name="luckyType">
+                            {{#each ../clueTypes}}<option value="{{this.type}}">{{this.label}}</option>{{/each}}
+                        </select>
+                        <button type="button" data-action="luckyGuess" data-uuid="{{this.uuid}}"
+                                {{#if this.luckySpent}}disabled{{/if}}
+                                {{#unless this.intuition}}disabled data-tooltip="INVESTIGATION_BOARD.DEDUCTIONS.LuckyNeedsIntuition"{{/unless}}>
+                            <i class="fa-solid fa-clover"></i> <span>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.LuckyGuess"}}</span>
+                        </button>
+                    </div>
+                </article>
+            {{else}}
+                <p class="ib-empty ib-dt-drop">{{localize "INVESTIGATION_BOARD.DEDUCTIONS.DropActors"}}</p>
+            {{/each}}
+        </section>
+    {{/if}}
+
+    {{#if (eq tab "sources")}}
+        <section class="ib-dt-source-form">
+            <h2>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Sources"}} <span class="ib-dt-page">pp. 6–7</span></h2>
+            <p class="hint">{{localize "INVESTIGATION_BOARD.DEDUCTIONS.SourcesHint"}}</p>
+            <div class="ib-dt-row">
+                <input type="text" name="label" placeholder="{{localize 'INVESTIGATION_BOARD.DEDUCTIONS.SourceLabel'}}">
+                <select name="kind">
+                    <option value="standard">{{localize "INVESTIGATION_BOARD.DEDUCTIONS.SourceStandard"}}</option>
+                    <option value="library">{{localize "INVESTIGATION_BOARD.DEDUCTIONS.SourceLibrary"}}</option>
+                </select>
+                <button type="button" data-action="addSource">
+                    <i class="fa-solid fa-plus"></i> <span>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.AddSource"}}</span>
+                </button>
+            </div>
+        </section>
+        <table class="ib-dt-table">
+            <thead><tr>
+                <th>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Source"}}</th>
+                <th>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Attempts"}}</th>
+                <th>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.NextPenalty"}}</th>
+                <th></th>
+            </tr></thead>
+            <tbody>
+            {{#each sources}}
+                <tr>
+                    <td>{{this.label}} {{#if this.library}}<small>({{localize "INVESTIGATION_BOARD.DEDUCTIONS.SourceLibrary"}})</small>{{/if}}</td>
+                    <td>{{this.attempts}}</td>
+                    <td><strong>{{this.next}}</strong></td>
+                    <td class="ib-dt-actions">
+                        <button type="button" class="ib-icon-button" data-action="sourceAttempt" data-id="{{this.id}}" data-step="1"
+                                aria-label="{{localize 'INVESTIGATION_BOARD.DEDUCTIONS.AnotherAttempt'}}"
+                                data-tooltip="INVESTIGATION_BOARD.DEDUCTIONS.AnotherAttempt"><i class="fa-solid fa-plus"></i></button>
+                        <button type="button" class="ib-icon-button" data-action="sourceAttempt" data-id="{{this.id}}" data-step="0"
+                                aria-label="{{localize 'INVESTIGATION_BOARD.DEDUCTIONS.NewLight'}}"
+                                data-tooltip="INVESTIGATION_BOARD.DEDUCTIONS.NewLight"><i class="fa-solid fa-lightbulb"></i></button>
+                        <button type="button" class="ib-icon-button ib-danger" data-action="removeSource" data-id="{{this.id}}"
+                                aria-label="{{localize 'INVESTIGATION_BOARD.DEDUCTIONS.RemoveSource'}}"
+                                data-tooltip="INVESTIGATION_BOARD.DEDUCTIONS.RemoveSource"><i class="fa-solid fa-xmark"></i></button>
+                    </td>
+                </tr>
+            {{else}}
+                <tr><td colspan="4" class="ib-empty">{{localize "INVESTIGATION_BOARD.DEDUCTIONS.NoSources"}}</td></tr>
+            {{/each}}
+            </tbody>
+        </table>
+    {{/if}}
+
+    {{#if (eq tab "log")}}
+        <header class="ib-dt-row">
+            <h2>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.History"}}</h2>
+            <button type="button" class="ib-danger" data-action="clearHistory">
+                <i class="fa-solid fa-trash"></i> <span>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.ClearHistory"}}</span>
+            </button>
+        </header>
+        <table class="ib-dt-table ib-dt-history">
+            <thead><tr>
+                <th>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.When"}}</th>
+                <th>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Deduction"}}</th>
+                <th>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Investigator"}}</th>
+                <th>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.SkillCol"}}</th>
+                <th>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Roll"}}</th>
+                <th>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Result"}}</th>
+            </tr></thead>
+            <tbody>
+            {{#each history}}
+                <tr data-result="{{this.css}}">
+                    <td>{{this.when}}{{#if this.reason}}<br><small>{{this.reason}}</small>{{/if}}</td>
+                    <td>{{this.type}}</td>
+                    <td>{{this.name}}</td>
+                    <td>{{this.skill}}</td>
+                    <td>{{this.roll}}</td>
+                    <td>{{this.outcome}}</td>
+                </tr>
+            {{else}}
+                <tr><td colspan="6" class="ib-empty">{{localize "INVESTIGATION_BOARD.DEDUCTIONS.NoHistory"}}</td></tr>
+            {{/each}}
+            </tbody>
+        </table>
+    {{/if}}
+
+    {{#if (eq tab "reference")}}
+        {{#each clueSources}}
+            <section class="ib-dt-rules">
+                <h2>{{this.group}}</h2>
+                <dl>
+                    {{#each this.entries}}<dt>{{this.[0]}}</dt><dd>{{this.[1]}}</dd>{{/each}}
+                </dl>
+            </section>
+        {{/each}}
+    {{/if}}
+
+    </div>
+    {{/if}}
+</div>

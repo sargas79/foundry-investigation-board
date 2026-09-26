@@ -9,6 +9,11 @@ import CaseFile from "./case-file.mjs";
 import ShareDialog from "./share-dialog.mjs";
 import HandoutDialog from "./handout-dialog.mjs";
 import HandoutShareDialog from "./handout-share-dialog.mjs";
+import DeductionTracker from "./deduction-tracker.mjs";
+import {CLUE_WEIGHTS, DEDUCTIONS, DEDUCTION_RULES} from "../rules/monster-hunters.mjs";
+import {clueEntry, portableLedger, restoreLedger} from "../data/deductions.mjs";
+import {hasLedger, readLedger, rulesEnabled, updateLedger, writeLedger} from "../data/deduction-ledger.mjs";
+import {declareClue} from "../data/deduction-rolls.mjs";
 import {
   canManageHandouts,
   currentHolders,
@@ -115,7 +120,10 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       editHandout: InvestigationBoard.#onEditHandout,
       shareHandout: InvestigationBoard.#onShareHandout,
       deleteHandout: InvestigationBoard.#onDeleteHandout,
-      pinHandout: InvestigationBoard.#onPinHandout
+      pinHandout: InvestigationBoard.#onPinHandout,
+      openDeductions: InvestigationBoard.#onOpenDeductions,
+      stampClue: InvestigationBoard.#onStampClue,
+      unstampClue: InvestigationBoard.#onUnstampClue
     }
   };
 
@@ -235,6 +243,8 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       hasCase: !!currentCase,
       state: currentCase ? caseState(currentCase) : null,
       canShare: currentCase ? canManageSharing(currentCase, game.user) : false,
+      // GURPS Monster Hunters: the tracker is the GM's; the stamps it puts on clues are everyone's.
+      deductionsEnabled: rulesEnabled() && game.user.isGM,
       ...this.#sidebarContext(),
       ...this.#handoutContext(),
       trayOpen: this.#trayOpen,
@@ -353,7 +363,7 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
 
     const journal = this.currentCase;
     const page = this.#selectedClue ? journal?.pages.get(this.#selectedClue) : null;
-    if ( !page ) return {...base, clue: null, connections: []};
+    if ( !page ) return {...base, clue: null, connections: [], deduce: null};
 
     return {
       ...base,
@@ -372,8 +382,10 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
         notes: (page.system.notes ?? []).map(note => ({
           text: note.text,
           byline: this.#noteByline(note)
-        }))
+        })),
+        stamps: rulesEnabled() ? (page.system.deductions ?? []).map(t => DEDUCTION_RULES[t]?.label ?? t) : []
       },
+      deduce: this.#deduceContext(journal, page),
       connections: getConnectionsFor(journal, page.id).map(connection => {
         // #62: the row names the clue at the far end, and is the way to walk the string to it.
         const otherId = connection.system.other(page.id);
@@ -386,6 +398,29 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
             ?? game.i18n.localize("INVESTIGATION_BOARD.MissingClue")
         };
       })
+    };
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * The GM's controls for declaring what a clue is evidence of (GURPS Monster Hunters, p. 5).
+   * Null for players and when the rules are off, which is what keeps the section out of their
+   * inspector: nothing here would mean anything without the GM's ledger behind it.
+   * @param {JournalEntry} journal
+   * @param {JournalEntryPage} page
+   * @returns {object|null}
+   */
+  #deduceContext(journal, page) {
+    if ( !game.user.isGM || !rulesEnabled() ) return null;
+    const entry = clueEntry(readLedger(journal), page.id);
+    const stamped = new Set(page.system.deductions ?? []);
+    const weight = entry?.weight ?? "normal";
+    return {
+      types: DEDUCTIONS.map(type => ({type, label: DEDUCTION_RULES[type].label, checked: stamped.has(type)})),
+      weights: Object.entries(CLUE_WEIGHTS).map(([id, w]) => ({id, label: w.label, selected: id === weight})),
+      bonus: entry && (entry.bonus !== CLUE_WEIGHTS[weight]?.bonus) ? entry.bonus : "",
+      logged: !!entry || (stamped.size > 0)
     };
   }
 
@@ -722,6 +757,8 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
     };
 
     for ( const input of panel.querySelectorAll("[name]") ) {
+      // The GM's Deduction section is a small form of its own, submitted by its Stamp button.
+      if ( input.closest(".ib-deduce") ) continue;
       this.#bindOnce(input, "change", event => save(event.target.name, event.target.value));
     }
   }
@@ -916,9 +953,10 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
    * current selection both survive another player's edit.
    * @param {JournalEntryPage} page
    * @param {"upsert"|"delete"} action
+   * @param {object} [changes]   The update's changes, when it was one.
    * @returns {Promise<void>}
    */
-  async onPageChange(page, action) {
+  async onPageChange(page, action, changes) {
     if ( !this.rendered || (page.parent?.id !== this.#caseId) || !this.#renderer ) return;
     if ( page.type === PAGE_TYPES.CLUE ) {
       if ( action === "delete" ) {
@@ -929,8 +967,11 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
         await this.#renderer.upsertClue(page);
         this.#consumePendingInlineEdit();
       }
-      // A clue moving to or from the tray changes what the drawer and its badge show.
-      await this.render({parts: ["tray", "toolbar"]});
+      // A clue moving to or from the tray changes what the drawer and its badge show. The GM
+      // stamping the clue someone has selected changes their inspector too; only then, so another
+      // player's edit never re-renders a panel mid-typing.
+      const stamped = (page.id === this.#selectedClue) && ("deductions" in (changes?.system ?? {}));
+      await this.render({parts: stamped ? ["tray", "toolbar", "inspector"] : ["tray", "toolbar"]});
     }
     else if ( page.type === PAGE_TYPES.CONNECTION ) {
       if ( action === "delete" ) this.#renderer.removeConnection(page.id);
@@ -1054,10 +1095,35 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
    * Save the current case to a file.
    * @this {InvestigationBoard}
    */
-  static #onExportCase() {
+  static async #onExportCase() {
     const journal = this.currentCase;
     if ( !journal ) return;
     const data = exportCase(journal);
+
+    // The GM's ledger goes only when a GM asks for it. A player's client never holds it, and a GM's
+    // export leaves it out unless ticked, so a file handed round the table cannot carry it by accident.
+    if ( game.user.isGM && hasLedger(journal) ) {
+      const choice = await foundry.applications.api.DialogV2.wait({
+        window: {title: "INVESTIGATION_BOARD.DEDUCTIONS.ExportTitle"},
+        content: `<label class="checkbox"><input type="checkbox" name="ledger">
+          ${game.i18n.localize("INVESTIGATION_BOARD.DEDUCTIONS.ExportLedger")}</label>
+          <p class="hint">${game.i18n.localize("INVESTIGATION_BOARD.DEDUCTIONS.ExportLedgerHint")}</p>`,
+        buttons: [{
+          action: "export",
+          label: "INVESTIGATION_BOARD.DEDUCTIONS.Export",
+          icon: "fa-solid fa-file-export",
+          default: true,
+          callback: (_event, button) => ({ledger: button.form.elements.ledger.checked})
+        }, {action: "cancel", label: "INVESTIGATION_BOARD.Cancel"}],
+        rejectClose: false
+      });
+      if ( !choice || (choice === "cancel") ) return;
+      if ( choice.ledger ) {
+        const clueIds = journal.pages.filter(p => p.type === PAGE_TYPES.CLUE).map(p => p.id);
+        data.deductionLedger = portableLedger(readLedger(journal), new Map(clueIds.map((id, i) => [id, i])));
+      }
+    }
+
     foundry.utils.saveDataToFile(
       JSON.stringify(data, null, 2), "application/json", exportFilename(journal)
     );
@@ -1108,6 +1174,13 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
     const created = await JournalEntry.create(journal);
     if ( !created ) return;
     await created.createEmbeddedDocuments("JournalEntryPage", pages, {keepId: true});
+
+    // A ledger in the file is restored only for a GM: it goes into a GM-only companion entry, which
+    // a player could neither create nor be allowed to read.
+    if ( check.data.deductionLedger && game.user.isGM ) {
+      const clueIds = pages.filter(p => p.type === PAGE_TYPES.CLUE).map(p => p._id);
+      await writeLedger(created, restoreLedger(check.data.deductionLedger, clueIds));
+    }
     await this.showCase(created.id);
     ui.notifications.info(game.i18n.format("INVESTIGATION_BOARD.NOTIFY.Imported",
       {name: created.name}));
@@ -1215,6 +1288,91 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       return;
     }
     CaseConfig.open(journal);
+  }
+
+  /* -------------------------------------------- */
+  /*  Deductions (GURPS Monster Hunters)          */
+  /* -------------------------------------------- */
+
+  /**
+   * Open the GM's deduction tracker for the current case.
+   * @this {InvestigationBoard}
+   */
+  static #onOpenDeductions() {
+    if ( !game.user.isGM || !rulesEnabled() ) return;
+    DeductionTracker.open(this.currentCase);
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Declare what the selected clue is evidence of: stamp it for the players to see, log it in the
+   * GM's ledger, and, as the rules have it, roll those deductions for the team straight away.
+   * @this {InvestigationBoard}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   * @returns {Promise<void>}
+   */
+  static async #onStampClue(_event, target) {
+    const journal = this.currentCase;
+    const page = this.#selectedClue ? journal?.pages.get(this.#selectedClue) : null;
+    const form = target.closest(".ib-deduce");
+    if ( !game.user.isGM || !page || !form ) return;
+
+    const types = [...form.querySelectorAll("[name=deduceType]:checked")].map(i => i.value);
+    if ( !types.length ) {
+      ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.DeductionsPickType", {localize: true});
+      return;
+    }
+    await page.update({system: {deductions: types}});
+    await declareClue(journal, {
+      clueId: page.id,
+      label: page.name,
+      types,
+      weight: form.querySelector("[name=deduceWeight]").value,
+      bonus: form.querySelector("[name=deduceBonus]").value,
+      roll: form.querySelector("[name=deduceRoll]").checked
+    });
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Take the stamp off the selected clue and its bonus out of the ledger.
+   * @this {InvestigationBoard}
+   * @returns {Promise<void>}
+   */
+  static async #onUnstampClue() {
+    const journal = this.currentCase;
+    const page = this.#selectedClue ? journal?.pages.get(this.#selectedClue) : null;
+    if ( !game.user.isGM || !page ) return;
+    await page.update({system: {deductions: []}});
+    await updateLedger(journal, ledger => {
+      ledger.clues = ledger.clues.filter(c => c.clueId !== page.id);
+    });
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Re-render what depends on a case's ledger, after it changes.
+   * @param {string} caseId
+   * @returns {Promise<void>}
+   */
+  async onLedgerChange(caseId) {
+    if ( !this.rendered || (caseId !== this.#caseId) || !game.user.isGM ) return;
+    await this.render({parts: ["inspector"]});
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * The rules setting was switched: stamps and the GM's controls appear or go.
+   * @returns {Promise<void>}
+   */
+  async onRulesChange() {
+    if ( !this.rendered ) return;
+    await this.render();
   }
 
   /* -------------------------------------------- */
