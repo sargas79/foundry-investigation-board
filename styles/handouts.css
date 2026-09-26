@@ -82,6 +82,10 @@
   align-items: center;
   gap: 9px;
   padding: 7px 8px;
+  /* Core fixes every <button> at 2em, one line. This one stacks a name over a byline, and
+     the row takes its height from it, so without this the byline hangs out of the bottom
+     of the button and the next row is laid over it. */
+  height: auto;
   border: none;
   background: none;
   color: inherit;
@@ -108,12 +112,16 @@
   line-height: 1.25;
 }
 
-.investigation-board-app .ib-handout-label {
+.investigation-board-app .ib-handout-label,
+.investigation-board-app .ib-handout-sub {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* For a GM the byline is the list of who holds the document, which with a full party
+   outgrows the column. It is cut like the name rather than wrapped so every row stays
+   the same height and the list scans; the hand-over button's tooltip has the whole list. */
 .investigation-board-app .ib-handout-sub {
   color: var(--ib-text-muted);
   font-size: 0.72rem;
