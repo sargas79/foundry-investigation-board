@@ -138,7 +138,9 @@ export const HANDOUT_CLUE_TEMPLATES = {
 
 /** World and client setting keys. */
 export const SETTINGS = {
-  CLASSIFICATIONS: "classifications"
+  CLASSIFICATIONS: "classifications",
+  /** Run investigations with GURPS Monster Hunters 2's deduction rules. */
+  MONSTER_HUNTERS: "monsterHunters"
 };
 
 /**

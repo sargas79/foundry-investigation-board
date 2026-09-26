@@ -253,6 +253,15 @@ export default async function testTemplates() {
     assert(countAction(html, "archiveCase") === 0, "a non-owner was offered archive");
   });
 
+  // GURPS Monster Hunters: the tracker holds the GM's secrets, so only a GM is offered it.
+  await check("only a GM with the rules on is offered the deduction tracker", () => {
+    const gm = headerContext(true);
+    gm.deductionsEnabled = true;
+    assert(countAction(render("templates/header.hbs", gm), "openDeductions") === 1, "the GM has no tracker");
+    assert(countAction(render("templates/header.hbs", headerContext(false)), "openDeductions") === 0,
+      "a player was offered the tracker");
+  });
+
   describe("case-file.hbs");
 
   const fileContext = isGM => ({
@@ -401,6 +410,78 @@ export default async function testTemplates() {
     assert(html.includes("instead of Elira"), "the previous creator was not shown");
   });
 
+  // The stamp is public; the controls that make it are the GM's.
+  await check("anyone sees a clue's stamp, only the GM the controls that set it", () => {
+    const context = inspectorContext();
+    context.clue.stamps = ["Where", "Why"];
+    const player = render("templates/inspector.hbs", context);
+    assert(player.includes("ib-stamp-chip") && player.includes("Where"), "a player cannot see the stamp");
+    assert(countAction(player, "stampClue") === 0, "a player was offered the stamp controls");
+
+    context.deduce = {
+      types: [{type: "who", label: "Who", checked: false}, {type: "where", label: "Where", checked: true}],
+      weights: [{id: "normal", label: "Normal (+1)", selected: true}],
+      bonus: "",
+      logged: true
+    };
+    const gm = render("templates/inspector.hbs", context);
+    assert(countAction(gm, "stampClue") === 1 && countAction(gm, "unstampClue") === 1, "the GM has no controls");
+    assert(/value="where" checked/.test(gm), "the clue's current stamp is not ticked");
+  });
+
+  describe("deduction-tracker.hbs");
+
+  const trackerContext = tab => ({
+    tab,
+    tabs: [], enemies: [], confusion: 1, deadline: "", notes: "", publicRecords: false,
+    deductions: [{
+      type: "who", label: "Who", page: 9, question: "Q", adjust: 0, adjustHint: "H",
+      guess: false, confirmed: false, showConfirmed: false, factors: [],
+      parts: {base: "-8", clues: "+1", clueCount: 1, confusion: "-1", total: "-8"},
+      best: null, results: [{tier: "low", label: "0-2", text: "vague", reached: false}],
+      skills: ["Streetwise"], team: [{name: "Elira", skill: "Streetwise", level: 13, effective: 5}]
+    }],
+    clueTypes: [{type: "who", label: "Who"}], weights: [{id: "normal", label: "Normal"}],
+    clues: [{id: "l1", label: "Watch", onBoard: true, types: "Who", bonus: "+1", weight: "Normal"}],
+    investigators: [{index: 0, uuid: "Actor.a", name: "Elira", img: "x.png", manual: [], used: []}],
+    sources: [{id: "s1", index: 0, label: "Bartender", attempts: 2, next: "-8", library: false}],
+    history: [], clueRules: [["A", "B"]], clueSources: [{group: "G", entries: [["A", "B"]]}]
+  });
+
+  await check("each tab shows its own controls", () => {
+    const expect = {
+      deductions: "rollTeam", clues: "logFreeClue", team: "luckyGuess",
+      sources: "sourceAttempt", log: "clearHistory"
+    };
+    for ( const [tab, action] of Object.entries(expect) ) {
+      const html = render("templates/deduction-tracker.hbs", trackerContext(tab));
+      assert(countAction(html, action) > 0, `${tab} has no ${action}`);
+      for ( const [other, otherAction] of Object.entries(expect) ) {
+        if ( other !== tab ) assert(countAction(html, otherAction) === 0, `${tab} also shows ${otherAction}`);
+      }
+    }
+  });
+
+  // Every field saves itself by naming its place in the ledger; a scope slip inside an each would
+  // write to "investigators..manual.who" and silently lose the value.
+  await check("nested fields name a complete ledger path", () => {
+    const context = trackerContext("team");
+    context.investigators[0].manual = [{type: "who", label: "Who", value: 12, auto: 11}];
+    context.investigators[0].used = [{key: "lucky", label: "Lucky", checked: true}];
+    const html = render("templates/deduction-tracker.hbs", context);
+    assert(html.includes('data-ledger="investigators.0.manual.who"'), "manual level path");
+    assert(html.includes('data-ledger="investigators.0.used.lucky"'), "once-per-adventure path");
+    assert(!/data-ledger="[^"]*\.\./.test(html), "a path has an empty segment");
+  });
+
+  await check("a deduction's factors save under that deduction", () => {
+    const context = trackerContext("deductions");
+    context.deductions[0].factors = [{id: "concealment", label: "Hides", options: []}];
+    const html = render("templates/deduction-tracker.hbs", context);
+    assert(html.includes('data-ledger="deductions.who.factors.concealment"'), "factor path");
+    assert(html.includes('data-ledger="deductions.who.adjust"'), "adjustment path");
+  });
+
   describe("page sheets do not duplicate core's fields");
 
   // A page sheet that lists `super.EDIT_PARTS.header` already has core's `page-header.hbs` in the
@@ -433,6 +514,7 @@ export default async function testTemplates() {
       reliability: "verified", editable: true, notes: []}, connections: [],
       categories: [], reliabilities: []}],
     ["templates/board.hbs", {hasCase: true}],
+    ["templates/deduction-tracker.hbs", {missing: true}],
     ["templates/dialog/clue-dialog.hbs", {templates: [], pinColors: [], categories: [],
       reliabilities: [], showsImage: true, showsBody: true, canUpload: true, clue: {}}],
     ["templates/dialog/case-config.hbs", {state: {progress: 0}, statuses: [], classifications: []}],

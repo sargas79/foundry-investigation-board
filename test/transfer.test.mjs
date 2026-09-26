@@ -77,6 +77,39 @@ export default async function testTransfer() {
     assert(string.label === "same night", "the label was lost");
   });
 
+  describe("deduction stamps and the GM's ledger in transit");
+
+  // The ledger is added by the board's export action only when a GM ticks it; exportCase on its
+  // own never reaches for it, whoever runs it.
+  const stamped = journalOf("Stamped", [cluePage("a", "Watch", {deductions: ["where", "why"]})]);
+  const asUser = (isGM, fn) => {
+    const previous = globalThis.game.user;
+    globalThis.game.user = {isGM};
+    try { return fn(); }
+    finally { globalThis.game.user = previous; }
+  };
+
+  await check("a GM's export keeps the stamps, and carries no ledger unasked", () => {
+    const data = asUser(true, () => exportCase(stamped));
+    assert(data.clues[0].deductions.join() === "where,why", `stamps were ${data.clues[0].deductions}`);
+    assert(!("deductionLedger" in data), "the ledger went into the file");
+  });
+
+  await check("a player's export leaves the stamps behind", () => {
+    const data = asUser(false, () => exportCase(stamped));
+    assert(data.clues[0].deductions.length === 0, `a player exported ${data.clues[0].deductions}`);
+    assert(!("deductionLedger" in data), "the ledger went into a player's file");
+  });
+
+  // Only a GM may stamp, so a player's import would otherwise be refused clue by clue.
+  await check("a player's import arrives unstamped rather than refused", () => {
+    const file = asUser(true, () => exportCase(stamped));
+    const player = asUser(false, () => buildImport(file, "p"));
+    assert(player.pages[0].system.deductions.length === 0, "a player imported stamps");
+    const gm = asUser(true, () => buildImport(file, "g"));
+    assert(gm.pages[0].system.deductions.join() === "where,why", "a GM's import lost the stamps");
+  });
+
   describe("the case file in transit");
 
   const withFile = journalOf("Ashwood", [

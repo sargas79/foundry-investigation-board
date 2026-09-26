@@ -344,6 +344,19 @@ export function clueEntry(ledger, clueId) {
 }
 
 /**
+ * Whether an update would change a clue's Who / What / When / Where / Why stamp.
+ * @param {object} system          The clue's current system data.
+ * @param {object} [changes]       The `system` part of the update.
+ * @returns {boolean}
+ */
+export function changesStamp(system, changes) {
+  if ( !changes || !("deductions" in changes) ) return false;
+  const before = [...(system?.deductions ?? [])].sort().join();
+  const after = [...(changes.deductions ?? [])].sort().join();
+  return before !== after;
+}
+
+/**
  * The penalty on the next attempt at a source (Beating a Dead Horse, pp. 6–7).
  * @param {{kind: string, attempts: number}} source
  * @returns {number}

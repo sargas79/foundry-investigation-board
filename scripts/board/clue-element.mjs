@@ -1,5 +1,7 @@
 import {CATEGORIES, RELIABILITY} from "../constants.mjs";
 import {authorColor, authorName} from "../data/authorship.mjs";
+import {rulesEnabled} from "../data/deduction-ledger.mjs";
+import {DEDUCTION_RULES} from "../rules/monster-hunters.mjs";
 
 /**
  * Builds and updates the DOM for a single clue card.
@@ -57,7 +59,9 @@ function clueContext(page, enrichedBody) {
     // Who pinned it. Absent on clues made before this existed, so everything downstream has to
     // read cleanly when it is null.
     author: authorName(clue),
-    authorColor: authorColor(clue)
+    authorColor: authorColor(clue),
+    // The GM's Who / What / When / Where / Why stamp, shown only while the rules are on.
+    stamps: rulesEnabled() ? (clue.deductions ?? []).map(t => DEDUCTION_RULES[t]?.label ?? t) : []
   };
 }
 
@@ -91,6 +95,12 @@ export function createClueElement(page, enrichedBody) {
   const body = document.createElement("div");
   body.className = "ib-clue-body";
   inner.append(body);
+
+  // Inked across the card like a rubber stamp; pointer-events off so it never blocks a drag.
+  const stamp = document.createElement("div");
+  stamp.className = "ib-clue-stamp";
+  stamp.setAttribute("aria-hidden", "true");
+  inner.append(stamp);
 
   const meta = document.createElement("footer");
   meta.className = "ib-clue-meta";
@@ -171,5 +181,13 @@ export function updateClueElement(el, page, enrichedBody) {
   else author.hidden = true;
 
   el.querySelector(".ib-clue-link").hidden = !clue.linked;
+
+  const stamp = el.querySelector(".ib-clue-stamp");
+  if ( stamp ) {
+    const text = clue.stamps.join(" · ");
+    if ( stamp.textContent !== text ) stamp.textContent = text;
+    stamp.hidden = !text;
+    el.classList.toggle("stamped", !!text);
+  }
   return el;
 }

@@ -210,6 +210,41 @@ they live in a GM-only document precisely so they are absent from anything a pla
 and writing them into a portable file would undo that in a single step. The bars still appear in
 the destination world, with nothing behind them.
 
+The **deduction ledger** (below) is left out too, unless a GM ticks *Include the GM's deduction
+ledger* when exporting. A player's export never has it, and leaves the deduction stamps behind as
+well.
+
+## GURPS Monster Hunters: deductions
+
+With **Rules: GURPS Monster Hunters** switched on in the module settings, the board runs
+investigations with the rules from *Monster Hunters 2: The Mission* (pp. 5–11). Off by default, so
+tables playing anything else see no change.
+
+**Stamping a clue.** When the GM selects a clue, the inspector gets a *Deduction* section: tick what
+it is evidence of (**Who, What, When, Where, Why**), choose its weight (minor +0, normal +1, found on
+a critical +2, major +2 or more) and **Stamp and log**. The card then wears a rubber stamp every
+player can see. The bonus it gave stays with the GM. As the rules say, stamping rolls those
+deductions for the whole team right away.
+
+**The tracker** (magnifying glass in the header, GM only) keeps the rest:
+
+- **Deductions**: each one's difficulty, set from the book's options with page references, plus
+  the clue bonus, confusion, and the +4 for a correct guess or a known address. It also shows the
+  skills that can roll it, what each level of success reveals, and the best result so far.
+- **Clues**: everything counted, plus clues that never reached the board (an interview, a phone
+  call).
+- **Team**: the investigators. Skill levels are read from GURPS Game Aid character sheets, wildcard
+  skills included, and the GM can override any of them. Lucky guesses and the other
+  once-per-adventure uses are tracked here.
+- **Sources**: Beating a Dead Horse, with the penalty on the next try at each source.
+- **Roll log** and a condensed **Reference** of the ways to dig up clues.
+
+Rolls are made by the module and whispered to the GMs. After a critical failure it makes the
+verification roll, and tells the GM plainly when they should give false information.
+
+The ledger lives on the case's GM-only companion entry, the same place redacted passages go, so a
+player's client is never sent it.
+
 ## How it is stored
 
 A case is an ordinary **JournalEntry** flagged as one. Each clue and each string is a

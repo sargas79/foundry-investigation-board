@@ -68,6 +68,14 @@
                     <i class="fa-solid fa-trash"></i>
                 </button>
             {{/if}}
+            {{!-- GURPS Monster Hunters: the GM's deduction tracker. Only a GM's client holds the ledger. --}}
+            {{#if deductionsEnabled}}
+                <button type="button" class="ib-icon-button" data-action="openDeductions"
+                        data-tooltip="INVESTIGATION_BOARD.DEDUCTIONS.Open"
+                        aria-label="{{localize 'INVESTIGATION_BOARD.DEDUCTIONS.Open'}}">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </button>
+            {{/if}}
             <button type="button" class="ib-icon-button" data-action="configureCase"
                     data-case-id="{{currentCase.id}}"
                     data-tooltip="INVESTIGATION_BOARD.CaseDetails"

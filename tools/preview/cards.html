@@ -6,6 +6,7 @@
   <link rel="stylesheet" href="/styles/fonts.css">
   <link rel="stylesheet" href="/styles/investigation-board.css">
   <link rel="stylesheet" href="/styles/clue-cards.css">
+  <link rel="stylesheet" href="/styles/deductions.css">
   <style>
     html, body { margin: 0; background: #0b0f13; }
     .stage {
@@ -52,7 +53,9 @@
         localize: k => STRINGS[k] ?? k,
         format: (k, d) => `${STRINGS[k] ?? k} ${JSON.stringify(d ?? {})}`
       },
-      users: {get: id => ({id, name: "diego", color: {css: "#c8322f"}})}
+      users: {get: id => ({id, name: "diego", color: {css: "#c8322f"}})},
+      // The GURPS Monster Hunters rules are on, so stamped clues show their stamp.
+      settings: {get: (_scope, key) => key === "monsterHunters"}
     };
     window.fromUuidSync = uuid => ({"Actor.mara": {name: "Mara Vale"}})[uuid] ?? null;
 
@@ -127,7 +130,8 @@
       })],
       ["Map", page("c7", "Ashwood District", {
         template: "map", image: mapImg, pinColor: "black", category: "location",
-        reliability: "corroborated", x: 560, y: 430, rotation: -2, width: 250
+        reliability: "corroborated", x: 560, y: 430, rotation: -2, width: 250,
+        deductions: ["where", "why"]
       })],
       ["Document — redacted", page("c8", "Internal Memo", {
         template: "document", pinColor: "black", category: "document",
@@ -136,7 +140,7 @@
       })],
       ["Sticky — long", page("c9", "Timeline gaps", {
         template: "sticky", pinColor: "yellow", category: "lead", reliability: "questionable",
-        x: 40, y: 760, rotation: -2, width: 200,
+        x: 40, y: 760, rotation: -2, width: 200, deductions: ["when"],
         body: "<p>11:40 last seen. 02:14 watch stops. Who has the missing two and a half hours?</p>"
       })],
       ["Polaroid — narrow", page("c10", "The watch", {

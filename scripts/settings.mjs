@@ -19,6 +19,19 @@ export function registerSettings() {
       initial: DEFAULT_CLASSIFICATIONS.join(", ")
     })
   });
+
+  /**
+   * The GM's deduction tracker and the clue stamps, from GURPS Monster Hunters 2. Off by default:
+   * the board is system-neutral, and a table not playing GURPS should see nothing of it.
+   */
+  game.settings.register(MODULE_ID, SETTINGS.MONSTER_HUNTERS, {
+    name: "INVESTIGATION_BOARD.SETTINGS.MonsterHunters",
+    hint: "INVESTIGATION_BOARD.SETTINGS.MonsterHuntersHint",
+    scope: "world",
+    config: true,
+    type: new foundry.data.fields.BooleanField({initial: false}),
+    onChange: () => Hooks.callAll(`${MODULE_ID}.rulesChanged`)
+  });
 }
 
 /* -------------------------------------------- */

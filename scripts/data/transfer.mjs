@@ -39,7 +39,11 @@ export function exportCase(journal) {
       name: page.name,
       ...foundry.utils.deepClone(page.system),
       // A link to a document in the world this came from cannot survive the journey.
-      linkedUuid: null
+      linkedUuid: null,
+      // The deduction stamps are the GM's declarations. A GM's export keeps them; a player's
+      // leaves them behind, and the GM's ledger never goes in here at all — see the board's
+      // export action, which adds it only when a GM asks.
+      deductions: game.user?.isGM ? [...(page.system.deductions ?? [])] : []
     })),
     // The written record travels with the board. Redacted passages deliberately do not: they live
     // in a GM-only document precisely so they are not in anything a player could obtain, and
@@ -121,7 +125,8 @@ export function buildImport(data, ownerId) {
       _id: clueIds[index],
       name: String(name ?? "").trim() || game.i18n.localize("INVESTIGATION_BOARD.UntitledClue"),
       type: PAGE_TYPES.CLUE,
-      system: {...system, linkedUuid: null}
+      // Only a GM may stamp a clue, so a player's import arrives unstamped rather than refused.
+      system: {...system, linkedUuid: null, ...(game.user?.isGM ? {} : {deductions: []})}
     };
   });
 

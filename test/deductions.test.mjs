@@ -167,6 +167,46 @@ export default async function testDeductions() {
     assert(!off.includes("Intelligence Analysis") && on.includes("Intelligence Analysis"), `${off} / ${on}`);
   });
 
+  describe("reading a GURPS Game Aid character");
+
+  const {actorSkills, actorHasTrait} = await import("../scripts/data/deduction-ledger.mjs");
+
+  // The shape GGA stores: keyed lists, containers nesting under `contains`, a computed `level`
+  // and the `import` level as a string. A container has a name but no level of its own.
+  const hunter = {
+    system: {
+      skills: {
+        "00000": {name: "Occult", level: 0, contains: {
+          "00001": {name: "Hidden Lore (Vampires)", level: 14, import: "14"},
+          "00002": {name: "Occultism", level: 0, import: "12"}
+        }},
+        "00003": {name: "Intelligence Analysis/TL8", level: 11, import: "11"},
+        "00004": {name: "Detective!", level: 13, import: "13"}
+      },
+      ads: {"00000": {name: "Intuition"}, "00001": {name: "Wealth (Comfortable)"}}
+    },
+    items: []
+  };
+
+  await check("skills are read from nested containers, falling back to the imported level", () => {
+    const skills = actorSkills(hunter);
+    const lore = skills.find(s => s.name === "Hidden Lore");
+    assert(lore?.spec === "Vampires" && lore.level === 14, JSON.stringify(lore));
+    assert(skills.find(s => s.name === "Occultism")?.level === 12, "import level not used");
+    assert(!skills.some(s => s.name === "Occult"), "a container was read as a skill");
+  });
+
+  await check("a wildcard on the sheet rolls the deductions it covers", () => {
+    const why = D.bestSkill(actorSkills(hunter), D.skillsFor(D.emptyLedger(), "why"));
+    assert(why.level === 13 && why.label.startsWith("Detective!"), JSON.stringify(why));
+  });
+
+  await check("advantages are found by name, ignoring their level", () => {
+    assert(actorHasTrait(hunter, "Intuition"), "Intuition not found");
+    assert(!actorHasTrait(hunter, "Serendipity"), "found an advantage that is not there");
+    assert(actorSkills(null).length === 0, "a missing actor should have no skills");
+  });
+
   describe("resolving a deduction");
 
   await check("success levels: 0-2, 3-4, 5+ or critical", () => {

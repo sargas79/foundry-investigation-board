@@ -26,7 +26,8 @@
     "styles/inspector.css",
     "styles/filter.css",
     "styles/case-file.css",
-    "styles/handouts.css"
+    "styles/handouts.css",
+    "styles/deductions.css"
   ],
   "languages": [
     {

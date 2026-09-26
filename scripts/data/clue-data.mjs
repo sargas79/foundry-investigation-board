@@ -1,3 +1,4 @@
+import {DEDUCTIONS} from "../rules/monster-hunters.mjs";
 import {
   CATEGORIES,
   CLUE_DEFAULTS,
@@ -88,6 +89,16 @@ export default class ClueData extends foundry.abstract.TypeDataModel {
         author: new fields.StringField({required: true, blank: false}),
         text: new fields.StringField({required: true, blank: true, initial: ""}),
         time: new fields.NumberField({required: true, integer: true, nullable: false, initial: 0})
+      })),
+
+      // --- Deduction stamp (GURPS Monster Hunters) --------------------------
+      // Which of Who / What / When / Where / Why the GM has declared this clue evidence for. Public
+      // on purpose: the rules have the GM announce it. How much it helped stays in the GM's ledger.
+      // Only a GM may change it; see the preUpdate guard in module.mjs.
+      deductions: new fields.ArrayField(new fields.StringField({
+        required: true,
+        blank: false,
+        choices: DEDUCTIONS
       })),
 
       // --- Dismissal (players archive clues; only the GM truly deletes) ------

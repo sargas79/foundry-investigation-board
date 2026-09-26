@@ -44,6 +44,13 @@
                 <p class="ib-author-history">{{this}}</p>
             {{/each}}
 
+            {{!-- What the GM has declared this clue evidence of. Public: the stamp is on the card too. --}}
+            {{#if clue.stamps.length}}
+                <p class="ib-inspector-stamps">
+                    {{#each clue.stamps}}<span class="ib-stamp-chip">{{this}}</span>{{/each}}
+                </p>
+            {{/if}}
+
             <dl class="ib-inspector-meta">
                 <dt>{{localize "INVESTIGATION_BOARD.CategoryLabel"}}</dt>
                 <dd>
@@ -77,6 +84,48 @@
                     <i class="fa-solid fa-arrow-up-right-from-square"></i>
                     <span>{{localize "INVESTIGATION_BOARD.OpenLinked"}}</span>
                 </button>
+            {{/if}}
+
+            {{!-- GURPS Monster Hunters: the GM declares the clue, and the team's deductions are rolled. --}}
+            {{#if deduce}}
+                <section class="ib-inspector-section ib-deduce">
+                    <h3 class="ib-panel-label">{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Deduction"}}</h3>
+                    <div class="ib-deduce-types">
+                        {{#each deduce.types}}
+                            <label class="ib-deduce-type">
+                                <input type="checkbox" name="deduceType" value="{{this.type}}" {{#if this.checked}}checked{{/if}}>
+                                <span>{{this.label}}</span>
+                            </label>
+                        {{/each}}
+                    </div>
+                    <div class="ib-deduce-row">
+                        <select name="deduceWeight" aria-label="{{localize 'INVESTIGATION_BOARD.DEDUCTIONS.Weight'}}">
+                            {{#each deduce.weights}}
+                                <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+                            {{/each}}
+                        </select>
+                        <input type="number" name="deduceBonus" step="1" value="{{deduce.bonus}}"
+                               placeholder="{{localize 'INVESTIGATION_BOARD.DEDUCTIONS.Bonus'}}"
+                               aria-label="{{localize 'INVESTIGATION_BOARD.DEDUCTIONS.Bonus'}}"
+                               data-tooltip="INVESTIGATION_BOARD.DEDUCTIONS.BonusHint">
+                    </div>
+                    <label class="ib-deduce-roll">
+                        <input type="checkbox" name="deduceRoll" checked>
+                        <span>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.RollNow"}}</span>
+                    </label>
+                    <div class="ib-inspector-actions">
+                        <button type="button" data-action="stampClue">
+                            <i class="fa-solid fa-stamp"></i>
+                            <span>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Stamp"}}</span>
+                        </button>
+                        {{#if deduce.logged}}
+                            <button type="button" class="ib-danger" data-action="unstampClue">
+                                <i class="fa-solid fa-eraser"></i>
+                                <span>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.Unstamp"}}</span>
+                            </button>
+                        {{/if}}
+                    </div>
+                </section>
             {{/if}}
 
             {{!-- #25, #62: the clue's strings — the name walks to the clue, the scissors cut it. --}}
