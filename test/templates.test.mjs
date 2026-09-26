@@ -443,7 +443,8 @@ export default async function testTemplates() {
     }],
     clueTypes: [{type: "who", label: "Who"}], weights: [{id: "normal", label: "Normal"}],
     clues: [{id: "l1", label: "Watch", onBoard: true, types: "Who", bonus: "+1", weight: "Normal"}],
-    investigators: [{index: 0, uuid: "Actor.a", name: "Elira", img: "x.png", manual: [], used: []}],
+    investigators: [{uuid: "Actor.a", name: "Elira", img: "x.png", manual: [], used: []}],
+    teamUsed: [{key: "meditation", label: "Meditation", checked: false}],
     sources: [{id: "s1", index: 0, label: "Bartender", attempts: 2, next: "-8", library: false}],
     history: [], clueRules: [["A", "B"]], clueSources: [{group: "G", entries: [["A", "B"]]}]
   });
@@ -462,16 +463,30 @@ export default async function testTemplates() {
     }
   });
 
-  // Every field saves itself by naming its place in the ledger; a scope slip inside an each would
-  // write to "investigators..manual.who" and silently lose the value.
-  await check("nested fields name a complete ledger path", () => {
+  // Every field saves itself by naming its place in the ledger. Team fields name their
+  // investigator by actor rather than position, so a list that changed since the render cannot send
+  // a value to the wrong person; a scope slip inside the each would leave that attribute empty.
+  await check("team fields name their investigator and a complete path", () => {
     const context = trackerContext("team");
     context.investigators[0].manual = [{type: "who", label: "Who", value: 12, auto: 11}];
     context.investigators[0].used = [{key: "lucky", label: "Lucky", checked: true}];
     const html = render("templates/deduction-tracker.hbs", context);
-    assert(html.includes('data-ledger="investigators.0.manual.who"'), "manual level path");
-    assert(html.includes('data-ledger="investigators.0.used.lucky"'), "once-per-adventure path");
+    assert(/data-investigator="Actor.a" data-ledger="manual.who"/.test(html), "manual level path");
+    assert(/data-investigator="Actor.a" data-ledger="used.lucky"/.test(html), "lucky guess path");
+    assert(html.includes('data-ledger="teamUsed.meditation"'), "team-wide use path");
+    assert(!/data-investigator=""/.test(html), "a field lost its investigator");
     assert(!/data-ledger="[^"]*\.\./.test(html), "a path has an empty segment");
+  });
+
+  await check("a spent or unavailable lucky guess cannot be clicked", () => {
+    const context = trackerContext("team");
+    context.investigators[0].intuition = true;
+    context.investigators[0].luckySpent = true;
+    assert(/data-action="luckyGuess"[^>]*disabled/.test(render("templates/deduction-tracker.hbs", context)),
+      "a spent lucky guess is still offered");
+    context.investigators[0].luckySpent = false;
+    assert(!/data-action="luckyGuess"[^>]*disabled/.test(render("templates/deduction-tracker.hbs", context)),
+      "an available lucky guess is disabled");
   });
 
   await check("a deduction's factors save under that deduction", () => {

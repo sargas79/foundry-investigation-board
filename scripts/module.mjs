@@ -1,4 +1,4 @@
-import {MODULE_ID, PAGE_TYPES, modulePath} from "./constants.mjs";
+import {CASE_FLAGS, MODULE_ID, PAGE_TYPES, modulePath} from "./constants.mjs";
 import {canDeleteCase, canDeletePage} from "./data/case.mjs";
 import {canReassignAuthor, changesAuthor} from "./data/authorship.mjs";
 import {CREATE_CASE_QUERY, handleCreateCaseQuery} from "./data/case-create.mjs";
@@ -17,7 +17,6 @@ import {
 } from "./apps/clue-page-sheet.mjs";
 import {registerKeybindings, registerSettings} from "./settings.mjs";
 import {migrateLegacyData} from "./migration.mjs";
-import {CASE_FLAGS} from "./constants.mjs";
 import DeductionTracker from "./apps/deduction-tracker.mjs";
 import {changesStamp} from "./data/deductions.mjs";
 
@@ -199,7 +198,7 @@ function guard(promise) {
 }
 
 Hooks.on("createJournalEntryPage", page => guard(board?.onPageChange(page, "upsert")));
-Hooks.on("updateJournalEntryPage", page => guard(board?.onPageChange(page, "upsert")));
+Hooks.on("updateJournalEntryPage", (page, changes) => guard(board?.onPageChange(page, "upsert", changes)));
 Hooks.on("deleteJournalEntryPage", page => guard(board?.onPageChange(page, "delete")));
 
 Hooks.on("updateJournalEntry", journal => guard(board?.onCaseChange(journal, "update")));

@@ -10,16 +10,16 @@ import {
 } from "../rules/monster-hunters.mjs";
 import {
   ONCE_PER_ADVENTURE,
+  TEAM_ONCE_PER_ADVENTURE,
   bestSkill,
   deadHorsePenalty,
-  logClue,
   modifierBreakdown,
   newAdventure,
   signed,
   skillsFor
 } from "../data/deductions.mjs";
 import {actorHasTrait, actorSkills, readLedger, updateLedger} from "../data/deduction-ledger.mjs";
-import {describeOutcome, rollDeductions} from "../data/deduction-rolls.mjs";
+import {declareClue, describeOutcome, rollDeductions} from "../data/deduction-rolls.mjs";
 
 const {ApplicationV2, HandlebarsApplicationMixin} = foundry.applications.api;
 
@@ -139,7 +139,11 @@ export default class DeductionTracker extends HandlebarsApplicationMixin(Applica
 
     const ledger = readLedger(journal);
     const loc = key => game.i18n.localize(`INVESTIGATION_BOARD.DEDUCTIONS.${key}`);
-    const team = ledger.investigators.map(inv => ({inv, actor: fromUuidSync(inv.uuid)}));
+    // Each sheet is read once per render, not once per deduction and column.
+    const team = ledger.investigators.map(inv => {
+      const actor = fromUuidSync(inv.uuid);
+      return {inv, actor, skills: actorSkills(actor)};
+    });
 
     const deductions = DEDUCTIONS.map(type => {
       const rules = DEDUCTION_RULES[type];
@@ -187,8 +191,8 @@ export default class DeductionTracker extends HandlebarsApplicationMixin(Applica
           s.mod ? signed(s.mod) : "",
           s.note ? `— ${s.note}` : ""
         ].filter(Boolean).join(" ")),
-        team: team.map(({inv, actor}) => {
-          const skill = bestSkill(actorSkills(actor), allowed, inv.manual[type]);
+        team: team.map(({inv, actor, skills}) => {
+          const skill = bestSkill(skills, allowed, inv.manual[type]);
           return {
             name: actor?.name ?? inv.name,
             skill: skill ? (skill.manual ? loc("ManualSkill") : skill.label) : loc("NoSkill"),
@@ -209,22 +213,25 @@ export default class DeductionTracker extends HandlebarsApplicationMixin(Applica
       weight: CLUE_WEIGHTS[c.weight]?.label ?? c.weight
     })).reverse();
 
-    const investigators = team.map(({inv, actor}, index) => ({
-      index,
+    const investigators = team.map(({inv, actor, skills}) => ({
       uuid: inv.uuid,
       name: actor?.name ?? inv.name,
       img: actor?.img ?? "icons/svg/mystery-man.svg",
       missing: !actor,
       intuition: actorHasTrait(actor, "Intuition"),
       serendipity: actorHasTrait(actor, "Serendipity"),
-      skillCount: actorSkills(actor).length,
+      skillCount: skills.length,
       manual: DEDUCTIONS.map(type => ({
         type,
         label: DEDUCTION_RULES[type].label,
         value: inv.manual[type] ?? "",
-        auto: bestSkill(actorSkills(actor), skillsFor(ledger, type))?.level ?? "—"
+        auto: bestSkill(skills, skillsFor(ledger, type))?.level ?? "—"
       })),
-      used: ONCE_PER_ADVENTURE.map(key => ({key, label: loc(`Use.${key}`), checked: inv.used[key]}))
+      used: ONCE_PER_ADVENTURE.map(key => ({key, label: loc(`Use.${key}`), checked: inv.used[key]})),
+      luckySpent: inv.used.lucky
+    }));
+    const teamUsed = TEAM_ONCE_PER_ADVENTURE.map(key => ({
+      key, label: loc(`Use.${key}`), checked: ledger.teamUsed[key]
     }));
 
     const sources = ledger.sources.map((s, index) => ({
@@ -259,6 +266,7 @@ export default class DeductionTracker extends HandlebarsApplicationMixin(Applica
       weights: Object.entries(CLUE_WEIGHTS).map(([id, w]) => ({id, label: w.label})),
       clues,
       investigators,
+      teamUsed,
       sources,
       history,
       clueRules: CLUE_RULES,
@@ -291,12 +299,17 @@ export default class DeductionTracker extends HandlebarsApplicationMixin(Applica
     const journal = this.currentCase;
     if ( !input || !journal ) return;
     const path = input.dataset.ledger;
+    // Team fields name their investigator by actor, not by position, so a list that changed since
+    // this render can never send the value to someone else.
+    const who = input.dataset.investigator;
     let value;
     if ( input.type === "checkbox" ) value = input.checked;
     else if ( input.type === "number" ) value = input.value === "" ? null : Number(input.value);
     else value = input.value;
     updateLedger(journal, ledger => {
-      foundry.utils.setProperty(ledger, path, value);
+      if ( !who ) return void foundry.utils.setProperty(ledger, path, value);
+      const inv = ledger.investigators.find(i => i.uuid === who);
+      if ( inv ) foundry.utils.setProperty(inv, path, value);
     });
   }
 
@@ -364,16 +377,10 @@ export default class DeductionTracker extends HandlebarsApplicationMixin(Applica
       ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.DeductionsPickType", {localize: true});
       return;
     }
-    const bonus = bonusRaw === "" ? CLUE_WEIGHTS[weight].bonus : Number(bonusRaw);
-    await updateLedger(journal, ledger => logClue(ledger, {
+    await declareClue(journal, {
       label: label || game.i18n.localize("INVESTIGATION_BOARD.DEDUCTIONS.UnnamedClue"),
-      types, weight, bonus
-    }));
-    if ( roll ) {
-      await rollDeductions(journal, types, {
-        reason: game.i18n.format("INVESTIGATION_BOARD.DEDUCTIONS.ReasonClue", {name: label || "—"})
-      });
-    }
+      types, weight, bonus: bonusRaw, roll
+    });
   }
 
   /**
@@ -431,6 +438,16 @@ export default class DeductionTracker extends HandlebarsApplicationMixin(Applica
     const uuid = target.dataset.uuid;
     const type = target.closest(".ib-dt-investigator")?.querySelector("[name=luckyType]")?.value;
     if ( !DEDUCTIONS.includes(type) ) return;
+    // Once per adventure, and only with Intuition (p. 6).
+    const inv = readLedger(journal).investigators.find(i => i.uuid === uuid);
+    if ( inv?.used.lucky ) {
+      ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.DeductionsLuckySpent", {localize: true});
+      return;
+    }
+    if ( !actorHasTrait(fromUuidSync(uuid), "Intuition") ) {
+      ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.DeductionsLuckyNeedsIntuition", {localize: true});
+      return;
+    }
     await rollDeductions(journal, [type], {
       reason: game.i18n.localize("INVESTIGATION_BOARD.DEDUCTIONS.ReasonLucky"),
       only: [uuid],

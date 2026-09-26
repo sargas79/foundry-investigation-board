@@ -221,6 +221,16 @@
                     <i class="fa-solid fa-users"></i> <span>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.AddParty"}}</span>
                 </button>
             </header>
+            {{!-- One of each per adventure for the whole team, however many hunters share it (p. 7). --}}
+            <div class="ib-dt-row ib-dt-team-uses">
+                <span>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.TeamUses"}}</span>
+                {{#each teamUsed}}
+                    <label class="checkbox">
+                        <input type="checkbox" data-ledger="teamUsed.{{this.key}}" {{#if this.checked}}checked{{/if}}>
+                        {{this.label}}
+                    </label>
+                {{/each}}
+            </div>
             {{#each investigators}}
                 <article class="ib-dt-investigator">
                     <header>
@@ -239,7 +249,7 @@
                             <label>
                                 <span>{{this.label}}</span>
                                 <input type="number" step="1" value="{{this.value}}" placeholder="{{this.auto}}"
-                                       data-ledger="investigators.{{../index}}.manual.{{this.type}}"
+                                       data-investigator="{{../uuid}}" data-ledger="manual.{{this.type}}"
                                        data-tooltip="INVESTIGATION_BOARD.DEDUCTIONS.ManualHint">
                             </label>
                         {{/each}}
@@ -247,7 +257,7 @@
                     <div class="ib-dt-row">
                         {{#each this.used}}
                             <label class="checkbox">
-                                <input type="checkbox" data-ledger="investigators.{{../index}}.used.{{this.key}}" {{#if this.checked}}checked{{/if}}>
+                                <input type="checkbox" data-investigator="{{../uuid}}" data-ledger="used.{{this.key}}" {{#if this.checked}}checked{{/if}}>
                                 {{this.label}}
                             </label>
                         {{/each}}
@@ -257,7 +267,8 @@
                             {{#each ../clueTypes}}<option value="{{this.type}}">{{this.label}}</option>{{/each}}
                         </select>
                         <button type="button" data-action="luckyGuess" data-uuid="{{this.uuid}}"
-                                {{#unless this.intuition}}data-tooltip="INVESTIGATION_BOARD.DEDUCTIONS.LuckyNeedsIntuition"{{/unless}}>
+                                {{#if this.luckySpent}}disabled{{/if}}
+                                {{#unless this.intuition}}disabled data-tooltip="INVESTIGATION_BOARD.DEDUCTIONS.LuckyNeedsIntuition"{{/unless}}>
                             <i class="fa-solid fa-clover"></i> <span>{{localize "INVESTIGATION_BOARD.DEDUCTIONS.LuckyGuess"}}</span>
                         </button>
                     </div>

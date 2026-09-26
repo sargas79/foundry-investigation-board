@@ -1,4 +1,4 @@
-import {DEDUCTION_RULES, ENEMIES} from "../rules/monster-hunters.mjs";
+import {CLUE_WEIGHTS, DEDUCTION_RULES, ENEMIES, TIERS} from "../rules/monster-hunters.mjs";
 import {
   bestSkill,
   logClue,
@@ -82,8 +82,10 @@ export async function rollDeductions(journal, types, {reason = "", only = null, 
     sections.push({type, parts, rows});
   }
 
-  const before = ledger.deductions.what.best?.tier;
   await updateLedger(journal, current => {
+    // Read inside the queue: two batches rolled close together must not both see What below 5+
+    // and both hand out the free clue.
+    const before = current.deductions.what.best?.tier;
     let next = entries.reduce(recordRoll, current);
     if ( use ) {
       for ( const inv of next.investigators ) {
@@ -114,6 +116,35 @@ export async function rollDeductions(journal, types, {reason = "", only = null, 
 /* -------------------------------------------- */
 
 /**
+ * Declare a clue: log it in the ledger and, as the rules have it, roll its deductions for the team.
+ *
+ * The one path for both a clue stamped on the board and one logged from the tracker, so the two
+ * cannot drift apart in how they read the bonus or what they tell the GM.
+ *
+ * @param {JournalEntry} journal
+ * @param {object} clue
+ * @param {string|null} [clue.clueId]   The board clue, if it is one.
+ * @param {string} clue.label
+ * @param {string[]} clue.types
+ * @param {string} clue.weight
+ * @param {string|number} [clue.bonus]  As typed; blank means the weight's usual bonus.
+ * @param {boolean} [clue.roll=true]
+ * @returns {Promise<void>}
+ */
+export async function declareClue(journal, {clueId = null, label, types, weight, bonus, roll = true}) {
+  const typed = (bonus === "") || (bonus === null) || (bonus === undefined) ? NaN : Number(bonus);
+  const value = Number.isFinite(typed) ? typed : (CLUE_WEIGHTS[weight]?.bonus ?? 1);
+  await updateLedger(journal, ledger => logClue(ledger, {clueId, label, types, weight, bonus: value}));
+  if ( roll ) {
+    await rollDeductions(journal, types, {
+      reason: game.i18n.format("INVESTIGATION_BOARD.DEDUCTIONS.ReasonClue", {name: label || "—"})
+    });
+  }
+}
+
+/* -------------------------------------------- */
+
+/**
  * The whisper to the GMs: who rolled what, and what it means.
  * @param {JournalEntry} journal
  * @param {object[]} sections
@@ -136,7 +167,7 @@ async function postCard(journal, sections, reason) {
         continue;
       }
       const outcome = describeOutcome(row, loc);
-      if ( row.tier && (!bestTier || (["low", "mid", "high"].indexOf(row.tier) > ["low", "mid", "high"].indexOf(bestTier))) ) {
+      if ( row.tier && (!bestTier || (TIERS.indexOf(row.tier) > TIERS.indexOf(bestTier))) ) {
         bestTier = row.tier;
       }
       html.push(`<li class="ib-dc-${row.outcome}${row.tier ? ` ib-dc-${row.tier}` : ""}">`

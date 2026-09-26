@@ -11,9 +11,9 @@ import HandoutDialog from "./handout-dialog.mjs";
 import HandoutShareDialog from "./handout-share-dialog.mjs";
 import DeductionTracker from "./deduction-tracker.mjs";
 import {CLUE_WEIGHTS, DEDUCTIONS, DEDUCTION_RULES} from "../rules/monster-hunters.mjs";
-import {clueEntry, logClue, portableLedger, restoreLedger} from "../data/deductions.mjs";
+import {clueEntry, portableLedger, restoreLedger} from "../data/deductions.mjs";
 import {hasLedger, readLedger, rulesEnabled, updateLedger, writeLedger} from "../data/deduction-ledger.mjs";
-import {rollDeductions} from "../data/deduction-rolls.mjs";
+import {declareClue} from "../data/deduction-rolls.mjs";
 import {
   canManageHandouts,
   currentHolders,
@@ -953,9 +953,10 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
    * current selection both survive another player's edit.
    * @param {JournalEntryPage} page
    * @param {"upsert"|"delete"} action
+   * @param {object} [changes]   The update's changes, when it was one.
    * @returns {Promise<void>}
    */
-  async onPageChange(page, action) {
+  async onPageChange(page, action, changes) {
     if ( !this.rendered || (page.parent?.id !== this.#caseId) || !this.#renderer ) return;
     if ( page.type === PAGE_TYPES.CLUE ) {
       if ( action === "delete" ) {
@@ -966,8 +967,11 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
         await this.#renderer.upsertClue(page);
         this.#consumePendingInlineEdit();
       }
-      // A clue moving to or from the tray changes what the drawer and its badge show.
-      await this.render({parts: ["tray", "toolbar"]});
+      // A clue moving to or from the tray changes what the drawer and its badge show. The GM
+      // stamping the clue someone has selected changes their inspector too; only then, so another
+      // player's edit never re-renders a panel mid-typing.
+      const stamped = (page.id === this.#selectedClue) && ("deductions" in (changes?.system ?? {}));
+      await this.render({parts: stamped ? ["tray", "toolbar", "inspector"] : ["tray", "toolbar"]});
     }
     else if ( page.type === PAGE_TYPES.CONNECTION ) {
       if ( action === "delete" ) this.#renderer.removeConnection(page.id);
@@ -1320,20 +1324,15 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       ui.notifications.warn("INVESTIGATION_BOARD.NOTIFY.DeductionsPickType", {localize: true});
       return;
     }
-    const weight = form.querySelector("[name=deduceWeight]").value;
-    const bonusRaw = form.querySelector("[name=deduceBonus]").value;
-    const bonus = bonusRaw === "" ? CLUE_WEIGHTS[weight]?.bonus : Number(bonusRaw);
-    const roll = form.querySelector("[name=deduceRoll]").checked;
-
     await page.update({system: {deductions: types}});
-    await updateLedger(journal, ledger => logClue(ledger, {
-      clueId: page.id, label: page.name, types, weight, bonus
-    }));
-    if ( roll ) {
-      await rollDeductions(journal, types, {
-        reason: game.i18n.format("INVESTIGATION_BOARD.DEDUCTIONS.ReasonClue", {name: page.name})
-      });
-    }
+    await declareClue(journal, {
+      clueId: page.id,
+      label: page.name,
+      types,
+      weight: form.querySelector("[name=deduceWeight]").value,
+      bonus: form.querySelector("[name=deduceBonus]").value,
+      roll: form.querySelector("[name=deduceRoll]").checked
+    });
   }
 
   /* -------------------------------------------- */

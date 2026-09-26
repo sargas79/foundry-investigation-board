@@ -410,5 +410,8 @@
   "INVESTIGATION_BOARD.DEDUCTIONS.ExportTitle": "Export case",
   "INVESTIGATION_BOARD.DEDUCTIONS.Export": "Export",
   "INVESTIGATION_BOARD.DEDUCTIONS.ExportLedger": "Include the GM's deduction ledger",
-  "INVESTIGATION_BOARD.DEDUCTIONS.ExportLedgerHint": "Difficulty, bonuses, rolls and notes. Leave this off for any file a player might see."
+  "INVESTIGATION_BOARD.DEDUCTIONS.ExportLedgerHint": "Difficulty, bonuses, rolls and notes. Leave this off for any file a player might see.",
+  "INVESTIGATION_BOARD.NOTIFY.DeductionsLuckySpent": "That investigator has already made their lucky guess this adventure.",
+  "INVESTIGATION_BOARD.NOTIFY.DeductionsLuckyNeedsIntuition": "Only an investigator with Intuition can make a lucky guess.",
+  "INVESTIGATION_BOARD.DEDUCTIONS.TeamUses": "Once per adventure, for the team:"
 }

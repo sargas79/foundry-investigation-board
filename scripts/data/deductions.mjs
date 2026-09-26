@@ -15,8 +15,14 @@ export const LEDGER_VERSION = 1;
 /** How many rolls the history keeps. Old ones go first; the best result is kept separately. */
 export const HISTORY_LIMIT = 200;
 
-/** Once-per-adventure uses, per investigator (pp. 6–7). */
-export const ONCE_PER_ADVENTURE = ["lucky", "meditation", "program"];
+/** Once-per-adventure uses that belong to one investigator: Lucky Guess, for those with Intuition (p. 6). */
+export const ONCE_PER_ADVENTURE = ["lucky"];
+
+/**
+ * Once-per-adventure uses that belong to the whole team (p. 7): one Meditation clue however many
+ * hunters share the insight, and one custom search program.
+ */
+export const TEAM_ONCE_PER_ADVENTURE = ["meditation", "program"];
 
 /* -------------------------------------------- */
 /*  Shape                                       */
@@ -39,7 +45,9 @@ export function emptyLedger() {
  */
 export function normalizeLedger(raw) {
   const src = (raw && (typeof raw === "object")) ? raw : {};
-  const num = (v, fallback = 0) => (Number.isFinite(Number(v)) ? Number(v) : fallback);
+  // null and "" are "not set", not zero: Number(null) is 0, which would quietly zero a bonus.
+  const num = (v, fallback = 0) => (((v === null) || (v === "") || !Number.isFinite(Number(v)))
+    ? fallback : Number(v));
   const str = v => (typeof v === "string" ? v : "");
   const list = v => (Array.isArray(v) ? v : []);
 
@@ -85,6 +93,7 @@ export function normalizeLedger(raw) {
         .map(t => [t, Math.trunc(Number(i.manual[t]))])),
       used: Object.fromEntries(ONCE_PER_ADVENTURE.map(k => [k, !!i.used?.[k]]))
     })),
+    teamUsed: Object.fromEntries(TEAM_ONCE_PER_ADVENTURE.map(k => [k, !!src.teamUsed?.[k]])),
     sources: list(src.sources).filter(s => s && str(s.label)).map(s => ({
       id: str(s.id) || randomId(),
       label: str(s.label),
@@ -218,7 +227,8 @@ export function bestSkill(known, allowed, manual) {
         consider(skill.level + mod, mod ? `${shown} ${signed(mod)}` : shown);
       }
       // A wildcard covers the skill whatever its specialty.
-      else if ( WILDCARDS[name]?.some(covered => skillKey(covered) === want) ) {
+      // Own keys only: a skill called "constructor" must not find Object.prototype's.
+      else if ( Object.hasOwn(WILDCARDS, name) && WILDCARDS[name].some(covered => skillKey(covered) === want) ) {
         consider(skill.level + mod, `${skill.name}! for ${label}${mod ? ` ${signed(mod)}` : ""}`);
       }
     }
@@ -377,6 +387,7 @@ export function newAdventure(ledger) {
   for ( const inv of next.investigators ) {
     inv.used = Object.fromEntries(ONCE_PER_ADVENTURE.map(k => [k, false]));
   }
+  next.teamUsed = Object.fromEntries(TEAM_ONCE_PER_ADVENTURE.map(k => [k, false]));
   return next;
 }
 

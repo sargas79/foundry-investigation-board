@@ -70,8 +70,9 @@
       deductions: {what: {factors: {caution: "basic", commonness: "unexpected"}}},
       investigators: [
         {uuid: "Actor.danielle", name: "Danielle", manual: {}, used: {lucky: false}},
-        {uuid: "Actor.everett", name: "Everett", manual: {who: 9}, used: {program: true}}
+        {uuid: "Actor.everett", name: "Everett", manual: {who: 9}, used: {}}
       ],
+      teamUsed: {program: true},
       sources: [{label: "Shayna at the shipyards", kind: "standard", attempts: 1},
         {label: "County records office", kind: "library", attempts: 2}],
       deadline: "The summoning completes at the new moon, Friday night."
@@ -126,8 +127,9 @@
         clues: ledger.clues.map(c => ({id: c.id, label: c.label, onBoard: !!c.clueId,
           types: c.types.map(t => DEDUCTION_RULES[t].label).join(", "), bonus: D.signed(c.bonus),
           weight: CLUE_WEIGHTS[c.weight].label})).reverse(),
+        teamUsed: D.TEAM_ONCE_PER_ADVENTURE.map(key => ({key, label: loc(`Use.${key}`), checked: ledger.teamUsed[key]})),
         investigators: ledger.investigators.map((inv, index) => ({
-          index, uuid: inv.uuid, name: inv.name, img: "/assets/textures/cork.svg",
+          uuid: inv.uuid, luckySpent: inv.used.lucky, name: inv.name, img: "/assets/textures/cork.svg",
           intuition: index === 0, serendipity: false, skillCount: sheets[inv.uuid].length,
           manual: DEDUCTIONS.map(type => ({type, label: DEDUCTION_RULES[type].label, value: inv.manual[type] ?? "",
             auto: D.bestSkill(sheets[inv.uuid], D.skillsFor(ledger, type))?.level ?? "—"})),

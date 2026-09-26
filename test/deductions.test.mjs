@@ -156,6 +156,11 @@ export default async function testDeductions() {
     assert(vampire.level === 12 && vampire.label.startsWith("Lore!"), JSON.stringify(vampire));
   });
 
+  await check("a skill named like an Object member is just a skill", () => {
+    const odd = D.parseSkills([{name: "Constructor", level: 12}, {name: "toString", level: 11}]);
+    assert(D.bestSkill(odd, DEDUCTION_RULES.who.skills()) === null, "matched something");
+  });
+
   await check("a manual level wins", () => {
     const best = D.bestSkill(known, DEDUCTION_RULES.who.skills(), 7);
     assert(best.level === 7 && best.manual, JSON.stringify(best));
@@ -242,12 +247,27 @@ export default async function testDeductions() {
   await check("a new adventure clears confusion and once-per-adventure uses, not clues", () => {
     let ledger = D.normalizeLedger({
       confusion: 3,
-      investigators: [{uuid: "Actor.a", name: "A", used: {lucky: true, meditation: true}}]
+      investigators: [{uuid: "Actor.a", name: "A", used: {lucky: true}}],
+      teamUsed: {meditation: true, program: true}
     });
     ledger = D.logClue(ledger, {label: "x", types: ["who"], weight: "normal"});
     const next = D.newAdventure(ledger);
     assert(next.confusion === 0 && !next.investigators[0].used.lucky && next.clues.length === 1,
       JSON.stringify(next));
+    assert(!next.teamUsed.meditation && !next.teamUsed.program, "team-wide uses were not cleared");
+  });
+
+  // Meditation and the search program are one per adventure for the whole team (p. 7).
+  await check("meditation and the search program belong to the team, Lucky Guess to each hunter", () => {
+    assert(D.ONCE_PER_ADVENTURE.join() === "lucky", D.ONCE_PER_ADVENTURE.join());
+    assert(D.TEAM_ONCE_PER_ADVENTURE.join() === "meditation,program", D.TEAM_ONCE_PER_ADVENTURE.join());
+    const ledger = D.normalizeLedger({teamUsed: {meditation: true}});
+    assert(ledger.teamUsed.meditation && !ledger.teamUsed.program, JSON.stringify(ledger.teamUsed));
+  });
+
+  await check("a clue with no bonus recorded falls back to its weight, not to zero", () => {
+    const ledger = D.normalizeLedger({clues: [{label: "x", types: ["who"], weight: "normal", bonus: null}]});
+    assert(ledger.clues[0].bonus === 1, `bonus was ${ledger.clues[0].bonus}`);
   });
 
   describe("ledger transfer");
