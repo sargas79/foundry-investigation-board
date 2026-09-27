@@ -257,6 +257,13 @@ That is deliberate: ownership, folders, compendium export, permissions and multi
 come from Foundry core rather than being rebuilt. It also means two players moving different clues
 never collide, because they are writing to different documents.
 
+Cases, handouts and sealed entries are filed in a **Cases** folder in the journal directory rather
+than mixed in with your own journals. The GM's client creates the folder when the world starts and,
+the first time, moves in any of the module's journals still sitting at the top level — journals
+you have already filed elsewhere are left alone. The folder is recognised by a flag, so you can
+rename it. Turn **File Journals in a Cases Folder** off in the module settings to go back to the
+top level; journals already filed stay where they are.
+
 Dragging a clue writes **one** update, when you let go — not one per pointer move — so a board
 stays usable over a network. Who is holding which card travels over the module socket instead of
 the database, and expires on its own if someone disconnects mid-drag.

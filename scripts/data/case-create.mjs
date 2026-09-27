@@ -1,4 +1,5 @@
 import {CASE_FLAGS, MODULE_ID} from "../constants.mjs";
+import {inCasesFolder} from "./folders.mjs";
 
 /** The query a player's client sends to a GM's client to have a case made for them. */
 export const CREATE_CASE_QUERY = `${MODULE_ID}.createCase`;
@@ -100,7 +101,7 @@ export async function createCase({name, classification = "", visibility = "priva
 
   // The ordinary path: anyone with JOURNAL_CREATE — Trusted Player and above by default — makes
   // their own case, sharing included, with no GM needed.
-  if ( canCreateDirectly() ) return JournalEntry.create(data);
+  if ( canCreateDirectly() ) return JournalEntry.create(await inCasesFolder(data));
 
   const gm = findActiveGM();
   if ( !gm ) {
@@ -131,11 +132,11 @@ export async function handleCreateCaseQuery({name, classification, ownerId, visi
   const owner = game.users.get(ownerId);
   if ( !owner ) return {error: "unknown-user"};
 
-  const journal = await JournalEntry.create(caseData({
+  const journal = await JournalEntry.create(await inCasesFolder(caseData({
     name: String(name ?? "").trim().slice(0, 200) || game.i18n.localize("INVESTIGATION_BOARD.UntitledCase"),
     classification: String(classification ?? "").trim().slice(0, 100),
     visibility: visibility in VISIBILITY ? visibility : "private",
     ownerId
-  }));
+  })));
   return journal ? {uuid: journal.uuid} : {error: "create-failed"};
 }

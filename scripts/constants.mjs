@@ -49,6 +49,12 @@ export const HANDOUT_FLAGS = {
   IS_HANDOUT: "isHandout"
 };
 
+/** Flag keys written on a Folder. */
+export const FOLDER_FLAGS = {
+  /** Marks the journal folder the module files its cases, handouts and sealed entries in. */
+  CASES: "casesFolder"
+};
+
 /**
  * The kinds of document a GM can hand over.
  *
@@ -140,7 +146,11 @@ export const HANDOUT_CLUE_TEMPLATES = {
 export const SETTINGS = {
   CLASSIFICATIONS: "classifications",
   /** Run investigations with GURPS Monster Hunters 2's deduction rules. */
-  MONSTER_HUNTERS: "monsterHunters"
+  MONSTER_HUNTERS: "monsterHunters",
+  /** File the module's journals in a folder of their own. */
+  CASES_FOLDER: "casesFolder",
+  /** Whether journals made before the folder existed have been moved into it. Hidden. */
+  CASES_FOLDER_FILED: "casesFolderFiled"
 };
 
 /**

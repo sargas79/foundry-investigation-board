@@ -7,6 +7,7 @@ import {
   PAGE_TYPES
 } from "../constants.mjs";
 import {authorStamp} from "./authorship.mjs";
+import {inCasesFolder} from "./folders.mjs";
 import {freeSpotNear, topZ} from "./case.mjs";
 
 /**
@@ -176,7 +177,7 @@ export async function createHandout({name, kind = "document", system = {}} = {})
 
   const title = name?.trim() || game.i18n.localize("INVESTIGATION_BOARD.UntitledHandout");
 
-  return JournalEntry.create({
+  return JournalEntry.create(await inCasesFolder({
     name: title,
     // The point of the whole feature: nobody has this until the GM says so.
     ownership: {default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE},
@@ -192,7 +193,7 @@ export async function createHandout({name, kind = "document", system = {}} = {})
         createdAt: Date.now()
       }
     }]
-  });
+  }));
 }
 
 /* -------------------------------------------- */

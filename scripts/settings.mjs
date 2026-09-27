@@ -32,6 +32,24 @@ export function registerSettings() {
     type: new foundry.data.fields.BooleanField({initial: false}),
     onChange: () => Hooks.callAll(`${MODULE_ID}.rulesChanged`)
   });
+
+  /**
+   * #80: file cases, handouts and sealed entries in a folder of their own rather than at the root
+   * of the journal directory. Turning it off leaves journals already filed where they are.
+   */
+  game.settings.register(MODULE_ID, SETTINGS.CASES_FOLDER, {
+    name: "INVESTIGATION_BOARD.SETTINGS.CasesFolder",
+    hint: "INVESTIGATION_BOARD.SETTINGS.CasesFolderHint",
+    scope: "world",
+    config: true,
+    type: new foundry.data.fields.BooleanField({initial: true})
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.CASES_FOLDER_FILED, {
+    scope: "world",
+    config: false,
+    type: new foundry.data.fields.BooleanField({initial: false})
+  });
 }
 
 /* -------------------------------------------- */
