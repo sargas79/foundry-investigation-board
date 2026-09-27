@@ -33,6 +33,7 @@ const {default: testUploads} = await import("./uploads.test.mjs");
 const {default: testHandouts} = await import("./handouts.test.mjs");
 const {default: testMigration} = await import("./migration.test.mjs");
 const {default: testDeductions} = await import("./deductions.test.mjs");
+const {default: testOpenCaseFile} = await import("./open-case-file.test.mjs");
 
 await testManifest();
 await testDataModels();
@@ -52,5 +53,6 @@ await testUploads();
 await testHandouts();
 await testMigration();
 await testDeductions();
+await testOpenCaseFile();
 
 report();

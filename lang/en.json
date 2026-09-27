@@ -172,6 +172,7 @@
   "TYPES.JournalEntryPage.sargas-investigation-board.connection": "Connection",
   "INVESTIGATION_BOARD.CaseFile": "Case file",
   "INVESTIGATION_BOARD.CaseFileFor": "Case File — {name}",
+  "INVESTIGATION_BOARD.CaseTitleTooltip": "{name} — double-click to open the case file",
   "INVESTIGATION_BOARD.CaseGone": "That case no longer exists.",
   "INVESTIGATION_BOARD.CaseNumber": "File no.",
   "INVESTIGATION_BOARD.CaseNumberLabel": "File number",
