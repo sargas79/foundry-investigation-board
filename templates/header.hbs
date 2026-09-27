@@ -4,7 +4,7 @@
         {{!-- Double-clicking the title opens the case file, like the folder button beside it. --}}
         {{#if hasCase}}
             <h1 class="ib-case-title" data-case-id="{{currentCase.id}}"
-                data-tooltip="INVESTIGATION_BOARD.CaseFileHint">{{currentCase.name}}</h1>
+                data-tooltip-text="{{localize 'INVESTIGATION_BOARD.CaseTitleTooltip' name=currentCase.name}}">{{currentCase.name}}</h1>
         {{else}}
             <h1 class="ib-case-title">{{localize "INVESTIGATION_BOARD.NoCaseOpen"}}</h1>
         {{/if}}

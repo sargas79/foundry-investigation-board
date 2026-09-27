@@ -283,12 +283,16 @@ export default class CaseFile extends HandlebarsApplicationMixin(ApplicationV2) 
    * The window has a fixed id, and Foundry answers a second application with the same id by
    * swapping its element in place — the first instance is left orphaned, believing itself still
    * rendered. So an open file is switched to the requested case and brought to the front instead.
+   *
+   * A window still animating closed is waited out first. Its close ends by unregistering the id,
+   * which would otherwise unregister the new window in its place and orphan it on the next open.
    * @param {string} caseId
    * @returns {Promise<CaseFile>}
    */
-  static open(caseId) {
+  static async open(caseId) {
     const existing = foundry.applications.instances.get(this.DEFAULT_OPTIONS.id);
-    if ( (existing instanceof this) && existing.rendered ) {
+    if ( existing?.state === ApplicationV2.RENDER_STATES.CLOSING ) await existing.close();
+    else if ( (existing instanceof this) && existing.rendered ) {
       existing.caseId = caseId;
       return existing.render({force: true});
     }
