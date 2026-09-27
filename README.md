@@ -69,7 +69,8 @@ back with every string they were tied to still attached — dismissing is never 
 also gets a trash icon, in the header and on each row of the sidebar, which destroys the case and
 everything on it after a confirmation that says how many clues go with it.
 
-**Open the case file** with the folder icon in the header. The board is where the party works a
+**Open the case file** with the folder icon in the header, or by double-clicking a case's name in
+the sidebar or its title in the header. The board is where the party works a
 case out; the file is what they write down — an opening document with a file number and the facts
 of the case, then findings pages added as sessions go on. Anyone who can work the case writes the
 opening file — shared means shared, and the file is the record of work the whole party did. Anyone

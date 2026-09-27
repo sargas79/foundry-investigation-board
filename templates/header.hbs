@@ -1,9 +1,13 @@
 {{!-- Case title, status and progress. Made editable in milestone 5 (#29, #30). --}}
 <header class="ib-header">
     <div class="ib-header-titles">
-        <h1 class="ib-case-title">
-            {{#if hasCase}}{{currentCase.name}}{{else}}{{localize "INVESTIGATION_BOARD.NoCaseOpen"}}{{/if}}
-        </h1>
+        {{!-- Double-clicking the title opens the case file, like the folder button beside it. --}}
+        {{#if hasCase}}
+            <h1 class="ib-case-title" data-case-id="{{currentCase.id}}"
+                data-tooltip="INVESTIGATION_BOARD.CaseFileHint">{{currentCase.name}}</h1>
+        {{else}}
+            <h1 class="ib-case-title">{{localize "INVESTIGATION_BOARD.NoCaseOpen"}}</h1>
+        {{/if}}
         {{#if hasCase}}
             <p class="ib-case-status">
                 {{localize "INVESTIGATION_BOARD.StatusLabel"}}

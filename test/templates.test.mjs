@@ -262,6 +262,22 @@ export default async function testTemplates() {
       "a player was offered the tracker");
   });
 
+  // Double-clicking a case's name opens its file. The board reads the case from the element that
+  // was double-clicked, so the name has to carry it, and "No case open" must not.
+  await check("the case title names its case, for double-clicking open the file", () => {
+    const html = render("templates/header.hbs", headerContext(false));
+    assert(/<h1 class="ib-case-title" data-case-id="c1"/.test(html), "the title carries no case id");
+    const empty = render("templates/header.hbs", {...headerContext(false), hasCase: false});
+    assert(!/ib-case-title"[^>]*data-case-id/.test(empty), "the empty title carries a case id");
+  });
+
+  await check("every case name in the sidebar carries its case, for double-clicking", () => {
+    const html = render("templates/sidebar.hbs", sidebarContext(false));
+    const names = html.match(/<button type="button" class="ib-case-open"[^>]*>/g) ?? [];
+    assert(names.length === 2, `expected two case names, got ${names.length}`);
+    assert(names.every(b => /data-case-id="c\d"/.test(b)), "a case name has no case id");
+  });
+
   describe("case-file.hbs");
 
   const fileContext = isGM => ({

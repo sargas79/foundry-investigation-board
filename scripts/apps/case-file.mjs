@@ -278,11 +278,20 @@ export default class CaseFile extends HandlebarsApplicationMixin(ApplicationV2) 
   /* -------------------------------------------- */
 
   /**
-   * Open the file for a case.
+   * Open the file for a case, reusing the window if one is already open.
+   *
+   * The window has a fixed id, and Foundry answers a second application with the same id by
+   * swapping its element in place — the first instance is left orphaned, believing itself still
+   * rendered. So an open file is switched to the requested case and brought to the front instead.
    * @param {string} caseId
    * @returns {Promise<CaseFile>}
    */
   static open(caseId) {
+    const existing = foundry.applications.instances.get(this.DEFAULT_OPTIONS.id);
+    if ( (existing instanceof this) && existing.rendered ) {
+      existing.caseId = caseId;
+      return existing.render({force: true});
+    }
     return new this({caseId}).render({force: true});
   }
 }

@@ -657,6 +657,10 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       await this.render({parts: ["sidebar"]});
     });
 
+    // Bound on the window itself, which survives re-renders: the first click of a double-click
+    // selects the case and rebuilds the sidebar, so the second lands on a freshly rendered row.
+    this.#bindOnce(this.element, "dblclick", event => this.#onCaseNameDoubleClick(event));
+
     this.#bindProgress();
     this.#bindInspectorFields();
     this.#bindFilterFields();
@@ -1235,6 +1239,24 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
   static #onOpenCaseFile(_event, target) {
     const caseId = target.dataset.caseId ?? this.#caseId;
     if ( caseId ) CaseFile.open(caseId);
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Open a case's file when its name is double-clicked — a row in the sidebar, or the header's
+   * title. The single clicks before it have already selected the case, as they always did.
+   * @param {MouseEvent} event
+   * @returns {Promise<void>}
+   */
+  async #onCaseNameDoubleClick(event) {
+    const name = event.target.closest?.(".ib-case-row .ib-case-open, .ib-case-title[data-case-id]");
+    const caseId = name?.dataset.caseId;
+    if ( !caseId ) return;
+    // A double-click on text also selects a word of it, which is not what was meant.
+    name.ownerDocument.getSelection()?.removeAllRanges();
+    await this.showCase(caseId);
+    await CaseFile.open(caseId);
   }
 
   /* -------------------------------------------- */
