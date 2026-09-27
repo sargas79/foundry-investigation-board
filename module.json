@@ -2,7 +2,7 @@
   "id": "sargas-investigation-board",
   "title": "Sargas - Investigation Board",
   "description": "A pinboard for collaborative investigation. Players pin clues, string them together, and work cases as a party — no GM required at the table.",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "compatibility": {
     "minimum": "14",
     "verified": "14.367"
