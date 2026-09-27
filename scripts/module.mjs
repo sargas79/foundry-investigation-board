@@ -17,6 +17,7 @@ import {
 } from "./apps/clue-page-sheet.mjs";
 import {registerKeybindings, registerSettings} from "./settings.mjs";
 import {migrateLegacyData} from "./migration.mjs";
+import {prepareCasesFolder} from "./data/folders.mjs";
 import DeductionTracker from "./apps/deduction-tracker.mjs";
 import {changesStamp} from "./data/deductions.mjs";
 
@@ -112,7 +113,8 @@ Hooks.once("ready", () => {
   console.log(`${MODULE_ID} | Sargas - Investigation Board ready`);
 
   // Worlds from before the module's rename keep their data under the old id until this moves it.
-  migrateLegacyData();
+  // Filing into the cases folder waits for it, so it recognises journals by their migrated flags.
+  migrateLegacyData().then(prepareCasesFolder);
 });
 
 /* -------------------------------------------- */

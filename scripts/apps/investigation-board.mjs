@@ -24,6 +24,7 @@ import {
   pinHandout
 } from "../data/handouts.mjs";
 import {canCreateDirectly, createCase} from "../data/case-create.mjs";
+import {inCasesFolder} from "../data/folders.mjs";
 import {canManageSharing} from "../data/sharing.mjs";
 import {buildImport, exportCase, exportFilename, validateExport} from "../data/transfer.mjs";
 import {announce, clearPresence, holderOf, watchPresence} from "../presence.mjs";
@@ -1175,7 +1176,7 @@ export default class InvestigationBoard extends HandlebarsApplicationMixin(Appli
       return;
     }
 
-    const created = await JournalEntry.create(journal);
+    const created = await JournalEntry.create(await inCasesFolder(journal));
     if ( !created ) return;
     await created.createEmbeddedDocuments("JournalEntryPage", pages, {keepId: true});
 

@@ -1,4 +1,5 @@
 import {CASE_FLAGS, MODULE_ID} from "../constants.mjs";
+import {inCasesFolder} from "./folders.mjs";
 
 /**
  * Redacting passages of a case file, so the text is genuinely withheld from players.
@@ -47,11 +48,11 @@ export async function ensureSealedEntry(journal) {
   const existing = sealedEntryFor(journal);
   if ( existing ) return existing;
 
-  const created = await JournalEntry.create({
+  const created = await JournalEntry.create(await inCasesFolder({
     name: game.i18n.format("INVESTIGATION_BOARD.SealedEntryName", {name: journal.name}),
     ownership: {default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE},
     flags: {[MODULE_ID]: {[CASE_FLAGS.SEALED_FOR]: journal.id}}
-  });
+  }));
   await journal.setFlag(MODULE_ID, CASE_FLAGS.SEALED_ENTRY, created.id);
   return created;
 }
